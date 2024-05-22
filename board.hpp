@@ -23,6 +23,8 @@ class Board
 public:
     Board();
 
+    ~Board();
+
     // Print board.
     void print();
 private:

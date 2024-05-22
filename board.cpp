@@ -53,6 +53,12 @@ Board::Board()
     position->initialize();
 }
 
+Board::~Board()
+{
+    delete position;
+}
+
+
 void Board::print()
 {
     for(int i = 0; i < 8; i++)
