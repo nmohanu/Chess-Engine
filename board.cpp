@@ -3,13 +3,9 @@
 
 void Position::initialize()
 {
-    for(bool b : this->board_color)
-    {
-        b = false;
-    }
     for(int i = 48; i < 64; i++)
     {
-        this->board_color[i] = true;
+        toggle_bit(board_color, i);
     }
 
     // Set the pawns.

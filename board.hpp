@@ -7,7 +7,7 @@ public:
     void initialize();
     
     // false = black, true = white.
-    bool board_color[64];
+    uint64_t board_color = 0;
 
     // Represent the board for each piece.
     uint64_t pawns = 0;
@@ -27,7 +27,17 @@ public:
 
     // Print board.
     void print();
-private:
+    
     Position* position = new Position();
 };
 
+class Move
+{   
+    Move(uint64_t start, uint64_t end, bool is_white) : start_location(start), end_location(end), is_white(is_white)
+    {
+    }
+
+    uint64_t start_location;
+    uint64_t end_location;
+    bool is_white;
+};
