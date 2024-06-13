@@ -1,5 +1,7 @@
 #include "engine.hpp"
 #include <SFML/Graphics.hpp>
+#include <utility>
+#include <iostream>
 
 int main()
 {
@@ -12,9 +14,11 @@ int main()
         return 1;
     }
 
-    float SCALE_FACTOR = 6.f;
+    float SCALE_FACTOR = 8.f;
     int SCREEN_WIDTH = 1080;
     int SCREEN_HEIGHT = 1080;
+
+    std::pair<int,int> clicked_square;
 
     sf::Vector2f offset((SCREEN_WIDTH - 16*SCALE_FACTOR*8)/2, (SCREEN_HEIGHT - 16*SCALE_FACTOR*8)/2);
 
@@ -74,6 +78,10 @@ int main()
     queen_white.setTextureRect(sf::IntRect(208, 0, 16, 16));
     queen_white.setScale(SCALE_FACTOR, SCALE_FACTOR);
 
+    sf::Sprite selection_square(texture);
+    selection_square.setTextureRect(sf::IntRect(224, 0, 16, 16));
+    selection_square.setScale(SCALE_FACTOR, SCALE_FACTOR);
+
     sf::RenderWindow window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Chess Engine");
 
     while(window.isOpen())
@@ -86,6 +94,16 @@ int main()
         }
         
         bool color = 1;
+        sf::Vector2i mouse_position;
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+        {
+            mouse_position = sf::Mouse::getPosition(window);
+            clicked_square.first = (mouse_position.x - offset.x) / (16 * SCALE_FACTOR);
+            clicked_square.second = (mouse_position.y - offset.y) / (16 * SCALE_FACTOR);
+        }
+
+        // std::cout << clicked_square.first << " " << clicked_square.second << '\n';
+        // std::cout << mouse_position.x << " " << mouse_position.y << '\n';
 
         window.clear();
 
@@ -204,9 +222,14 @@ int main()
                         window.draw(queen_black);
                     }
                 }
+
+                if(x == clicked_square.first && y == clicked_square.second)
+                {
+                    selection_square.setPosition(sf::Vector2f(print_position));
+                    window.draw(selection_square);
+                }
             }
         }
-        
         
         window.display();
     }
