@@ -115,6 +115,8 @@ int main()
             {
                 int pos = y * 8 + x;
 
+                sf::Sprite* piece_to_draw = nullptr;
+
                 sf::Vector2f print_position(x*16*SCALE_FACTOR + offset.x, y*16*SCALE_FACTOR + offset.y);
 
                 // Draw the board.
@@ -128,101 +130,64 @@ int main()
                     square_brown.setPosition(sf::Vector2f(print_position));
                     window.draw(square_brown);
                 }
+
+                // Flip color at end of row.
                 if(x != 7)
                     color = !color;
 
                 // Draw the pieces.
-                if (get_bit(board->position->pawns, pos))
+                uint8_t piece_type = board->get_piece(pos);
+                switch (piece_type) 
                 {
-                    if (get_bit(board->position->board_color, pos))
-                    {
-                        // White piece
-                        pawn_white.setPosition(sf::Vector2f(print_position));
-                        window.draw(pawn_white);
-                    }
-                    else
-                    {
-                        // Black piece
-                        pawn_black.setPosition(sf::Vector2f(print_position));
-                        window.draw(pawn_black);
-                    }
+                    case B_PAWN:
+                        piece_to_draw = &pawn_black;
+                        break;
+                    case W_PAWN:
+                        piece_to_draw = &pawn_white;
+                        break;
+                    case B_KING:
+                        piece_to_draw = &king_black;
+                        break;
+                    case W_KING:
+                        piece_to_draw = &king_white;
+                        break;
+                    case B_QUEEN:
+                        piece_to_draw = &queen_black;
+                        break;
+                    case W_QUEEN:
+                        piece_to_draw = &queen_white;
+                        break;
+                    case B_ROOK:
+                        piece_to_draw = &rook_black;
+                        break;
+                    case W_ROOK:
+                        piece_to_draw = &rook_white;
+                        break;
+                    case B_BISHOP:
+                        piece_to_draw = &bishop_black;
+                        break;
+                    case W_BISHOP:
+                        piece_to_draw = &bishop_white;
+                        break;
+                    case B_KNIGHT:
+                        piece_to_draw = &knight_black;
+                        break;
+                    case W_KNIGHT:
+                        piece_to_draw = &knight_white;
+                        break;
+                    default:
+                        // Handle default case if necessary
+                        break;
                 }
-                else if (get_bit(board->position->bishops, pos))
-                {
-                    if (get_bit(board->position->board_color, pos))
-                    {
-                        // White piece
-                        bishop_white.setPosition(sf::Vector2f(print_position));
-                        window.draw(bishop_white);
-                    }
-                    else
-                    {
-                        // Black piece
-                        bishop_black.setPosition(sf::Vector2f(print_position));
-                        window.draw(bishop_black);
-                    }
-                }
-                else if (get_bit(board->position->rooks, pos))
-                {
-                    if (get_bit(board->position->board_color, pos))
-                    {
-                        // White piece
-                        rook_white.setPosition(sf::Vector2f(print_position));
-                        window.draw(rook_white);
-                    }
-                    else
-                    {
-                        // Black piece
-                        rook_black.setPosition(sf::Vector2f(print_position));
-                        window.draw(rook_black);
-                    }
-                }
-                else if (get_bit(board->position->knights, pos))
-                {
-                    if (get_bit(board->position->board_color, pos))
-                    {
-                        // White piece
-                        knight_white.setPosition(sf::Vector2f(print_position));
-                        window.draw(knight_white);
-                    }
-                    else
-                    {
-                        // Black piece
-                        knight_black.setPosition(sf::Vector2f(print_position));
-                        window.draw(knight_black);
-                    }
-                }
-                else if (get_bit(board->position->kings, pos))
-                {
-                    if (get_bit(board->position->board_color, pos))
-                    {
-                        // White piece
-                        king_white.setPosition(sf::Vector2f(print_position));
-                        window.draw(king_white);
-                    }
-                    else
-                    {
-                        // Black piece
-                        king_black.setPosition(sf::Vector2f(print_position));
-                        window.draw(king_black);
-                    }
-                }
-                else if (get_bit(board->position->queens, pos))
-                {
-                    if (get_bit(board->position->board_color, pos))
-                    {
-                        // White piece
-                        queen_white.setPosition(sf::Vector2f(print_position));
-                        window.draw(queen_white);
-                    }
-                    else
-                    {
-                        // Black piece
-                        queen_black.setPosition(sf::Vector2f(print_position));
-                        window.draw(queen_black);
-                    }
-                }
+                
 
+                // Draw the piece on our iteration coordinates.
+                if(piece_to_draw != nullptr)
+                {
+                    piece_to_draw->setPosition(sf::Vector2f(print_position));
+                    window.draw(*piece_to_draw);
+                }
+                
                 if(x == clicked_square.first && y == clicked_square.second)
                 {
                     selection_square.setPosition(sf::Vector2f(print_position));

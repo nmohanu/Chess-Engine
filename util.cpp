@@ -5,8 +5,8 @@ void toggle_bit(uint64_t &num, uint64_t pos)
     num ^= mask;
 }
 
-bool get_bit(uint64_t num, uint64_t pos)
+bool get_bit(__uint128_t num, uint8_t pos)
 {
-    uint64_t mask = 1ULL << (63 - pos);
+    __uint128_t mask = 1ULL << (63 - pos);
     return (num & mask) != 0;
 }
