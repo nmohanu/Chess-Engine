@@ -56,8 +56,10 @@ uint64_t Position::make_attack_board(uint8_t x, uint8_t y)
         while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_piece(pos_to_check != 0))
+            uint8_t piece_on_pos = get_piece(pos_to_check);
+            if(piece_on_pos != 0)
             {
+                toggle_bit_on(attack_board, pos_to_check);
                 break;
             }
             toggle_bit_on(attack_board, pos_to_check);
@@ -70,8 +72,9 @@ uint64_t Position::make_attack_board(uint8_t x, uint8_t y)
         while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_piece(pos_to_check != 0))
+            if(get_piece(pos_to_check) != 0)
             {
+                toggle_bit_on(attack_board, pos_to_check);
                 break;
             }
             toggle_bit_on(attack_board, pos_to_check);
@@ -84,8 +87,9 @@ uint64_t Position::make_attack_board(uint8_t x, uint8_t y)
         while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_piece(pos_to_check != 0))
+            if(get_piece(pos_to_check) != 0)
             {
+                toggle_bit_on(attack_board, pos_to_check);
                 break;
             }
             toggle_bit_on(attack_board, pos_to_check);
@@ -98,7 +102,7 @@ uint64_t Position::make_attack_board(uint8_t x, uint8_t y)
         while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_piece(pos_to_check != 0))
+            if(get_piece(pos_to_check) != 0)
             {
                 break;
             }
@@ -125,8 +129,9 @@ uint64_t Position::make_attack_board(uint8_t x, uint8_t y)
         while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_piece(pos_to_check != 0))
+            if(get_piece(pos_to_check) != 0)
             {
+                toggle_bit_on(attack_board, pos_to_check);
                 break;
             }
             toggle_bit_on(attack_board, pos_to_check);
@@ -137,8 +142,9 @@ uint64_t Position::make_attack_board(uint8_t x, uint8_t y)
         while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_piece(pos_to_check != 0))
+            if(get_piece(pos_to_check) != 0)
             {
+                toggle_bit_on(attack_board, pos_to_check);
                 break;
             }
             toggle_bit_on(attack_board, pos_to_check);
@@ -149,8 +155,9 @@ uint64_t Position::make_attack_board(uint8_t x, uint8_t y)
         while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_piece(pos_to_check != 0))
+            if(get_piece(pos_to_check) != 0)
             {
+                toggle_bit_on(attack_board, pos_to_check);
                 break;
             }
             toggle_bit_on(attack_board, pos_to_check);
@@ -161,8 +168,9 @@ uint64_t Position::make_attack_board(uint8_t x, uint8_t y)
         while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_piece(pos_to_check != 0))
+            if(get_piece(pos_to_check) != 0)
             {
+                toggle_bit_on(attack_board, pos_to_check);
                 break;
             }
             toggle_bit_on(attack_board, pos_to_check);
@@ -174,19 +182,14 @@ uint64_t Position::make_attack_board(uint8_t x, uint8_t y)
 
 uint8_t Position::get_piece_position(uint8_t piece)
 {
-    uint64_t board[] = {first_16, second_16, third_16, fourth_16};
-
-    for (int b = 0; b < 4; b++)
+    for (int y = 0; y < 8; y++)
     {
-        for (int i = 0; i < 64; i += 4)
+        for (int x = 0; x < 8; x++)
         {
-            uint8_t mask = 0b1111;
-            mask <<= (63 - i);
-            mask &= board[b];
-            mask >>= (63-1);
-            if(mask == piece)
+            uint8_t piece_at_pos = get_piece(make_pos(x,y));
+            if(piece_at_pos == piece)
             {
-                return i;
+                return make_pos(x, y);
             }
         }
     }
@@ -275,15 +278,15 @@ void Position::set_piece(uint8_t new_piece, uint8_t pos)
     *old_squares = new_squares;
 }
 
-void Position::do_move(Move &move)
+void Position::do_move(Move* move)
 {
-    this->set_piece(this->get_piece(move.start_location), move.end_location);
-    this->set_piece(0, move.start_location);
+    this->set_piece(this->get_piece(move->start_location), move->end_location);
+    this->set_piece(0, move->start_location);
 }
 
-std::vector<Move*> Board::determine_moves(bool is_white, Position const &position) const
+std::vector<Move*> Board::determine_moves(bool is_white, Position &position) const
 {
-    uint8_t color_at_turn = (is_white) ? 0 : 1;
+    uint8_t color_sign = (is_white) ? 0 : 1;
     std::vector<Move*> possible_moves;
     for (int y = 0; y < 8; y++)
     {
@@ -294,106 +297,39 @@ std::vector<Move*> Board::determine_moves(bool is_white, Position const &positio
             uint8_t piece_type = position.get_piece(pos);
 
             // Empty square.
-            if(piece_type == 0) continue;
+            if(piece_type == 0 || get_color(piece_type) != color_sign) continue;
 
-            // Check if piece belongs to player at turn.
-            if(get_color(piece_type) == color_at_turn)
+            uint64_t attacksquares = position.make_attack_board(x, y);
+            
+            for(int i = 0; i < 63; i++)
             {
-                // Here we implement the logic for each piece.
-                switch (piece_type) 
+                if(get_bit_64(attacksquares, i) == 1)
                 {
-                    case B_PAWN:
-                        // Pawn might be at initial position, can move two squares.
-                        if(y == 1)
-                        {
-                            // Check if pawn can move two squares down.
-                            if(position.get_piece(make_pos(x, y+1)) == 0 && position.get_piece(make_pos(x, y+2)) == 0)
-                            {
-                                possible_moves.push_back(new Move(pos, make_pos(x, y+2)));
-                            }
-                        }
-                        // Check if pawn can move 1 square.
-                        if(position.get_piece(make_pos(x, y+1)) == 0)
-                        {
-                            possible_moves.push_back(new Move(pos, make_pos(x, y+1)));
-                        }
-                        // Check if pawn can take a piece.
-                        {
-                            uint8_t square_diag_1 = position.get_piece(make_pos(x+1, y+1));
-                            if(square_diag_1 != 0 && get_color(square_diag_1) != color_at_turn)
-                            {
-                                possible_moves.push_back(new Move(pos, make_pos(x+1, y+1)));
-                            }
-                        }
-                        
-                        // Maybe the other diagonal square.
-                        {
-                            uint8_t square_diag_2 = position.get_piece(make_pos(x-1, y+1));
-                            if(square_diag_2 != 0 && get_color(square_diag_2) != color_at_turn)
-                            {
-                                possible_moves.push_back(new Move(pos, make_pos(x+1, y+1)));
-                            }
-                        }
-                        break;
-                    case W_PAWN:
-                        // Pawn might be at initial position, can move two squares.
-                        if(y == 6)
-                        {
-                            // Check if pawn can move two squares down.
-                            if(position.get_piece(make_pos(x, y-1)) == 0 && position.get_piece(make_pos(x, y-2)) == 0)
-                            {
-                                possible_moves.push_back(new Move(pos, make_pos(x, y-2)));
-                            }
-                        }
-                        // Check if pawn can move 1 square.
-                        if(position.get_piece(make_pos(x, y-1)) == 0)
-                        {
-                            possible_moves.push_back(new Move(pos, make_pos(x, y-1)));
-                        }
-                        // Check if pawn can take a piece.
-                        { 
-                            uint8_t square_diag_1 = position.get_piece(make_pos(x+1, y-1));
-                            if(square_diag_1 != 0 && get_color(square_diag_1) != color_at_turn)
-                            {
-                                possible_moves.push_back(new Move(pos, make_pos(x+1, y-1)));
-                            }
-                        }
-                        // Maybe the other diagonal square.
-                        {
-                            uint8_t square_diag_2 = position.get_piece(make_pos(x-1, y-1));
-                            if(square_diag_2 != 0 && get_color(square_diag_2) != color_at_turn)
-                            {
-                                possible_moves.push_back(new Move(pos, make_pos(x+1, y-1)));
-                            }
-                        }
-                        
-                        break;
-                    case B_KING:
-                        break;
-                    case W_KING:
-                        break;
-                    case B_QUEEN:
-                        break;
-                    case W_QUEEN:
-                        break;
-                    case B_ROOK:
-                        break;
-                    case W_ROOK:
-                        break;
-                    case B_BISHOP:
-                        break;
-                    case W_BISHOP:
-                        break;
-                    case B_KNIGHT:
-                        break;
-                    case W_KNIGHT:
-                        break;
-                    default:
-                        break;
+                    // piece at pos can move to square i.
+                    Move* move = new Move(pos,i);
+
+                    // Copy board state.
+                    uint64_t first = position.first_16;
+                    uint64_t second = position.second_16;
+                    uint64_t third = position.third_16;
+                    uint64_t fourth = position.fourth_16;
+
+                    position.do_move(move);
+                    if(!position.king_under_attack(is_white))
+                    {   
+                        // Move is possible.
+                        possible_moves.push_back(move);
+                    }
+                    // Restore position.
+                    position.first_16 = first;
+                    position.second_16 = second;
+                    position.third_16 = third;
+                    position.fourth_16 = fourth;
                 }
             }
         }
     }
+    return possible_moves;
 }
 
 // Get the piece on position x, y.

@@ -14,7 +14,7 @@ struct Position
     uint8_t get_piece(uint8_t pos) const;
 
     // Do a move.
-    void do_move(Move &move);
+    void do_move(Move* move);
 
     // Check if king is under attack.
     bool king_under_attack(bool is_white);
@@ -42,7 +42,7 @@ public:
     ~Board();
 
     // Determine possible moves.
-    std::vector<Move*> determine_moves(bool is_white, Position const &position) const;
+    std::vector<Move*> determine_moves(bool is_white, Position &position) const;
 
     // Print board.
     void print() const;
