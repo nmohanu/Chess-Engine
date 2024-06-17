@@ -42,6 +42,15 @@
 #define THIRD_16_SQUARES 0b0
 #define FOURTH_16_SQUARES 0b0110'0110'0110'0110'0110'0110'0110'0110'0011'0101'0100'0010'0001'0100'0101'0011 
 
-void toggle_bit(uint64_t &num, uint64_t pos);
+#define WHITE_PIECES (uint8_t[])[W_KING, W_QUEEN, W_BISHOP, W_KNIGHT, W_PAWN, W_ROOK]
+#define BLACK_PIECES (uint8_t[])[B_KING, B_QUEEN, B_BISHOP, B_KNIGHT, B_PAWN, B_ROOK]
 
-bool get_bit(uint64_t num, uint64_t pos);
+void toggle_bit_on(uint64_t &num, uint64_t pos);
+
+bool get_bit(uint8_t num, uint8_t pos);
+
+bool get_bit_64(uint64_t num, uint64_t pos);
+
+int make_pos(int x, int y);
+
+bool get_color(uint8_t piece);

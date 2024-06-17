@@ -1,12 +1,29 @@
 #include "util.hpp"
-void toggle_bit(uint64_t &num, uint64_t pos)
+void toggle_bit_on(uint64_t &num, uint64_t pos)
 {
     uint64_t mask = 1ULL << (63 - pos);
-    num ^= mask;
+    num |= mask;
 }
 
-bool get_bit(__uint128_t num, uint8_t pos)
+bool get_bit(uint8_t num, uint8_t pos)
 {
-    __uint128_t mask = 1ULL << (63 - pos);
+    uint8_t mask = 1ULL << (7 - pos);
     return (num & mask) != 0;
 }
+
+bool get_bit_64(uint64_t num, uint64_t pos)
+{
+    uint64_t mask = 1ULL << (63 - pos);
+    return (num & mask) != 0;
+}
+
+int make_pos(int x, int y)
+{
+    return 8*y+x;
+}
+
+bool get_color(uint8_t piece)
+{
+    return get_bit(piece, 0);
+}
+

@@ -136,7 +136,7 @@ int main()
                     color = !color;
 
                 // Draw the pieces.
-                uint8_t piece_type = board->get_piece(pos);
+                uint8_t piece_type = board->position->get_piece(pos);
                 switch (piece_type) 
                 {
                     case B_PAWN:
@@ -176,7 +176,6 @@ int main()
                         piece_to_draw = &knight_white;
                         break;
                     default:
-                        // Handle default case if necessary
                         break;
                 }
                 
