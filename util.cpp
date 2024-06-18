@@ -10,7 +10,8 @@ void toggle_bit_on(uint64_t &num, uint64_t pos)
 bool get_bit(uint8_t num, uint8_t pos)
 {
     uint8_t mask = 1ULL << (7 - pos);
-    return (num & mask) != 0;
+    uint8_t result = (num & mask);
+    return result;
 }
 
 bool get_bit_64(uint64_t num, uint64_t pos)
@@ -26,7 +27,7 @@ int make_pos(int x, int y)
 
 bool get_color(uint8_t piece)
 {
-    return get_bit(piece, 0);
+    return get_bit(piece, 4);
 }
 
 void print_binary(uint64_t num)

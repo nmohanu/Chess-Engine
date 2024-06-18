@@ -456,7 +456,8 @@ uint64_t Position::color_reach_board(bool is_white)
     {
         for(int x = 0; x < 8; x++)
         {
-            if(color_sign == get_color(get_piece(make_pos(x, y))))
+            uint8_t piece = get_piece(make_pos(x, y));
+            if(piece != 0 && color_sign == get_color(piece));
                 attack_board |= this->make_reach_board(x, y);
         }
     }

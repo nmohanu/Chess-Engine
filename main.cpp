@@ -240,7 +240,7 @@ int main()
                 }
 
                 uint8_t piece_at_pos = board->position->get_piece(pos);
-                if(get_bit_64(move_board, pos) || get_bit_64(reach_board, pos) && get_color(piece_at_pos) != is_white_turn && piece_at_pos != 0)
+                if((get_bit_64(move_board, pos) || get_bit_64(reach_board, pos) && get_color(piece_at_pos) == is_white_turn && piece_at_pos != 0) && get_color(selected_piece) != is_white_turn)
                 {
                     selection_square.setPosition(sf::Vector2f(print_position));
                     window.draw(selection_square);
