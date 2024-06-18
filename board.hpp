@@ -20,11 +20,14 @@ struct Position
     bool king_under_attack(bool is_white);
 
     // Create attack board for specific piece.
-    uint64_t make_attack_board(uint8_t x, uint8_t y);
+    uint64_t make_reach_board(uint8_t x, uint8_t y);
+
+    uint64_t make_move_board(uint8_t, uint8_t);
 
     // Create attack board for a player.
-    uint64_t color_attack_board(bool is_white);
+    uint64_t color_reach_board(bool is_white);
 
+    // Get position of a piece.
     uint8_t get_piece_position(uint8_t piece);
 
     // false = black, true = white.
@@ -32,6 +35,8 @@ struct Position
     uint64_t second_16;
     uint64_t third_16;
     uint64_t fourth_16;
+
+    Move* last_move = nullptr;
 };
 
 class Board 
@@ -43,18 +48,24 @@ public:
 
     // Determine possible moves.
     std::vector<Move*> determine_moves(bool is_white, Position &position) const;
-
-    // Print board.
-    void print() const;
     
-    Position* position = new Position();
+    Position* position = nullptr;
 };
 
 struct Move
 {   
-    Move(uint64_t start, uint64_t end) : start_location(start), end_location(end){}
+    Move(uint8_t start, uint8_t end) : start_location(start), end_location(end) {}
 
-    uint64_t start_location;
-    uint64_t end_location;
-    bool is_white;
+    uint8_t start_location;
+    uint8_t end_location;
+};
+
+struct MoveVec
+{
+    void insert(Move* move);
+    void insert(uint8_t start, uint8_t end);
+    bool exists(Move* move);
+    bool exists(uint8_t start, uint8_t end);
+    void remove(Move* move);
+    void remove(uint8_t start, uint8_t end);
 };

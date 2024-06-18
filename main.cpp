@@ -6,7 +6,6 @@
 int main()
 {
     Board* board = new Board();
-    board->print();
 
     sf::Texture texture;
     if (!texture.loadFromFile("../../assets/sheet.png"))
@@ -14,11 +13,20 @@ int main()
         return 1;
     }
 
+    int checkpoint_count = 0;
+
+    bool mouse_pressed = false;
+
+    bool is_white_turn = true;
+
     float SCALE_FACTOR = 8.f;
     int SCREEN_WIDTH = 1080;
     int SCREEN_HEIGHT = 1080;
 
     std::pair<int,int> clicked_square;
+
+    uint64_t move_board = 0b0;
+    uint64_t reach_board = 0b0;
 
     sf::Vector2f offset((SCREEN_WIDTH - 16*SCALE_FACTOR*8)/2, (SCREEN_HEIGHT - 16*SCALE_FACTOR*8)/2);
 
@@ -95,12 +103,41 @@ int main()
         
         bool color = 1;
         sf::Vector2i mouse_position;
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && !mouse_pressed)
         {
+            std::pair<int, int> new_square;
             mouse_position = sf::Mouse::getPosition(window);
-            clicked_square.first = (mouse_position.x - offset.x) / (16 * SCALE_FACTOR);
-            clicked_square.second = (mouse_position.y - offset.y) / (16 * SCALE_FACTOR);
+            new_square.first = (mouse_position.x - offset.x) / (16 * SCALE_FACTOR);
+            new_square.second = (mouse_position.y - offset.y) / (16 * SCALE_FACTOR);
+
+            // Check if user is moving a piece.
+            if(get_bit_64(move_board, make_pos(new_square.first, new_square.second)) || get_bit_64(reach_board, make_pos(new_square.first, new_square.second)))
+            {
+                Move* move = new Move(make_pos(clicked_square.first, clicked_square.second), make_pos(new_square.first, new_square.second));
+                board->position->do_move(move);
+                is_white_turn = !is_white_turn;
+            }
+
+            clicked_square = new_square;
+            move_board = 0b0;
+            mouse_pressed = true;
         }
+        else
+        {
+            mouse_pressed = false;
+        }
+        
+        if(move_board == 0 && board->position->get_piece(make_pos(clicked_square.first, clicked_square.second)) != 0)
+        {
+            move_board = board->position->make_move_board(clicked_square.first, clicked_square.second);
+            reach_board = board->position->make_reach_board(clicked_square.first, clicked_square.second);
+        }
+        else if(board->position->get_piece(make_pos(clicked_square.first, clicked_square.second)) == 0)
+        {
+            move_board = 0b0;
+            reach_board = 0b0;
+        }
+        
 
         // std::cout << clicked_square.first << " " << clicked_square.second << '\n';
         // std::cout << mouse_position.x << " " << mouse_position.y << '\n';
@@ -188,6 +225,13 @@ int main()
                 }
                 
                 if(x == clicked_square.first && y == clicked_square.second)
+                {
+                    selection_square.setPosition(sf::Vector2f(print_position));
+                    window.draw(selection_square);
+                }
+
+                uint8_t piece_at_pos = board->position->get_piece(pos);
+                if(get_bit_64(move_board, pos) || get_bit_64(reach_board, pos) && get_color(piece_at_pos) != is_white_turn && piece_at_pos != 0)
                 {
                     selection_square.setPosition(sf::Vector2f(print_position));
                     window.draw(selection_square);
