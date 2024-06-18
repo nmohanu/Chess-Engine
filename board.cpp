@@ -67,66 +67,30 @@ uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
             }
         }
     }
-    else if(piece_type == B_BISHOP || piece_type == W_BISHOP || piece_type == W_QUEEN || piece_type == B_QUEEN) 
-    {
-        // Set diagonals to 1 untill another piece is found.
-        int xIt = x-1;
-        int yIt = y-1;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            uint8_t piece_on_pos = get_piece(pos_to_check);
-            toggle_bit_on(attack_board, pos_to_check);
-            if(piece_on_pos != 0)
-            {
-                break;
-            }
-            xIt--;
-            yIt--;
-        }
+    if (piece_type == B_BISHOP || piece_type == W_BISHOP || piece_type == W_QUEEN || piece_type == B_QUEEN) {
+        int xDeltas[] = {-1, 1, -1, 1};
+        int yDeltas[] = {-1, -1, 1, 1};
 
-        xIt = x+1;
-        yIt = y-1;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            toggle_bit_on(attack_board, pos_to_check);
-            if(get_piece(pos_to_check) != 0)
-            {
-                break;
-            }
-            xIt++;
-            yIt--;
-        }
+        // Loop through each diagonal direction.
+        for (int dir = 0; dir < 4; ++dir) {
+            int xIt = x + xDeltas[dir];
+            int yIt = y + yDeltas[dir];
 
-        xIt = x-1;
-        yIt = y+1;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            toggle_bit_on(attack_board, pos_to_check);
-            if(get_piece(pos_to_check) != 0)
-            {
-                break;
-            }
-            xIt--;
-            yIt++;
-        }
+            // Check each square along the diagonal until edge of board or another piece is encountered.
+            while (xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8) {
+                uint8_t pos_to_check = make_pos(xIt, yIt);
+                toggle_bit_on(attack_board, pos_to_check);
 
-        xIt = x+1;
-        yIt = y+1;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            toggle_bit_on(attack_board, pos_to_check);
-            if(get_piece(pos_to_check) != 0)
-            {
-                break;
+                if (get_piece(pos_to_check) != 0)
+                    break;
+
+                // Move to the next square in the current diagonal direction.
+                xIt += xDeltas[dir];
+                yIt += yDeltas[dir];
             }
-            xIt++;
-            yIt++;
         }
     }
+
     else if (piece_type == B_KNIGHT || piece_type == W_KNIGHT)
     {
         if (x + 1 >= 0 && x + 1 <= 7 && y + 2 >= 0 && y + 2 <= 7)
@@ -154,59 +118,29 @@ uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
             toggle_bit_on(attack_board, make_pos(x - 2, y - 1));
 
     }
-    if (piece_type == W_QUEEN || piece_type == B_QUEEN || piece_type == W_ROOK || piece_type == B_ROOK)
-    {
-        int xIt = x;
-        int yIt = y-1;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_piece(pos_to_check) != 0)
-            {
+    if (piece_type == W_QUEEN || piece_type == B_QUEEN || piece_type == W_ROOK || piece_type == B_ROOK) {
+        // Define directional deltas for each direction (up, down, left, right).
+        int xDeltas[] = {0, 0, -1, 1};
+        int yDeltas[] = {-1, 1, 0, 0};
+
+        // Loop through each direction (up, down, left, right)
+        for (int dir = 0; dir < 4; ++dir) {
+            int xIt = x + xDeltas[dir];
+            int yIt = y + yDeltas[dir];
+
+            // Check each square along the direction until edge of board or another piece is encountered.
+            while (xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8) {
+                uint8_t pos_to_check = make_pos(xIt, yIt);
+
+                // Toggle bit on attack_board and break if piece found.
                 toggle_bit_on(attack_board, pos_to_check);
-                break;
+                if (get_piece(pos_to_check) != 0)
+                    break;
+
+                // Move to the next square in the current direction.
+                xIt += xDeltas[dir];
+                yIt += yDeltas[dir];
             }
-            toggle_bit_on(attack_board, pos_to_check);
-            yIt--;
-        }
-        xIt = x;
-        yIt = y+1;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_piece(pos_to_check) != 0)
-            {
-                toggle_bit_on(attack_board, pos_to_check);
-                break;
-            }
-            toggle_bit_on(attack_board, pos_to_check);
-            yIt++;
-        }
-        xIt = x-1;
-        yIt = y;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_piece(pos_to_check) != 0)
-            {
-                toggle_bit_on(attack_board, pos_to_check);
-                break;
-            }
-            toggle_bit_on(attack_board, pos_to_check);
-            xIt--;
-        }
-        xIt = x+1;
-        yIt = y;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_piece(pos_to_check) != 0)
-            {
-                toggle_bit_on(attack_board, pos_to_check);
-                break;
-            }
-            toggle_bit_on(attack_board, pos_to_check);
-            xIt++;
         }
     }
     return attack_board;
@@ -278,68 +212,31 @@ uint64_t Position::make_move_board(uint8_t x, uint8_t y)
             }
         }
     }
-    else if(piece_type == B_BISHOP || piece_type == W_BISHOP || piece_type == W_QUEEN || piece_type == B_QUEEN) 
+    else if (piece_type == B_BISHOP || piece_type == W_BISHOP || piece_type == W_QUEEN || piece_type == B_QUEEN) 
     {
-        // Set diagonals to 1 untill another piece is found.
-        int xIt = x-1;
-        int yIt = y-1;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            uint8_t piece_on_pos = get_piece(pos_to_check);
-            if(this->get_piece(pos_to_check) == 0)
-                toggle_bit_on(move_board, pos_to_check);
-            if(piece_on_pos != 0)
-            {
-                break;
-            }
-            xIt--;
-            yIt--;
-        }
+        // Define directional deltas for each diagonal direction.
+        int xDeltas[] = {-1, 1, -1, 1};
+        int yDeltas[] = {-1, -1, 1, 1};
 
-        xIt = x+1;
-        yIt = y-1;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(this->get_piece(pos_to_check) == 0)
-                toggle_bit_on(move_board, pos_to_check);
-            if(get_piece(pos_to_check) != 0)
-            {
-                break;
-            }
-            xIt++;
-            yIt--;
-        }
+        // Loop through each diagonal direction.
+        for (int dir = 0; dir < 4; ++dir) {
+            int xIt = x + xDeltas[dir];
+            int yIt = y + yDeltas[dir];
 
-        xIt = x-1;
-        yIt = y+1;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(this->get_piece(pos_to_check) == 0)
-                toggle_bit_on(move_board, pos_to_check);
-            if(get_piece(pos_to_check) != 0)
-            {
-                break;
-            }
-            xIt--;
-            yIt++;
-        }
+            // Check each square along the diagonal until edge of board or another piece is encountered.
+            while (xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8) {
+                uint8_t pos_to_check = make_pos(xIt, yIt);
 
-        xIt = x+1;
-        yIt = y+1;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(this->get_piece(pos_to_check) == 0)
-                toggle_bit_on(move_board, pos_to_check);
-            if(get_piece(pos_to_check) != 0)
-            {
-                break;
+                if (get_piece(pos_to_check) == 0)
+                    toggle_bit_on(move_board, pos_to_check);
+
+                if (get_piece(pos_to_check) != 0)
+                    break;
+
+                // Move to the next square in the diagonal.
+                xIt += xDeltas[dir];
+                yIt += yDeltas[dir];
             }
-            xIt++;
-            yIt++;
         }
     }
     else if (piece_type == B_KNIGHT || piece_type == W_KNIGHT)
@@ -364,68 +261,30 @@ uint64_t Position::make_move_board(uint8_t x, uint8_t y)
             }
         }
     }
-    if (piece_type == W_QUEEN || piece_type == B_QUEEN || piece_type == W_ROOK || piece_type == B_ROOK)
-    {
+    if (piece_type == W_QUEEN || piece_type == B_QUEEN || piece_type == W_ROOK || piece_type == B_ROOK) {
+        // Define directional deltas for each direction (up, down, left, right).
+        int xDeltas[] = {0, 0, -1, 1};
+        int yDeltas[] = {-1, 1, 0, 0};
 
-        // Up.
-        int xIt = x;
-        int yIt = y-1;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(this->get_piece(pos_to_check) == 0)
-                toggle_bit_on(move_board, pos_to_check);
-            if(get_piece(pos_to_check) != 0)
-            {
-                
-                break;
-            }
-            yIt--;
-        }
+        // Loop through each direction (up, down, left, right).
+        for (int dir = 0; dir < 4; ++dir) {
+            int xIt = x + xDeltas[dir];
+            int yIt = y + yDeltas[dir];
 
-        // Down.
-        xIt = x;
-        yIt = y+1;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(this->get_piece(pos_to_check) == 0)
-                toggle_bit_on(move_board, pos_to_check);
-            if(get_piece(pos_to_check) != 0)
-            {
-                break;
-            }
-            yIt++;
-        }
+            // Check each square along the direction until edge of board or another piece is encountered.
+            while (xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8) {
+                uint8_t pos_to_check = make_pos(xIt, yIt);
 
-        // To the left.
-        xIt = x-1;
-        yIt = y;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(this->get_piece(pos_to_check) == 0)
-                toggle_bit_on(move_board, pos_to_check);
-            if(get_piece(pos_to_check) != 0)
-            {
-                break;
-            }
-            xIt--;
-        }
+                if (get_piece(pos_to_check) == 0)
+                    toggle_bit_on(move_board, pos_to_check);
 
-        // To the right.
-        xIt = x+1;
-        yIt = y;
-        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
-        {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(this->get_piece(pos_to_check) == 0)
-                toggle_bit_on(move_board, pos_to_check);
-            if(get_piece(pos_to_check) != 0)
-            {
-                break;
+                if (get_piece(pos_to_check) != 0)
+                    break;
+
+                // Move to the next square in the current direction.
+                xIt += xDeltas[dir];
+                yIt += yDeltas[dir];
             }
-            xIt++;
         }
     }
     return move_board;
@@ -525,21 +384,15 @@ void Position::set_piece(uint8_t new_piece, uint8_t pos)
     std::cout << shift_amount << '\n';
     // Isolate the left side of the piece to be replaced.
     uint64_t mask_left = *old_squares;
-    // print_binary(mask_left);
     mask_left  >>= (shift_amount + 4);
-    // print_binary(mask_left);
     mask_left <<= (shift_amount + 4);
-    // print_binary(mask_left);
     
     // Make mask for the piece.
     uint64_t mask_piece = static_cast<uint64_t>(new_piece) << shift_amount;
     // Isolate right side.
     uint64_t mask_right = *old_squares;
-    // print_binary(mask_right);
     mask_right <<= (64-shift_amount);
-    // print_binary(mask_right);
     mask_right >>= (64-shift_amount);
-    // print_binary(mask_right);
 
     if(shift_amount == 0)
         mask_right = 0ul;
@@ -550,10 +403,6 @@ void Position::set_piece(uint8_t new_piece, uint8_t pos)
     new_squares |= mask_left;
     new_squares |= mask_piece;
     new_squares |= mask_right; 
-
-    // print_binary(mask_left);
-    // print_binary(mask_piece);
-    // print_binary(mask_right);
 
     // Replace.
     *old_squares = new_squares;
@@ -591,7 +440,7 @@ std::vector<Move> Board::determine_moves(bool is_white, Position* position) cons
             
             for(int i = 0; i < 63; i++)
             {
-                
+                // Check if the piece can be moved to this square.
                 uint8_t piece_at_square = position->get_piece(i);
                 bool can_move = get_bit_64(move_squares, i);
                 bool can_attack = false;
