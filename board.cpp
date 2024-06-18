@@ -20,6 +20,11 @@ Board::~Board()
     delete position;
 }
 
+Position::~Position()
+{
+    delete last_move;
+}
+
 // Create attack board for specific piece.
 uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
 {
@@ -546,15 +551,17 @@ void Position::do_move(Move* move)
     this->set_piece(this->get_piece(move->start_location), move->end_location);
     this->set_piece(0b0000, move->start_location);
 
-    if(last_move != nullptr)
-        delete last_move;
-    last_move = move;
+    last_move = new Move(move->start_location, move->end_location);
 }
 
-std::vector<Move*> Board::determine_moves(bool is_white, Position* position) const
+std::vector<Move> Board::determine_moves(bool is_white, Position* position) const
 {
+    // Determine the color sign of the player at turn.
     uint8_t color_sign = (is_white) ? 0 : 1;
-    std::vector<Move*> possible_moves;
+
+    std::vector<Move> possible_moves;
+
+    // Loop through board to find player's pieces.
     for (int y = 0; y < 8; y++)
     {
         for (int x = 0; x < 8; x++)
@@ -575,7 +582,7 @@ std::vector<Move*> Board::determine_moves(bool is_white, Position* position) con
                 if(get_bit_64(move_squares, i) || (get_bit_64(reach_squares, pos) && color_sign != get_color(piece_at_sqaure)))
                 {
                     // piece at pos can move to square i.
-                    Move* move = new Move(pos,i);
+                    Move move(pos,i);
 
                     // Copy board state.
                     uint64_t first = position->first_16;
@@ -583,12 +590,13 @@ std::vector<Move*> Board::determine_moves(bool is_white, Position* position) con
                     uint64_t third = position->third_16;
                     uint64_t fourth = position->fourth_16;
 
-                    position->do_move(move);
+                    position->do_move(&move);
                     if(!position->king_under_attack(is_white))
                     {   
                         // Move is possible.
                         possible_moves.push_back(move);
                     }
+
                     // Restore position.
                     position->first_16 = first;
                     position->second_16 = second;

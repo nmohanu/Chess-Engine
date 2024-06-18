@@ -6,7 +6,7 @@
 int main()
 {
     Board* board = new Board();
-
+    
     sf::Texture texture;
     if (!texture.loadFromFile("../../assets/sheet.png"))
     {
@@ -31,7 +31,8 @@ int main()
     uint64_t move_board = 0b0;
     uint64_t reach_board = 0b0;
 
-    std::vector<Move*> possible_moves;
+    std::vector<Move> possible_moves;
+    possible_moves = board->determine_moves(is_white_turn, board->position);
 
     sf::Vector2f offset((SCREEN_WIDTH - 16*SCALE_FACTOR*8)/2, (SCREEN_HEIGHT - 16*SCALE_FACTOR*8)/2);
 
@@ -127,13 +128,14 @@ int main()
                     move_board = 0b0;
                     reach_board = 0b0;
                 }
-                possible_moves = board->determine_moves(is_white_turn, board->position);
-                for (Move* move : possible_moves)
+                
+                for (Move move : possible_moves)
                 {
-                    if(move->start_location == make_pos(last_clicked_square.first, last_clicked_square.second) && move->end_location == make_pos(clicked_square.first, clicked_square.second))
+                    if(move.start_location == make_pos(last_clicked_square.first, last_clicked_square.second) && move.end_location == make_pos(clicked_square.first, clicked_square.second))
                     {
-                        board->position->do_move(move);
+                        board->position->do_move(&move);
                         is_white_turn = !is_white_turn;
+                        possible_moves = board->determine_moves(is_white_turn, board->position);
                         break;
                     }
                 }

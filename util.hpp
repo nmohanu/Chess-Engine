@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <memory>
 
 // 0000 empty.
 

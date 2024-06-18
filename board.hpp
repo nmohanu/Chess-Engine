@@ -6,6 +6,8 @@ struct Move;
 struct Position
 {
     void initialize();
+
+    ~Position();
     
     // Replace 4 bits by 4 new bits.
     void set_piece(uint8_t new_piece, uint8_t pos);
@@ -47,13 +49,14 @@ public:
     ~Board();
 
     // Determine possible moves.
-    std::vector<Move*> determine_moves(bool is_white, Position* position) const;
+    std::vector<Move> determine_moves(bool is_white, Position* position) const;
     
     Position* position = nullptr;
 };
 
 struct Move
 {   
+    Move();
     Move(uint8_t start, uint8_t end) : start_location(start), end_location(end) {}
 
     uint8_t start_location;
