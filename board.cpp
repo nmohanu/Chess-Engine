@@ -25,7 +25,7 @@ Position::~Position()
     delete last_move;
 }
 
-// Create attack board for specific piece.
+// Create attack board for specific piece. This is where we define the attacking logic for each piece.
 uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
 {
     uint64_t attack_board = 0b0;
@@ -72,7 +72,7 @@ uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
         // Set diagonals to 1 untill another piece is found.
         int xIt = x-1;
         int yIt = y-1;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
             uint8_t piece_on_pos = get_piece(pos_to_check);
@@ -87,7 +87,7 @@ uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
 
         xIt = x+1;
         yIt = y-1;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
             toggle_bit_on(attack_board, pos_to_check);
@@ -101,7 +101,7 @@ uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
 
         xIt = x-1;
         yIt = y+1;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
             toggle_bit_on(attack_board, pos_to_check);
@@ -115,7 +115,7 @@ uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
 
         xIt = x+1;
         yIt = y+1;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
             toggle_bit_on(attack_board, pos_to_check);
@@ -158,7 +158,7 @@ uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
     {
         int xIt = x;
         int yIt = y-1;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
             if(get_piece(pos_to_check) != 0)
@@ -171,7 +171,7 @@ uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
         }
         xIt = x;
         yIt = y+1;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
             if(get_piece(pos_to_check) != 0)
@@ -184,7 +184,7 @@ uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
         }
         xIt = x-1;
         yIt = y;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
             if(get_piece(pos_to_check) != 0)
@@ -197,7 +197,7 @@ uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
         }
         xIt = x+1;
         yIt = y;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
             if(get_piece(pos_to_check) != 0)
@@ -206,13 +206,13 @@ uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
                 break;
             }
             toggle_bit_on(attack_board, pos_to_check);
-            yIt++;
+            xIt++;
         }
     }
     return attack_board;
 }
 
-// Create attack board for specific piece.
+// Create moving board for specific piece. This is where de define the movement logic of each piece.
 uint64_t Position::make_move_board(uint8_t x, uint8_t y)
 {
     uint64_t move_board = 0b0;
@@ -273,7 +273,7 @@ uint64_t Position::make_move_board(uint8_t x, uint8_t y)
             
             // Check if the new position is within bounds
             if (new_x >= 0 && new_x < 8 && new_y >= 0 && new_y < 8) {
-                if(get_color(piece_type) != get_color(get_piece(make_pos(new_x, new_y))))
+                if(this->get_piece(make_pos(new_x, new_y)) == 0)
                     toggle_bit_on(move_board, make_pos(new_x, new_y));
             }
         }
@@ -283,11 +283,11 @@ uint64_t Position::make_move_board(uint8_t x, uint8_t y)
         // Set diagonals to 1 untill another piece is found.
         int xIt = x-1;
         int yIt = y-1;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
             uint8_t piece_on_pos = get_piece(pos_to_check);
-            if(get_color(piece_type) != get_color(get_piece(make_pos(xIt, yIt))))
+            if(this->get_piece(pos_to_check) == 0)
                 toggle_bit_on(move_board, pos_to_check);
             if(piece_on_pos != 0)
             {
@@ -299,10 +299,10 @@ uint64_t Position::make_move_board(uint8_t x, uint8_t y)
 
         xIt = x+1;
         yIt = y-1;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_color(piece_type) != get_color(get_piece(make_pos(xIt, yIt))))
+            if(this->get_piece(pos_to_check) == 0)
                 toggle_bit_on(move_board, pos_to_check);
             if(get_piece(pos_to_check) != 0)
             {
@@ -314,10 +314,10 @@ uint64_t Position::make_move_board(uint8_t x, uint8_t y)
 
         xIt = x-1;
         yIt = y+1;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_color(piece_type) != get_color(get_piece(make_pos(xIt, yIt))))
+            if(this->get_piece(pos_to_check) == 0)
                 toggle_bit_on(move_board, pos_to_check);
             if(get_piece(pos_to_check) != 0)
             {
@@ -329,10 +329,10 @@ uint64_t Position::make_move_board(uint8_t x, uint8_t y)
 
         xIt = x+1;
         yIt = y+1;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_color(piece_type) != get_color(get_piece(make_pos(xIt, yIt))))
+            if(this->get_piece(pos_to_check) == 0)
                 toggle_bit_on(move_board, pos_to_check);
             if(get_piece(pos_to_check) != 0)
             {
@@ -359,20 +359,21 @@ uint64_t Position::make_move_board(uint8_t x, uint8_t y)
             {
                 uint8_t new_pos = make_pos(new_x, new_y);
                 uint8_t piece_to_check = get_piece(new_pos);
-                if(get_color(piece_type) == get_color(piece_to_check) && piece_to_check != 0)
-                    continue;
-                toggle_bit_on(move_board, new_pos);
+                if(this->get_piece(make_pos(new_x, new_y)) == 0)
+                    toggle_bit_on(move_board, new_pos);
             }
         }
     }
     if (piece_type == W_QUEEN || piece_type == B_QUEEN || piece_type == W_ROOK || piece_type == B_ROOK)
     {
+
+        // Up.
         int xIt = x;
         int yIt = y-1;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_color(piece_type) != get_color(get_piece(make_pos(xIt, yIt))))
+            if(this->get_piece(pos_to_check) == 0)
                 toggle_bit_on(move_board, pos_to_check);
             if(get_piece(pos_to_check) != 0)
             {
@@ -381,12 +382,14 @@ uint64_t Position::make_move_board(uint8_t x, uint8_t y)
             }
             yIt--;
         }
+
+        // Down.
         xIt = x;
         yIt = y+1;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_color(piece_type) != get_color(get_piece(make_pos(xIt, yIt))))
+            if(this->get_piece(pos_to_check) == 0)
                 toggle_bit_on(move_board, pos_to_check);
             if(get_piece(pos_to_check) != 0)
             {
@@ -394,12 +397,14 @@ uint64_t Position::make_move_board(uint8_t x, uint8_t y)
             }
             yIt++;
         }
+
+        // To the left.
         xIt = x-1;
         yIt = y;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_color(piece_type) != get_color(get_piece(make_pos(xIt, yIt))))
+            if(this->get_piece(pos_to_check) == 0)
                 toggle_bit_on(move_board, pos_to_check);
             if(get_piece(pos_to_check) != 0)
             {
@@ -407,18 +412,20 @@ uint64_t Position::make_move_board(uint8_t x, uint8_t y)
             }
             xIt--;
         }
+
+        // To the right.
         xIt = x+1;
         yIt = y;
-        while(true && xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
+        while(xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8)
         {
             uint8_t pos_to_check = make_pos(xIt, yIt);
-            if(get_color(piece_type) != get_color(get_piece(make_pos(xIt, yIt))))
+            if(this->get_piece(pos_to_check) == 0)
                 toggle_bit_on(move_board, pos_to_check);
             if(get_piece(pos_to_check) != 0)
             {
                 break;
             }
-            yIt++;
+            xIt++;
         }
     }
     return move_board;
@@ -460,12 +467,12 @@ uint64_t Position::color_reach_board(bool is_white)
             {
                 uint64_t piece_reach = this->make_reach_board(x, y);
                 attack_board |= piece_reach;
-                print_binary(piece_reach);
-                print_binary(attack_board);
+                // print_binary(piece_reach);
+                // print_binary(attack_board);
             }
         }
     }
-    print_binary(attack_board);
+    // print_binary(attack_board);
     return attack_board;
 }
 
@@ -584,8 +591,22 @@ std::vector<Move> Board::determine_moves(bool is_white, Position* position) cons
             
             for(int i = 0; i < 63; i++)
             {
-                uint8_t piece_at_sqaure = position->get_piece(pos);
-                if(get_bit_64(move_squares, i) || (get_bit_64(reach_squares, pos) && color_sign != get_color(piece_at_sqaure)))
+                
+                uint8_t piece_at_square = position->get_piece(i);
+                bool can_move = get_bit_64(move_squares, i);
+                bool can_attack = false;
+                bool piece_on_attack_square = get_bit_64(reach_squares, i);
+                bool piece_is_other_color = color_sign != get_color(piece_at_square);
+                if(piece_at_square != 0)
+                    can_attack = (piece_is_other_color && piece_on_attack_square);
+
+
+                if(piece_is_other_color)
+                    std::cout << "piece is other color \n";
+                if(piece_on_attack_square)
+                    std::cout << "piece is on attacked square \n";
+
+                if(can_move || can_attack)
                 {
                     // piece at pos can move to square i.
                     Move move(pos,i);
