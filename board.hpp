@@ -47,7 +47,7 @@ public:
     ~Board();
 
     // Determine possible moves.
-    std::vector<Move*> determine_moves(bool is_white, Position &position) const;
+    std::vector<Move*> determine_moves(bool is_white, Position* position) const;
     
     Position* position = nullptr;
 };

@@ -455,6 +455,7 @@ uint64_t Position::color_reach_board(bool is_white)
                 attack_board |= this->make_reach_board(x, y);
         }
     }
+    return attack_board;
 }
 
 // Check if the king is in check.
@@ -503,17 +504,38 @@ void Position::set_piece(uint8_t new_piece, uint8_t pos)
         old_squares = &this->fourth_16;
     }
 
+    std::cout << shift_amount << '\n';
     // Isolate the left side of the piece to be replaced.
-    uint64_t mask_left = (*old_squares >> (shift_amount + 4) << (shift_amount + 4));
+    uint64_t mask_left = *old_squares;
+    // print_binary(mask_left);
+    mask_left  >>= (shift_amount + 4);
+    // print_binary(mask_left);
+    mask_left <<= (shift_amount + 4);
+    // print_binary(mask_left);
+    
     // Make mask for the piece.
     uint64_t mask_piece = static_cast<uint64_t>(new_piece) << shift_amount;
     // Isolate right side.
-    uint64_t mask_right = (*old_squares << (63-shift_amount) >> (63-shift_amount));
+    uint64_t mask_right = *old_squares;
+    print_binary(mask_right);
+    mask_right <<= (64-shift_amount);
+    print_binary(mask_right);
+    mask_right >>= (64-shift_amount);
+    print_binary(mask_right);
+
+    if(shift_amount == 0)
+        mask_right = 0ul;
+    if(shift_amount == 60)
+        mask_left = 0ul;
 
     // Make new 64 bits representing the two rows.
     new_squares |= mask_left;
     new_squares |= mask_piece;
     new_squares |= mask_right; 
+
+    // print_binary(mask_left);
+    // print_binary(mask_piece);
+    // print_binary(mask_right);
 
     // Replace.
     *old_squares = new_squares;
@@ -529,7 +551,7 @@ void Position::do_move(Move* move)
     last_move = move;
 }
 
-std::vector<Move*> Board::determine_moves(bool is_white, Position &position) const
+std::vector<Move*> Board::determine_moves(bool is_white, Position* position) const
 {
     uint8_t color_sign = (is_white) ? 0 : 1;
     std::vector<Move*> possible_moves;
@@ -539,37 +561,39 @@ std::vector<Move*> Board::determine_moves(bool is_white, Position &position) con
         {
             // Get piece at position.
             int pos = make_pos(x, y);
-            uint8_t piece_type = position.get_piece(pos);
+            uint8_t piece_type = position->get_piece(pos);
 
-            // Empty square.
+            // Empty square or wrong color.
             if(piece_type == 0 || get_color(piece_type) != color_sign) continue;
 
-            uint64_t move_squares = position.make_move_board(x, y);
+            uint64_t move_squares = position->make_move_board(x, y);
+            uint64_t reach_squares = position->make_reach_board(x, y);
             
             for(int i = 0; i < 63; i++)
             {
-                if(get_bit_64(move_squares, i) == 1)
+                uint8_t piece_at_sqaure = position->get_piece(pos);
+                if(get_bit_64(move_squares, i) || (get_bit_64(reach_squares, pos) && color_sign != get_color(piece_at_sqaure)))
                 {
                     // piece at pos can move to square i.
                     Move* move = new Move(pos,i);
 
                     // Copy board state.
-                    uint64_t first = position.first_16;
-                    uint64_t second = position.second_16;
-                    uint64_t third = position.third_16;
-                    uint64_t fourth = position.fourth_16;
+                    uint64_t first = position->first_16;
+                    uint64_t second = position->second_16;
+                    uint64_t third = position->third_16;
+                    uint64_t fourth = position->fourth_16;
 
-                    position.do_move(move);
-                    if(!position.king_under_attack(is_white))
+                    position->do_move(move);
+                    if(!position->king_under_attack(is_white))
                     {   
                         // Move is possible.
                         possible_moves.push_back(move);
                     }
                     // Restore position.
-                    position.first_16 = first;
-                    position.second_16 = second;
-                    position.third_16 = third;
-                    position.fourth_16 = fourth;
+                    position->first_16 = first;
+                    position->second_16 = second;
+                    position->third_16 = third;
+                    position->fourth_16 = fourth;
                 }
             }
         }

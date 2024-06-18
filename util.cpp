@@ -1,4 +1,6 @@
 #include "util.hpp"
+#include <bitset>
+
 void toggle_bit_on(uint64_t &num, uint64_t pos)
 {
     uint64_t mask = 1ULL << (63 - pos);
@@ -27,3 +29,8 @@ bool get_color(uint8_t piece)
     return get_bit(piece, 0);
 }
 
+void print_binary(uint64_t num)
+{
+    std::cout << "Binary representation: ";
+    std::cout << std::bitset<sizeof(num) * 8>(num) << std::endl;
+}

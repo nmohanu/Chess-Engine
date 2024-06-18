@@ -23,10 +23,15 @@ int main()
     int SCREEN_WIDTH = 1080;
     int SCREEN_HEIGHT = 1080;
 
+    uint8_t selected_piece;
+
     std::pair<int,int> clicked_square;
+    std::pair<int,int> last_clicked_square;
 
     uint64_t move_board = 0b0;
     uint64_t reach_board = 0b0;
+
+    std::vector<Move*> possible_moves;
 
     sf::Vector2f offset((SCREEN_WIDTH - 16*SCALE_FACTOR*8)/2, (SCREEN_HEIGHT - 16*SCALE_FACTOR*8)/2);
 
@@ -107,35 +112,37 @@ int main()
         {
             std::pair<int, int> new_square;
             mouse_position = sf::Mouse::getPosition(window);
-            new_square.first = (mouse_position.x - offset.x) / (16 * SCALE_FACTOR);
-            new_square.second = (mouse_position.y - offset.y) / (16 * SCALE_FACTOR);
+            clicked_square.first = (mouse_position.x - offset.x) / (16 * SCALE_FACTOR);
+            clicked_square.second = (mouse_position.y - offset.y) / (16 * SCALE_FACTOR);
 
             // Check if user is moving a piece.
-            if(get_bit_64(move_board, make_pos(new_square.first, new_square.second)) || get_bit_64(reach_board, make_pos(new_square.first, new_square.second)))
+            if(last_clicked_square != clicked_square)
             {
-                Move* move = new Move(make_pos(clicked_square.first, clicked_square.second), make_pos(new_square.first, new_square.second));
-                board->position->do_move(move);
-                is_white_turn = !is_white_turn;
-            }
+                selected_piece = board->position->get_piece(make_pos(clicked_square.first, clicked_square.second));
 
-            clicked_square = new_square;
-            move_board = 0b0;
+                move_board = board->position->make_move_board(clicked_square.first, clicked_square.second);
+                reach_board = board->position->make_reach_board(clicked_square.first, clicked_square.second);
+                if(selected_piece == 0)
+                {
+                    move_board = 0b0;
+                    reach_board = 0b0;
+                }
+                possible_moves = board->determine_moves(is_white_turn, board->position);
+                for (Move* move : possible_moves)
+                {
+                    if(move->start_location == make_pos(last_clicked_square.first, last_clicked_square.second) && move->end_location == make_pos(clicked_square.first, clicked_square.second))
+                    {
+                        board->position->do_move(move);
+                        is_white_turn = !is_white_turn;
+                        break;
+                    }
+                }
+            }
             mouse_pressed = true;
         }
         else
         {
             mouse_pressed = false;
-        }
-        
-        if(move_board == 0 && board->position->get_piece(make_pos(clicked_square.first, clicked_square.second)) != 0)
-        {
-            move_board = board->position->make_move_board(clicked_square.first, clicked_square.second);
-            reach_board = board->position->make_reach_board(clicked_square.first, clicked_square.second);
-        }
-        else if(board->position->get_piece(make_pos(clicked_square.first, clicked_square.second)) == 0)
-        {
-            move_board = 0b0;
-            reach_board = 0b0;
         }
         
 
@@ -239,6 +246,7 @@ int main()
             }
         }
         
+        last_clicked_square = clicked_square;
         window.display();
     }
 

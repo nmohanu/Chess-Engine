@@ -54,3 +54,5 @@ bool get_bit_64(uint64_t num, uint64_t pos);
 int make_pos(int x, int y);
 
 bool get_color(uint8_t piece);
+
+void print_binary(uint64_t num);
