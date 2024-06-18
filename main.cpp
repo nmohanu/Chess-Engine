@@ -136,6 +136,10 @@ int main()
                         board->position->do_move(&move);
                         is_white_turn = !is_white_turn;
                         possible_moves = board->determine_moves(is_white_turn, board->position);
+                        if(possible_moves.empty())
+                        {
+                            std::cout << "Player " << !is_white_turn << " wins! \n";
+                        }
                         break;
                     }
                 }
