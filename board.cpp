@@ -34,43 +34,37 @@ uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
 
     uint8_t piece_type = this->get_piece(pos);
 
-    int diagonals[6][2] = {
-        {x + 1, y + 1},
-        {x - 1, y + 1},
-        {x + 1, y - 1},
-        {x - 1, y - 1},
-    };
-
-    int perpendicular[6][2] = {
-        {x - 1, y},
-        {x + 1, y},
-        {x, y - 1},
-        {x, y + 1}
-    };
-
     // This is where we determine where a piece can go.
     if(piece_type == B_PAWN) 
     {
-
-        toggle_bit_on(attack_board, make_pos(std::min(7, x+1), std::min(7, y+1)));
-        toggle_bit_on(attack_board, make_pos(std::min(7, x-1), std::min(7, y+1)));
+        if((x+1) <= 7 && (y+1) <= 7)
+            toggle_bit_on(attack_board, make_pos(std::min(7, x+1), std::min(7, y+1)));
+        if((x-1) >= 0 && (y+1) <= 7)
+            toggle_bit_on(attack_board, make_pos(std::min(7, x-1), std::min(7, y+1)));
     }
     else if(piece_type == W_PAWN)
     {
-        toggle_bit_on(attack_board, make_pos(std::min(7, x+1), std::min(7, y-1)));
-        toggle_bit_on(attack_board, make_pos(std::min(7, x-1), std::min(7, y-1)));
+        if((x+1) <= 7 && (y-1) > 0)
+            toggle_bit_on(attack_board, make_pos(std::min(7, x+1), std::min(7, y-1)));
+        if((x-1) >= 0 && (y-1) > 0)
+            toggle_bit_on(attack_board, make_pos(std::min(7, x-1), std::min(7, y-1)));
     }
     else if(piece_type == B_KING || piece_type == W_KING)
     {
-        for (int i = 0; i < 4; ++i) {
-            int new_x = std::clamp(diagonals[i][0], 0, 7);
-            int new_y = std::clamp(diagonals[i][1], 0, 7);
-            toggle_bit_on(attack_board, make_pos(new_x, new_y));
-        }
-        for (int i = 0; i < 4; ++i) {
-            int new_x = std::clamp(diagonals[i][0], 0, 7);
-            int new_y = std::clamp(diagonals[i][1], 0, 7);
-            toggle_bit_on(attack_board, make_pos(new_x, new_y));
+        int offsets[8][2] = {
+            {-1, -1}, {-1, 0}, {-1, 1},
+            { 0, -1},          { 0, 1},
+            { 1, -1}, { 1, 0}, { 1, 1}
+        };
+        for (int i = 0; i < 8; ++i) {
+            int new_x = x + offsets[i][0];
+            int new_y = y + offsets[i][1];
+            
+            // Check if the new position is within bounds
+            if (new_x >= 0 && new_x < 8 && new_y >= 0 && new_y < 8) {
+                int pos = make_pos(new_x, new_y);
+                toggle_bit_on(attack_board, pos);
+            }
         }
     }
     else if(piece_type == B_BISHOP || piece_type == W_BISHOP || piece_type == W_QUEEN || piece_type == B_QUEEN) 
@@ -268,17 +262,20 @@ uint64_t Position::make_move_board(uint8_t x, uint8_t y)
     }
     else if(piece_type == B_KING || piece_type == W_KING)
     {
-        for (int i = 0; i < 4; ++i) {
-            int new_x = std::clamp(diagonals[i][0], 0, 7);
-            int new_y = std::clamp(diagonals[i][1], 0, 7);
-            if(get_color(piece_type) != get_color(get_piece(make_pos(new_x, new_y))))
-                toggle_bit_on(move_board, make_pos(new_x, new_y));
-        }
-        for (int i = 0; i < 4; ++i) {
-            int new_x = std::clamp(diagonals[i][0], 0, 7);
-            int new_y = std::clamp(diagonals[i][1], 0, 7);
-            if(get_color(piece_type) != get_color(get_piece(make_pos(new_x, new_y))))
-                toggle_bit_on(move_board, make_pos(new_x, new_y));
+        int offsets[8][2] = {
+            {-1, -1}, {-1, 0}, {-1, 1},
+            { 0, -1},          { 0, 1},
+            { 1, -1}, { 1, 0}, { 1, 1}
+        };
+        for (int i = 0; i < 8; ++i) {
+            int new_x = x + offsets[i][0];
+            int new_y = y + offsets[i][1];
+            
+            // Check if the new position is within bounds
+            if (new_x >= 0 && new_x < 8 && new_y >= 0 && new_y < 8) {
+                if(get_color(piece_type) != get_color(get_piece(make_pos(new_x, new_y))))
+                    toggle_bit_on(move_board, make_pos(new_x, new_y));
+            }
         }
     }
     else if(piece_type == B_BISHOP || piece_type == W_BISHOP || piece_type == W_QUEEN || piece_type == B_QUEEN) 
@@ -448,7 +445,8 @@ uint8_t Position::get_piece_position(uint8_t piece)
 // Create the attack board for all pieces of a player.
 uint64_t Position::color_reach_board(bool is_white)
 {
-    uint8_t color_sign = !is_white;
+    bool color_sign = !is_white;
+    
 
     uint64_t attack_board = 0;
 
@@ -457,10 +455,17 @@ uint64_t Position::color_reach_board(bool is_white)
         for(int x = 0; x < 8; x++)
         {
             uint8_t piece = get_piece(make_pos(x, y));
-            if(piece != 0 && color_sign == get_color(piece));
-                attack_board |= this->make_reach_board(x, y);
+            bool piece_color = get_color(piece);
+            if(piece != 0 && color_sign == piece_color)
+            {
+                uint64_t piece_reach = this->make_reach_board(x, y);
+                attack_board |= piece_reach;
+                print_binary(piece_reach);
+                print_binary(attack_board);
+            }
         }
     }
+    print_binary(attack_board);
     return attack_board;
 }
 
@@ -474,7 +479,7 @@ bool Position::king_under_attack(bool is_white)
     uint64_t attacked_positions = color_reach_board(!is_white);
 
     // Check if intersect on king position.
-    return get_bit(attacked_positions, pos);
+    return get_bit_64(attacked_positions, pos);
 }
 
 void Position::set_piece(uint8_t new_piece, uint8_t pos)
@@ -523,11 +528,11 @@ void Position::set_piece(uint8_t new_piece, uint8_t pos)
     uint64_t mask_piece = static_cast<uint64_t>(new_piece) << shift_amount;
     // Isolate right side.
     uint64_t mask_right = *old_squares;
-    print_binary(mask_right);
+    // print_binary(mask_right);
     mask_right <<= (64-shift_amount);
-    print_binary(mask_right);
+    // print_binary(mask_right);
     mask_right >>= (64-shift_amount);
-    print_binary(mask_right);
+    // print_binary(mask_right);
 
     if(shift_amount == 0)
         mask_right = 0ul;
