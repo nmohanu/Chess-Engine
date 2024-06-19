@@ -10,7 +10,13 @@ class Engine
 {
 public:
 
-    EvaluationResult alpha_beta_pruning(Position* position, bool color_sign, uint8_t depth, float& alpha, float& beta);
+    float maximizer(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level);
+
+    float minimizer(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level);
+
+    Move best_move(Position* position, bool color_sign, int depth);
+
+    EvaluationResult alpha_beta_pruning(Position* position, bool color_sign, uint8_t depth, float& alpha, float& beta, int& positions_checked);
 
     float evaluate_piece_value(Position* position, uint8_t square);
 

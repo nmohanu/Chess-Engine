@@ -44,9 +44,141 @@ void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
     });
 }
 
-
-EvaluationResult Engine::alpha_beta_pruning(Position* position, bool color_sign, uint8_t depth, float& alpha, float& beta)
+Move Engine::best_move(Position* position, bool color_sign, int depth)
 {
+    int count = 0;
+    int alpha = INT_MIN;
+    int beta = INT_MAX;
+    float score = 0;
+    Move best_move;
+    if(color_sign)
+    {
+        score = minimizer(depth, alpha, beta, count, position, best_move, true);
+    }
+    else
+    {
+        score = maximizer(depth, alpha, beta, count, position, best_move, true);
+    }
+    std::cout << "Positions evaluated: " << count << "\n";
+    std::cout << "Score found was: " << score << "\n";
+    return best_move;
+}
+
+float Engine::maximizer(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level)
+{
+    position_count++;
+
+    if(depth == 0)
+        return evaluate_position(position);
+
+    std::vector<Move> possible_moves = position->determine_moves(0);
+    // Check if current player loses.
+    if(possible_moves.empty())
+        return INT_MIN;
+
+    sort_move_priority(possible_moves, position);
+    
+    int max_eval = INT_MIN;
+    Move local_best_move;
+
+    for(Move& move : possible_moves)
+    {
+        // Make copy of the board.
+        Position* new_position = new Position(*position);
+
+        // do move.
+        new_position->do_move(&move);
+
+        // Recursive call on child.
+        int eval = minimizer(depth-1, alpha, beta, position_count, new_position, best_move, false);
+
+        // Clean up the new position.
+        delete new_position;
+
+        if(eval > max_eval)
+        {
+            max_eval = eval;
+            local_best_move = Move(move); 
+        }
+
+        // Evaluate the found score.
+        if(eval >= alpha) 
+            alpha = eval;
+
+        if(alpha >= beta)
+        {
+            break;
+        }
+    } 
+
+    if(top_level)
+    {
+        best_move = local_best_move;
+    }
+
+    return max_eval;
+}
+
+float Engine::minimizer(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level)
+{
+    position_count++;
+
+    if(depth == 0)
+        return evaluate_position(position);
+
+    std::vector<Move> possible_moves = position->determine_moves(1);
+    // Check if current player loses.
+    if(possible_moves.empty())
+        return INT_MAX;
+
+    sort_move_priority(possible_moves, position);
+
+    int min_eval = INT_MAX;
+    Move local_best_move;
+
+    for(Move& move : possible_moves)
+    {
+        // Make copy of the board.
+        Position* new_position = new Position(*position);
+
+        // do move.
+        new_position->do_move(&move);
+
+        // Recursive call on child.
+        int eval = maximizer(depth-1, alpha, beta, position_count, new_position, best_move, false);
+
+        if(eval < min_eval)
+        {
+            min_eval = eval;
+            local_best_move = Move(move);
+        }
+
+        // Clean up the new position.
+        delete new_position;
+
+        // Evaluate the found score.
+        if(eval <= beta) 
+            beta = eval;
+
+        if(beta <= alpha)
+        {
+            break;
+        }
+    } 
+
+    if(top_level)
+    {
+        best_move = local_best_move;
+    }
+
+    return min_eval;
+}
+
+
+
+EvaluationResult Engine::alpha_beta_pruning(Position* position, bool color_sign, uint8_t depth, float& alpha, float& beta, int& positions_checked)
+{
+    positions_checked++;
     std::vector<Move> possible_moves = position->determine_moves(color_sign);
     sort_move_priority(possible_moves, position);
     EvaluationResult result;
@@ -67,7 +199,7 @@ EvaluationResult Engine::alpha_beta_pruning(Position* position, bool color_sign,
     if(color_sign == 0)
     {
         result.score = MIN_EVAL;
-        for(Move move : possible_moves)
+        for(Move& move : possible_moves)
         {
             // Make copy of the board.
             Position* new_position = new Position(*position);
@@ -76,22 +208,24 @@ EvaluationResult Engine::alpha_beta_pruning(Position* position, bool color_sign,
             new_position->do_move(&move);
 
             // Recursive call on child.
-            EvaluationResult eval = alpha_beta_pruning(new_position, !color_sign, depth-1, alpha, beta);
+            EvaluationResult current = alpha_beta_pruning(new_position, !color_sign, depth-1, alpha, beta, positions_checked);
 
             // Clean up the new position.
             delete new_position;
 
             // Evaluate the found score.
-            if(eval.score > result.score) 
+            if(current.score > result.score) 
             {
-                result.score = eval.score;
-                result.best_move = Move(move);
+                result.score = current.score;
+                result.best_move = move;
             }
 
-            alpha = std::max(alpha, eval.score);
+            alpha = std::max(alpha, current.score);
 
             if(beta <= alpha)
+            {
                 break;
+            }
         } 
         return result;
     }
@@ -107,21 +241,22 @@ EvaluationResult Engine::alpha_beta_pruning(Position* position, bool color_sign,
             new_position->do_move(&move);
 
             // Recursive call on child.
-            EvaluationResult eval = alpha_beta_pruning(new_position, !color_sign, depth-1, alpha, beta);
+            EvaluationResult current = alpha_beta_pruning(new_position, !color_sign, depth-1, alpha, beta, positions_checked);
 
             // Clean up the new position.
             delete new_position;
 
             // Evaluate the found score.
-            if(eval.score < result.score) 
+            if(current.score < result.score ) 
             {
-                result.score = eval.score;
-                result.best_move = Move(move);
+                result.score = current.score;
+                result.best_move = move;
             }
-            beta = std::min(beta, eval.score);
-            
+
             if(beta <= alpha)
+            {
                 break;
+            }
         }
         return result;
     }

@@ -158,7 +158,7 @@ int main()
             bool color_sign = !is_white_turn;
             float alpha = MIN_EVAL;  
             float beta = MAX_EVAL; 
-            Move best_move = engine.alpha_beta_pruning(board->position, color_sign, 10, alpha, beta).best_move;
+            Move best_move = engine.best_move(board->position, color_sign, 5);
             board->position->do_move(&best_move);
             is_white_turn = !is_white_turn;
             possible_moves = board->position->determine_moves(!is_white_turn);
