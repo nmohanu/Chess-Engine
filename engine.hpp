@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stack>
 #include <limits>
+#include <mutex>
 
 struct EvaluationResult;
 
@@ -15,8 +16,6 @@ public:
     float minimizer(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level);
 
     Move best_move(Position* position, bool color_sign, int depth);
-
-    EvaluationResult alpha_beta_pruning(Position* position, bool color_sign, uint8_t depth, float& alpha, float& beta, int& positions_checked);
 
     float evaluate_piece_value(Position* position, uint8_t square);
 
@@ -66,11 +65,4 @@ private:
     const float skewer_weight = 1.f;
     const float possible_checks_weight = 1.f;
 
-    std::thread worker1;
-    std::thread worker2;
-};
-
-struct EvaluationResult {
-    float score;
-    Move best_move;
 };

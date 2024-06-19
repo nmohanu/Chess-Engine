@@ -109,10 +109,10 @@ int main()
                 window.close();
         }
         
-        bool color = 1;
         sf::Vector2i mouse_position;
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && !mouse_pressed)
         {
+            // Get clicked square coordinates.
             std::pair<int, int> new_square;
             mouse_position = sf::Mouse::getPosition(window);
             clicked_square.first = (mouse_position.x - offset.x) / (16 * SCALE_FACTOR);
@@ -158,7 +158,7 @@ int main()
             bool color_sign = !is_white_turn;
             float alpha = MIN_EVAL;  
             float beta = MAX_EVAL; 
-            Move best_move = engine.best_move(board->position, color_sign, 5);
+            Move best_move = engine.best_move(board->position, color_sign, 10);
             board->position->do_move(&best_move);
             is_white_turn = !is_white_turn;
             possible_moves = board->position->determine_moves(!is_white_turn);
@@ -170,7 +170,7 @@ int main()
         window.clear();
 
         // Draw stuff.
-
+        bool square_color = 1;
         for(int y = 0; y < 8; y++)
         {
             for(int x = 0; x < 8; x++)
@@ -182,7 +182,7 @@ int main()
                 sf::Vector2f print_position(x*16*SCALE_FACTOR + offset.x, y*16*SCALE_FACTOR + offset.y);
 
                 // Draw the board.
-                if(color)
+                if(square_color)
                 {
                     square_white.setPosition(sf::Vector2f(print_position));
                     window.draw(square_white);
@@ -195,7 +195,7 @@ int main()
 
                 // Flip color at end of row.
                 if(x != 7)
-                    color = !color;
+                    square_color = !square_color;
 
                 // Draw the pieces.
                 uint8_t piece_type = board->position->get_piece(pos);

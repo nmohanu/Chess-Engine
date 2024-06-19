@@ -51,6 +51,7 @@ Move Engine::best_move(Position* position, bool color_sign, int depth)
     int beta = INT_MAX;
     float score = 0;
     Move best_move;
+
     if(color_sign)
     {
         score = minimizer(depth, alpha, beta, count, position, best_move, true);
@@ -59,6 +60,7 @@ Move Engine::best_move(Position* position, bool color_sign, int depth)
     {
         score = maximizer(depth, alpha, beta, count, position, best_move, true);
     }
+    
     std::cout << "Positions evaluated: " << count << "\n";
     std::cout << "Score found was: " << score << "\n";
     return best_move;
@@ -95,7 +97,7 @@ float Engine::maximizer(int depth, int alpha, int beta, int& position_count, Pos
         // Clean up the new position.
         delete new_position;
 
-        if(eval > max_eval)
+        if(eval > max_eval) 
         {
             max_eval = eval;
             local_best_move = Move(move); 
@@ -172,94 +174,6 @@ float Engine::minimizer(int depth, int alpha, int beta, int& position_count, Pos
     }
 
     return min_eval;
-}
-
-
-
-EvaluationResult Engine::alpha_beta_pruning(Position* position, bool color_sign, uint8_t depth, float& alpha, float& beta, int& positions_checked)
-{
-    positions_checked++;
-    std::vector<Move> possible_moves = position->determine_moves(color_sign);
-    sort_move_priority(possible_moves, position);
-    EvaluationResult result;
-    
-    // Check if current player loses.
-    if(possible_moves.empty())
-    {
-        result.score = color_sign ? MIN_EVAL : MAX_EVAL;
-        return result;
-    }
-    else if(depth == 0)
-    {
-        result.score = evaluate_position(position);
-        return result;
-    }
-
-    // Maximizing player.
-    if(color_sign == 0)
-    {
-        result.score = MIN_EVAL;
-        for(Move& move : possible_moves)
-        {
-            // Make copy of the board.
-            Position* new_position = new Position(*position);
-
-            // do move.
-            new_position->do_move(&move);
-
-            // Recursive call on child.
-            EvaluationResult current = alpha_beta_pruning(new_position, !color_sign, depth-1, alpha, beta, positions_checked);
-
-            // Clean up the new position.
-            delete new_position;
-
-            // Evaluate the found score.
-            if(current.score > result.score) 
-            {
-                result.score = current.score;
-                result.best_move = move;
-            }
-
-            alpha = std::max(alpha, current.score);
-
-            if(beta <= alpha)
-            {
-                break;
-            }
-        } 
-        return result;
-    }
-    else
-    {
-        result.score = MAX_EVAL;
-        for(Move move : possible_moves)
-        {
-            // Make copy of the board.
-            Position* new_position = new Position(*position);
-
-            // do move.
-            new_position->do_move(&move);
-
-            // Recursive call on child.
-            EvaluationResult current = alpha_beta_pruning(new_position, !color_sign, depth-1, alpha, beta, positions_checked);
-
-            // Clean up the new position.
-            delete new_position;
-
-            // Evaluate the found score.
-            if(current.score < result.score ) 
-            {
-                result.score = current.score;
-                result.best_move = move;
-            }
-
-            if(beta <= alpha)
-            {
-                break;
-            }
-        }
-        return result;
-    }
 }
 
 float Engine::evaluate_piece_sum(Position* position, uint8_t color_sign)
