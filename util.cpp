@@ -35,3 +35,27 @@ void print_binary(uint64_t num)
     std::cout << "Binary representation: ";
     std::cout << std::bitset<sizeof(num) * 8>(num) << std::endl;
 }
+
+float get_piece_value(uint8_t piece)
+{
+
+    switch (piece) {
+        case W_PAWN:
+        case B_PAWN:
+            return PAWN_VALUE;
+        case W_KNIGHT:
+        case B_KNIGHT:
+            return KNIGHT_VALUE;
+        case W_BISHOP:
+        case B_BISHOP:
+            return BISHOP_VALUE;
+        case W_ROOK:
+        case B_ROOK:
+            return ROOK_VALUE;
+        case W_QUEEN:
+        case B_QUEEN:
+            return QUEEN_VALUE;
+        default:
+            return 0.0; // Default value for other pieces or empty squares
+    }
+}

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 // 0000 empty.
 
@@ -46,6 +47,15 @@
 #define WHITE_PIECES (uint8_t[])[W_KING, W_QUEEN, W_BISHOP, W_KNIGHT, W_PAWN, W_ROOK]
 #define BLACK_PIECES (uint8_t[])[B_KING, B_QUEEN, B_BISHOP, B_KNIGHT, B_PAWN, B_ROOK]
 
+#define MAX_EVAL 999999999.f
+#define MIN_EVAL -999999999.f
+
+const float ROOK_VALUE = 5.f;
+const float QUEEN_VALUE = 9.f;
+const float KNIGHT_VALUE = 3.f;
+const float BISHOP_VALUE = 3.f;
+const float PAWN_VALUE = 1.f;
+
 void toggle_bit_on(uint64_t &num, uint64_t pos);
 
 bool get_bit(uint8_t num, uint8_t pos);
@@ -57,3 +67,5 @@ int make_pos(int x, int y);
 bool get_color(uint8_t piece);
 
 void print_binary(uint64_t num);
+
+float get_piece_value(uint8_t piece);

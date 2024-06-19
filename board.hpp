@@ -7,7 +7,11 @@ struct Position
 {
     void initialize();
 
+    Position();
+
     ~Position();
+
+    Position(const Position& other);
     
     // Replace 4 bits by 4 new bits.
     void set_piece(uint8_t new_piece, uint8_t pos);
@@ -19,7 +23,7 @@ struct Position
     void do_move(Move* move);
 
     // Check if king is under attack.
-    bool king_under_attack(bool is_white);
+    bool king_under_attack(bool color_sign);
 
     // Create attack board for specific piece.
     uint64_t make_reach_board(uint8_t x, uint8_t y);
@@ -27,10 +31,13 @@ struct Position
     uint64_t make_move_board(uint8_t, uint8_t);
 
     // Create attack board for a player.
-    uint64_t color_reach_board(bool is_white);
+    uint64_t color_reach_board(bool color_sign);
 
     // Get position of a piece.
     uint8_t get_piece_position(uint8_t piece);
+
+    // Determine possible moves.
+    std::vector<Move> determine_moves(bool color_sign);
 
     // false = black, true = white.
     uint64_t first_16;
@@ -46,10 +53,7 @@ class Board
 public:
     Board();
 
-    ~Board();
-
-    // Determine possible moves.
-    std::vector<Move> determine_moves(bool is_white, Position* position) const;
+    ~Board();    
     
     Position* position = nullptr;
 };
@@ -57,7 +61,12 @@ public:
 struct Move
 {   
     Move();
+    Move(const Move& other);
     Move(uint8_t start, uint8_t end) : start_location(start), end_location(end) {}
+
+    bool is_check(Position* position) const;
+    bool is_capture(Position* position) const;
+    float capture_value(Position* position) const;
 
     uint8_t start_location;
     uint8_t end_location;

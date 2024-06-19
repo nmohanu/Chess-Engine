@@ -1,19 +1,24 @@
 #include "board.hpp"
 #include "thread"
 #include <math.h>
+#include <stack>
+#include <limits>
+
+struct EvaluationResult;
 
 class Engine 
 {
 public:
+
+    EvaluationResult alpha_beta_pruning(Position* position, bool color_sign, uint8_t depth, float& alpha, float& beta);
+
     float evaluate_piece_value(Position* position, uint8_t square);
 
     float evaluate_position(Position* position);
 
     float evaluate_color(Position* position, uint8_t color_sign);
 
-    Move* get_best_move(Position* position, uint8_t color_sign);
-
-    float evaluate_piece_ratio(Position* position, uint8_t color_sign);
+    float evaluate_piece_sum(Position* position, uint8_t color_sign);
 
     float evaluate_mobility(Position* position, uint8_t color_sign);
 
@@ -39,16 +44,10 @@ public:
 
     float evaluate_pawns_positions(Position* position, uint8_t color_sign);
 
-
+    void sort_move_priority(std::vector<Move>& moves, Position* position);
 
 private:
     // Params.
-
-    const float ROOK_VALUE = 5.f;
-    const float QUEEN_VALUE = 9.f;
-    const float KNIGHT_VALUE = 3.f;
-    const float BISHOP_VALUE = 3.f;
-    const float PAWN_VALUE = 1.f;
 
     const float bishhop_pair_weight= 1.f;
 
@@ -63,4 +62,9 @@ private:
 
     std::thread worker1;
     std::thread worker2;
+};
+
+struct EvaluationResult {
+    float score;
+    Move best_move;
 };

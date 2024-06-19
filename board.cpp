@@ -1,12 +1,41 @@
 #include "board.hpp"
 #include <algorithm> 
 
+Move::Move()
+{
+
+}
+
+Move::Move(const Move& other)
+{
+    this->start_location = other.start_location;
+    this->end_location = other.end_location;
+}
+
 void Position::initialize()
 {
     this->first_16 = FIRST_16_SQUARES;
     this->second_16 = SECOND_16_SQUARES;
     this->third_16 = THIRD_16_SQUARES;
     this->fourth_16 = FOURTH_16_SQUARES;
+}
+
+Position::Position()
+{
+
+}
+
+Position::Position(const Position& other) 
+{
+    this->first_16 = other.first_16;
+    this->second_16 = other.second_16;
+    this->third_16 = other.third_16;
+    this->fourth_16 = other.fourth_16;
+    if (other.last_move) {
+        this->last_move = new Move(*other.last_move);
+    } else {
+        this->last_move = nullptr;
+    }
 }
 
 Board::Board()
@@ -90,7 +119,6 @@ uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
             }
         }
     }
-
     else if (piece_type == B_KNIGHT || piece_type == W_KNIGHT)
     {
         if (x + 1 >= 0 && x + 1 <= 7 && y + 2 >= 0 && y + 2 <= 7)
@@ -309,11 +337,8 @@ uint8_t Position::get_piece_position(uint8_t piece)
 }
 
 // Create the attack board for all pieces of a player.
-uint64_t Position::color_reach_board(bool is_white)
+uint64_t Position::color_reach_board(bool color_sign)
 {
-    bool color_sign = !is_white;
-    
-
     uint64_t attack_board = 0;
 
     for(int y = 0; y < 8; y++)
@@ -336,13 +361,13 @@ uint64_t Position::color_reach_board(bool is_white)
 }
 
 // Check if the king is in check.
-bool Position::king_under_attack(bool is_white)
+bool Position::king_under_attack(bool color_sign)
 {
     // King is under attack if it intersects with the attack board of opposite player.
-    uint8_t pos = (is_white) ? get_piece_position(W_KING) : get_piece_position(B_KING);
+    uint8_t pos = (color_sign) ? get_piece_position(B_KING) : get_piece_position(W_KING);
 
     // Check attack board for other position.
-    uint64_t attacked_positions = color_reach_board(!is_white);
+    uint64_t attacked_positions = color_reach_board(!color_sign);
 
     // Check if intersect on king position.
     return get_bit_64(attacked_positions, pos);
@@ -381,7 +406,6 @@ void Position::set_piece(uint8_t new_piece, uint8_t pos)
         old_squares = &this->fourth_16;
     }
 
-    std::cout << shift_amount << '\n';
     // Isolate the left side of the piece to be replaced.
     uint64_t mask_left = *old_squares;
     mask_left  >>= (shift_amount + 4);
@@ -416,11 +440,8 @@ void Position::do_move(Move* move)
     last_move = new Move(move->start_location, move->end_location);
 }
 
-std::vector<Move> Board::determine_moves(bool is_white, Position* position) const
+std::vector<Move> Position::determine_moves(bool color_sign)
 {
-    // Determine the color sign of the player at turn.
-    uint8_t color_sign = (is_white) ? 0 : 1;
-
     std::vector<Move> possible_moves;
 
     // Loop through board to find player's pieces.
@@ -430,18 +451,18 @@ std::vector<Move> Board::determine_moves(bool is_white, Position* position) cons
         {
             // Get piece at position.
             int pos = make_pos(x, y);
-            uint8_t piece_type = position->get_piece(pos);
+            uint8_t piece_type = this->get_piece(pos);
 
             // Empty square or wrong color.
             if(piece_type == 0 || get_color(piece_type) != color_sign) continue;
 
-            uint64_t move_squares = position->make_move_board(x, y);
-            uint64_t reach_squares = position->make_reach_board(x, y);
+            uint64_t move_squares = this->make_move_board(x, y);
+            uint64_t reach_squares = this->make_reach_board(x, y);
             
             for(int i = 0; i < 63; i++)
             {
                 // Check if the piece can be moved to this square.
-                uint8_t piece_at_square = position->get_piece(i);
+                uint8_t piece_at_square = this->get_piece(i);
                 bool can_move = get_bit_64(move_squares, i);
                 bool can_attack = false;
                 bool piece_on_attack_square = get_bit_64(reach_squares, i);
@@ -449,35 +470,29 @@ std::vector<Move> Board::determine_moves(bool is_white, Position* position) cons
                 if(piece_at_square != 0)
                     can_attack = (piece_is_other_color && piece_on_attack_square);
 
-
-                if(piece_is_other_color)
-                    std::cout << "piece is other color \n";
-                if(piece_on_attack_square)
-                    std::cout << "piece is on attacked square \n";
-
                 if(can_move || can_attack)
                 {
                     // piece at pos can move to square i.
                     Move move(pos,i);
 
                     // Copy board state.
-                    uint64_t first = position->first_16;
-                    uint64_t second = position->second_16;
-                    uint64_t third = position->third_16;
-                    uint64_t fourth = position->fourth_16;
+                    uint64_t first = this->first_16;
+                    uint64_t second = this->second_16;
+                    uint64_t third = this->third_16;
+                    uint64_t fourth = this->fourth_16;
 
-                    position->do_move(&move);
-                    if(!position->king_under_attack(is_white))
+                    this->do_move(&move);
+                    if(!this->king_under_attack(color_sign))
                     {   
                         // Move is possible.
                         possible_moves.push_back(move);
                     }
 
                     // Restore position.
-                    position->first_16 = first;
-                    position->second_16 = second;
-                    position->third_16 = third;
-                    position->fourth_16 = fourth;
+                    this->first_16 = first;
+                    this->second_16 = second;
+                    this->third_16 = third;
+                    this->fourth_16 = fourth;
                 }
             }
         }
@@ -509,4 +524,32 @@ uint8_t Position::get_piece(uint8_t pos) const
 
     // Take only the right 4 bits.
     return (piece & 0b00001111);
+}
+
+bool Move::is_check(Position* position) const
+{
+    Position* copy = new Position(*position);
+    Move copy_move(start_location, end_location);
+    copy->do_move(&copy_move);
+
+    bool is_check = copy->king_under_attack(!get_color(position->get_piece(this->start_location)));
+
+    delete copy;
+
+    return is_check;
+}
+
+bool Move::is_capture(Position* position) const
+{
+    uint8_t start_square = position->get_piece(this->start_location);
+    uint8_t capture_square = position->get_piece(this->end_location);
+    if(capture_square != 0 && get_color(start_square) != get_color(end_location))
+        return true;
+    return false;
+}
+
+float Move::capture_value(Position* position) const
+{
+    uint8_t capture_square = position->get_piece(this->end_location);
+    return get_piece_value(capture_square);
 }

@@ -19,6 +19,8 @@ int main()
 
     bool is_white_turn = true;
 
+    Engine engine;
+
     float SCALE_FACTOR = 8.f;
     int SCREEN_WIDTH = 1080;
     int SCREEN_HEIGHT = 1080;
@@ -32,7 +34,7 @@ int main()
     uint64_t reach_board = 0b0;
 
     std::vector<Move> possible_moves;
-    possible_moves = board->determine_moves(is_white_turn, board->position);
+    possible_moves = board->position->determine_moves(!is_white_turn);
 
     sf::Vector2f offset((SCREEN_WIDTH - 16*SCALE_FACTOR*8)/2, (SCREEN_HEIGHT - 16*SCALE_FACTOR*8)/2);
 
@@ -117,7 +119,7 @@ int main()
             clicked_square.second = (mouse_position.y - offset.y) / (16 * SCALE_FACTOR);
 
             // Check if user is moving a piece.
-            if(last_clicked_square != clicked_square)
+            if(last_clicked_square != clicked_square && is_white_turn)
             {
                 selected_piece = board->position->get_piece(make_pos(clicked_square.first, clicked_square.second));
 
@@ -135,7 +137,7 @@ int main()
                     {
                         board->position->do_move(&move);
                         is_white_turn = !is_white_turn;
-                        possible_moves = board->determine_moves(is_white_turn, board->position);
+                        possible_moves = board->position->determine_moves(!is_white_turn);
                         if(possible_moves.empty())
                         {
                             std::cout << "Player " << !is_white_turn << " wins! \n";
@@ -151,6 +153,16 @@ int main()
             mouse_pressed = false;
         }
         
+        if(!is_white_turn)
+        {
+            bool color_sign = !is_white_turn;
+            float alpha = MIN_EVAL;  
+            float beta = MAX_EVAL; 
+            Move best_move = engine.alpha_beta_pruning(board->position, color_sign, 10, alpha, beta).best_move;
+            board->position->do_move(&best_move);
+            is_white_turn = !is_white_turn;
+            possible_moves = board->position->determine_moves(!is_white_turn);
+        }
 
         // std::cout << clicked_square.first << " " << clicked_square.second << '\n';
         // std::cout << mouse_position.x << " " << mouse_position.y << '\n';
