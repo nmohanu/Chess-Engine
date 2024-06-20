@@ -1,5 +1,7 @@
 #include "util.hpp"
 #include <iomanip>
+#include <algorithm> 
+#include <cassert>
 
 #ifndef POSITION_HPP
 #define POSITION_HPP
@@ -78,6 +80,18 @@ public:
     uint8_t en_passant = 0b11111111;
 
     Move* last_move = nullptr;
+
+private:
+    void update_last_move(Move* move);
+    void check_en_passant_possibility(Move* move);
+    void handle_castling(Move* move);
+    void handle_special_cases(Move* move);
+    void reset_en_passant_status();
+    void handle_en_passant_capture(Move* move);
+    void move_piece(Move* move);
+    void generate_en_passant_move(bool color_sign, std::vector<Move>& possible_moves);
+    void generate_castling_moves(bool color_sign, std::vector<Move>& possible_moves);
+    void generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, uint64_t reach_squares, bool color_sign, std::vector<Move>& possible_moves);
 };
 
 class Board 
@@ -101,6 +115,7 @@ struct Move
     bool is_check(Position* position) const;
     bool is_capture(Position* position) const;
     float capture_value(Position* position) const;
+    bool move_bounds_valid();
 
     uint8_t start_location;
     uint8_t end_location;
@@ -109,7 +124,7 @@ struct Move
     // 1 = white kingside, 2 = white queenside, 3 = black kingside, 4 = black queenside, 5 = engine needs to check for an passant afterwards.
     uint8_t special_cases = 0b0;
 
-    uint8_t move_takes_an_passant;
+    bool move_takes_an_passant;
 };
 
 #endif

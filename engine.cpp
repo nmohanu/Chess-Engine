@@ -1,5 +1,16 @@
 #include "engine.hpp"
 
+Engine::Engine()
+{
+    hasher.init_zobrist_keys();
+
+    // Initiate a hash with the starting position.
+    Position* starting_position = new Position();
+    starting_position->initialize();
+    transposition_table.current_hash = hasher.calculate_zobrist_key(starting_position, 0);
+    delete starting_position;
+}
+
 float Engine::evaluate_position(Position* position)
 {
     float total_eval = 0.f;
@@ -88,14 +99,31 @@ float Engine::maximizer(int depth, int alpha, int beta, int& position_count, Pos
         // Make copy of the board.
         Position* new_position = new Position(*position);
 
+        // Make hash copy.
+        uint64_t hash_copy = transposition_table.current_hash;
+
         // do move.
         new_position->do_move(&move);
+
+        // Update hash.
+        hasher.update_zobrist_hash(&move, new_position, 0, hash_copy);
+
+        // If hash is in hash table, skip this move. 
+        if(transposition_table.contains(hash_copy))
+            continue;
+        else
+            transposition_table.insert(hash_copy);
 
         // Recursive call on child.
         int eval = minimizer(depth-1, alpha, beta, position_count, new_position, best_move, false);
 
+        // Restore hash key.
+        transposition_table.current_hash = hash_copy;
+
         // Clean up the new position.
-        delete new_position;
+        if(new_position != nullptr)
+            delete new_position;
+        new_position = nullptr;
 
         if(eval > max_eval) 
         {
@@ -104,7 +132,7 @@ float Engine::maximizer(int depth, int alpha, int beta, int& position_count, Pos
         }
 
         // Evaluate the found score.
-        if(eval >= alpha) 
+        if(eval >= alpha)  
             alpha = eval;
 
         if(alpha >= beta)
@@ -143,11 +171,29 @@ float Engine::minimizer(int depth, int alpha, int beta, int& position_count, Pos
         // Make copy of the board.
         Position* new_position = new Position(*position);
 
+        // Make hash copy.
+        uint64_t hash_copy = transposition_table.current_hash;
+
         // do move.
         new_position->do_move(&move);
 
+        // Update hash.
+        hasher.update_zobrist_hash(&move, new_position, 0, hash_copy);
+
+        // If hash is in hash table, skip this move. 
+        if(transposition_table.contains(hash_copy))
+        {
+            delete new_position;
+            continue;
+        }
+        else
+            transposition_table.insert(hash_copy);
+
         // Recursive call on child.
         int eval = maximizer(depth-1, alpha, beta, position_count, new_position, best_move, false);
+
+        // Restore hash key.
+        transposition_table.current_hash = hash_copy;
 
         if(eval < min_eval)
         {
@@ -156,7 +202,9 @@ float Engine::minimizer(int depth, int alpha, int beta, int& position_count, Pos
         }
 
         // Clean up the new position.
-        delete new_position;
+        if(new_position != nullptr)
+            delete new_position;
+        new_position = nullptr;
 
         // Evaluate the found score.
         if(eval <= beta) 

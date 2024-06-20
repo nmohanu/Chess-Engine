@@ -3,21 +3,35 @@
 #include <math.h>
 #include <stack>
 #include <array>
+#include <unordered_set>
 
 struct TranspositionTable
 {
     uint64_t current_hash = 0b0;
+    std::unordered_set<uint64_t> table;
+    
+    bool contains(uint64_t hash) {
+        return table.find(hash) != table.end();
+    }
+    
+    void insert(uint64_t hash) {
+        table.insert(hash);
+    }
 
+    void clear() {
+        table.clear();
+    }
 };
 
 struct ZobristHash
 {
+    ZobristHash(){}
+
     void init_zobrist_keys();
 
-    uint64_t calculate_zobrist_key(Position* position);
+    uint64_t calculate_zobrist_key(Position* position, uint8_t current_player_sign);
 
-    enum PieceType { NONE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
-    enum Color { WHITE, BLACK };
+    void update_zobrist_hash(Move* move, Position* position, uint8_t current_player_sign, uint64_t& old_hash);
 
     std::array<std::array<uint64_t, 12>, 64> zobrist_pieces;
 
@@ -32,6 +46,8 @@ public:
 
     // Call recursive functions to determine best move.
     Move best_move(Position* position, bool color_sign, int depth);
+
+    Engine();
 
 private:
 
@@ -94,5 +110,6 @@ private:
 
     TranspositionTable transposition_table;
 
+    ZobristHash hasher;
 };
 
