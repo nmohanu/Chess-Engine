@@ -1,6 +1,8 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <memory>
+#include <algorithm>
 
 // 0000 empty.
 
@@ -35,13 +37,45 @@
 #define B_BISHOP 0b1100
 #define B_KNIGHT 0b1101
 #define B_PAWN   0b1110
+
 // Black side.
 #define FIRST_16_SQUARES  0b1011'1101'1100'1010'1001'1100'1101'1011'1110'1110'1110'1110'1110'1110'1110'1110
 #define SECOND_16_SQUARES  0b0
+
 // White side.
 #define THIRD_16_SQUARES 0b0
 #define FOURTH_16_SQUARES 0b0110'0110'0110'0110'0110'0110'0110'0110'0011'0101'0100'0010'0001'0100'0101'0011 
 
-void toggle_bit(uint64_t &num, uint64_t pos);
+#define WHITE_PIECES (uint8_t[])[W_KING, W_QUEEN, W_BISHOP, W_KNIGHT, W_PAWN, W_ROOK]
+#define BLACK_PIECES (uint8_t[])[B_KING, B_QUEEN, B_BISHOP, B_KNIGHT, B_PAWN, B_ROOK]
 
-bool get_bit(uint64_t num, uint64_t pos);
+#define MAX_EVAL 999999999.f
+#define MIN_EVAL -999999999.f
+
+// Constants.
+const float ROOK_VALUE = 5.f;
+const float QUEEN_VALUE = 9.f;
+const float KNIGHT_VALUE = 3.f;
+const float BISHOP_VALUE = 3.f;
+const float PAWN_VALUE = 1.f;
+
+// Toggle a bit on (but not off).
+void toggle_bit_on(uint64_t &num, uint64_t pos);
+
+// Get bit of an 8 bit number.
+bool get_bit(uint8_t num, uint8_t pos);
+
+// Get bit of a 64 bit number.
+bool get_bit_64(uint64_t num, uint64_t pos);
+
+// Convert x and y to n'th square.
+int make_pos(int x, int y);
+
+// Get the color sign of a piece.
+bool get_color(uint8_t piece);
+
+// Print a binary number (for debugging).
+void print_binary(uint64_t num);
+
+// Get value of a piece.
+float get_piece_value(uint8_t piece);

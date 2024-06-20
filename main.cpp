@@ -6,19 +6,35 @@
 int main()
 {
     Board* board = new Board();
-    board->print();
-
+    
     sf::Texture texture;
     if (!texture.loadFromFile("../../assets/sheet.png"))
     {
         return 1;
     }
 
+    int checkpoint_count = 0;
+
+    bool mouse_pressed = false;
+
+    bool is_white_turn = true;
+
+    Engine engine;
+
     float SCALE_FACTOR = 8.f;
     int SCREEN_WIDTH = 1080;
     int SCREEN_HEIGHT = 1080;
 
+    uint8_t selected_piece;
+
     std::pair<int,int> clicked_square;
+    std::pair<int,int> last_clicked_square;
+
+    uint64_t move_board = 0b0;
+    uint64_t reach_board = 0b0;
+
+    std::vector<Move> possible_moves;
+    possible_moves = board->position->determine_moves(!is_white_turn);
 
     sf::Vector2f offset((SCREEN_WIDTH - 16*SCALE_FACTOR*8)/2, (SCREEN_HEIGHT - 16*SCALE_FACTOR*8)/2);
 
@@ -93,13 +109,59 @@ int main()
                 window.close();
         }
         
-        bool color = 1;
         sf::Vector2i mouse_position;
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && !mouse_pressed)
         {
+            // Get clicked square coordinates.
+            std::pair<int, int> new_square;
             mouse_position = sf::Mouse::getPosition(window);
             clicked_square.first = (mouse_position.x - offset.x) / (16 * SCALE_FACTOR);
             clicked_square.second = (mouse_position.y - offset.y) / (16 * SCALE_FACTOR);
+
+            // Check if user is moving a piece.
+            if(last_clicked_square != clicked_square)
+            {
+                selected_piece = board->position->get_piece(make_pos(clicked_square.first, clicked_square.second));
+
+                move_board = board->position->make_move_board(clicked_square.first, clicked_square.second);
+                reach_board = board->position->make_reach_board(clicked_square.first, clicked_square.second);
+                if(selected_piece == 0)
+                {
+                    move_board = 0b0;
+                    reach_board = 0b0;
+                }
+                
+                for (Move move : possible_moves)
+                {
+                    if(move.start_location == make_pos(last_clicked_square.first, last_clicked_square.second) && move.end_location == make_pos(clicked_square.first, clicked_square.second))
+                    {
+                        board->position->do_move(&move);
+                        is_white_turn = !is_white_turn;
+                        possible_moves = board->position->determine_moves(!is_white_turn);
+                        if(possible_moves.empty())
+                        {
+                            std::cout << "Player " << !is_white_turn << " wins! \n";
+                        }
+                        break;
+                    }
+                }
+            }
+            mouse_pressed = true;
+        }
+        else
+        {
+            mouse_pressed = false;
+        }
+        
+        if(!is_white_turn)
+        {
+            bool color_sign = !is_white_turn;
+            float alpha = MIN_EVAL;  
+            float beta = MAX_EVAL; 
+            Move best_move = engine.best_move(board->position, color_sign, 4);
+            board->position->do_move(&best_move);
+            is_white_turn = !is_white_turn;
+            possible_moves = board->position->determine_moves(!is_white_turn);
         }
 
         // std::cout << clicked_square.first << " " << clicked_square.second << '\n';
@@ -108,7 +170,7 @@ int main()
         window.clear();
 
         // Draw stuff.
-
+        bool square_color = 1;
         for(int y = 0; y < 8; y++)
         {
             for(int x = 0; x < 8; x++)
@@ -120,7 +182,7 @@ int main()
                 sf::Vector2f print_position(x*16*SCALE_FACTOR + offset.x, y*16*SCALE_FACTOR + offset.y);
 
                 // Draw the board.
-                if(color)
+                if(square_color)
                 {
                     square_white.setPosition(sf::Vector2f(print_position));
                     window.draw(square_white);
@@ -133,10 +195,10 @@ int main()
 
                 // Flip color at end of row.
                 if(x != 7)
-                    color = !color;
+                    square_color = !square_color;
 
                 // Draw the pieces.
-                uint8_t piece_type = board->get_piece(pos);
+                uint8_t piece_type = board->position->get_piece(pos);
                 switch (piece_type) 
                 {
                     case B_PAWN:
@@ -176,7 +238,6 @@ int main()
                         piece_to_draw = &knight_white;
                         break;
                     default:
-                        // Handle default case if necessary
                         break;
                 }
                 
@@ -193,9 +254,17 @@ int main()
                     selection_square.setPosition(sf::Vector2f(print_position));
                     window.draw(selection_square);
                 }
+
+                uint8_t piece_at_pos = board->position->get_piece(pos);
+                if((get_bit_64(move_board, pos) || get_bit_64(reach_board, pos) && get_color(piece_at_pos) == is_white_turn && piece_at_pos != 0) && get_color(selected_piece) != is_white_turn)
+                {
+                    selection_square.setPosition(sf::Vector2f(print_position));
+                    window.draw(selection_square);
+                }
             }
         }
         
+        last_clicked_square = clicked_square;
         window.display();
     }
 
