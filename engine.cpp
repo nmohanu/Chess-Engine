@@ -191,3 +191,9 @@ float Engine::evaluate_piece_sum(Position* position, uint8_t color_sign)
 
     return points;
 }
+
+// void Engine::zobrist_hash(Position* position, uint64_t old_hash, Move* move)
+// {
+//     // uint64_t hash = 0b0;
+
+// }

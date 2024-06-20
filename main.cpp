@@ -119,7 +119,7 @@ int main()
             clicked_square.second = (mouse_position.y - offset.y) / (16 * SCALE_FACTOR);
 
             // Check if user is moving a piece.
-            if(last_clicked_square != clicked_square && is_white_turn)
+            if(last_clicked_square != clicked_square)
             {
                 selected_piece = board->position->get_piece(make_pos(clicked_square.first, clicked_square.second));
 
@@ -153,16 +153,16 @@ int main()
             mouse_pressed = false;
         }
         
-        if(!is_white_turn)
-        {
-            bool color_sign = !is_white_turn;
-            float alpha = MIN_EVAL;  
-            float beta = MAX_EVAL; 
-            Move best_move = engine.best_move(board->position, color_sign, 10);
-            board->position->do_move(&best_move);
-            is_white_turn = !is_white_turn;
-            possible_moves = board->position->determine_moves(!is_white_turn);
-        }
+        // if(!is_white_turn)
+        // {
+        //     bool color_sign = !is_white_turn;
+        //     float alpha = MIN_EVAL;  
+        //     float beta = MAX_EVAL; 
+        //     Move best_move = engine.best_move(board->position, color_sign, 4);
+        //     board->position->do_move(&best_move);
+        //     is_white_turn = !is_white_turn;
+        //     possible_moves = board->position->determine_moves(!is_white_turn);
+        // }
 
         // std::cout << clicked_square.first << " " << clicked_square.second << '\n';
         // std::cout << mouse_position.x << " " << mouse_position.y << '\n';

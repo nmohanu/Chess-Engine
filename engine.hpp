@@ -2,28 +2,56 @@
 #include "thread"
 #include <math.h>
 #include <stack>
-#include <limits>
-#include <mutex>
+#include <array>
 
-struct EvaluationResult;
+struct TranspositionTable
+{
+    uint64_t current_hash = 0b0;
+
+};
+
+struct ZobristHash
+{
+    void init_zobrist_keys();
+
+    uint64_t calculate_zobrist_key(Position* position);
+
+    enum PieceType { NONE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
+    enum Color { WHITE, BLACK };
+
+    std::array<std::array<uint64_t, 12>, 64> zobrist_pieces;
+
+    std::array<uint64_t, 8> zobrist_en_passant_file;
+
+    uint64_t zobrist_black_to_move;
+};
 
 class Engine 
 {
 public:
 
+    // Call recursive functions to determine best move.
+    Move best_move(Position* position, bool color_sign, int depth);
+
+private:
+
+    // Working but can be improved later:
+
     float maximizer(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level);
 
     float minimizer(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level);
 
-    Move best_move(Position* position, bool color_sign, int depth);
+    float evaluate_piece_sum(Position* position, uint8_t color_sign);
+
+    // TODO:
+
+    void zobrist_hash(Position* position);
 
     float evaluate_piece_value(Position* position, uint8_t square);
 
     float evaluate_position(Position* position);
 
     float evaluate_color(Position* position, uint8_t color_sign);
-
-    float evaluate_piece_sum(Position* position, uint8_t color_sign);
 
     float evaluate_mobility(Position* position, uint8_t color_sign);
 
@@ -51,7 +79,6 @@ public:
 
     void sort_move_priority(std::vector<Move>& moves, Position* position);
 
-private:
     // Params.
 
     const float bishhop_pair_weight= 1.f;
@@ -65,4 +92,7 @@ private:
     const float skewer_weight = 1.f;
     const float possible_checks_weight = 1.f;
 
+    TranspositionTable transposition_table;
+
 };
+

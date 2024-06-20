@@ -10,6 +10,8 @@ Move::Move(const Move& other)
 {
     this->start_location = other.start_location;
     this->end_location = other.end_location;
+    this->special_cases = other.special_cases;
+    this->move_takes_an_passant = other.move_takes_an_passant;
 }
 
 void Position::initialize()
@@ -31,6 +33,8 @@ Position::Position(const Position& other)
     this->second_16 = other.second_16;
     this->third_16 = other.third_16;
     this->fourth_16 = other.fourth_16;
+    this->casling_rights = other.casling_rights;
+    this->en_passant = other.en_passant;
     if (other.last_move) {
         this->last_move = new Move(*other.last_move);
     } else {
@@ -55,266 +59,82 @@ Position::~Position()
 }
 
 // Create attack board for specific piece. This is where we define the attacking logic for each piece.
-uint64_t Position::make_reach_board(uint8_t x, uint8_t y)
-{
+uint64_t Position::make_reach_board(uint8_t x, uint8_t y) {
     uint64_t attack_board = 0b0;
-
     int pos = make_pos(x, y);
-
     uint8_t piece_type = this->get_piece(pos);
 
-    // This is where we determine where a piece can go.
-    if(piece_type == B_PAWN) 
-    {
-        if((x+1) <= 7 && (y+1) <= 7)
-            toggle_bit_on(attack_board, make_pos(std::min(7, x+1), std::min(7, y+1)));
-        if((x-1) >= 0 && (y+1) <= 7)
-            toggle_bit_on(attack_board, make_pos(std::min(7, x-1), std::min(7, y+1)));
+    switch (piece_type) {
+        case B_PAWN:
+            attack_board = get_pawn_reach(x, y, false);
+            break;
+        case W_PAWN:
+            attack_board = get_pawn_reach(x, y, true);
+            break;
+        case B_KING:
+        case W_KING:
+            attack_board = get_king_reach(x, y);
+            break;
+        case B_BISHOP:
+        case W_BISHOP:
+            attack_board = get_bishop_reach(x, y);
+            break;
+        case B_KNIGHT:
+        case W_KNIGHT:
+            attack_board = get_knight_reach(x, y);
+            break;
+        case B_ROOK:
+        case W_ROOK:
+            attack_board = get_rook_reach(x, y);
+            break;
+        case B_QUEEN:
+        case W_QUEEN:
+            attack_board = get_queen_reach(x, y);
+            break;
+        default:
+            break;
     }
-    else if(piece_type == W_PAWN)
-    {
-        if((x+1) <= 7 && (y-1) > 0)
-            toggle_bit_on(attack_board, make_pos(std::min(7, x+1), std::min(7, y-1)));
-        if((x-1) >= 0 && (y-1) > 0)
-            toggle_bit_on(attack_board, make_pos(std::min(7, x-1), std::min(7, y-1)));
-    }
-    else if(piece_type == B_KING || piece_type == W_KING)
-    {
-        int offsets[8][2] = {
-            {-1, -1}, {-1, 0}, {-1, 1},
-            { 0, -1},          { 0, 1},
-            { 1, -1}, { 1, 0}, { 1, 1}
-        };
-        for (int i = 0; i < 8; ++i) {
-            int new_x = x + offsets[i][0];
-            int new_y = y + offsets[i][1];
-            
-            // Check if the new position is within bounds
-            if (new_x >= 0 && new_x < 8 && new_y >= 0 && new_y < 8) {
-                int pos = make_pos(new_x, new_y);
-                toggle_bit_on(attack_board, pos);
-            }
-        }
-    }
-    if (piece_type == B_BISHOP || piece_type == W_BISHOP || piece_type == W_QUEEN || piece_type == B_QUEEN) {
-        int xDeltas[] = {-1, 1, -1, 1};
-        int yDeltas[] = {-1, -1, 1, 1};
 
-        // Loop through each diagonal direction.
-        for (int dir = 0; dir < 4; ++dir) {
-            int xIt = x + xDeltas[dir];
-            int yIt = y + yDeltas[dir];
-
-            // Check each square along the diagonal until edge of board or another piece is encountered.
-            while (xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8) {
-                uint8_t pos_to_check = make_pos(xIt, yIt);
-                toggle_bit_on(attack_board, pos_to_check);
-
-                if (get_piece(pos_to_check) != 0)
-                    break;
-
-                // Move to the next square in the current diagonal direction.
-                xIt += xDeltas[dir];
-                yIt += yDeltas[dir];
-            }
-        }
-    }
-    else if (piece_type == B_KNIGHT || piece_type == W_KNIGHT)
-    {
-        if (x + 1 >= 0 && x + 1 <= 7 && y + 2 >= 0 && y + 2 <= 7)
-            toggle_bit_on(attack_board, make_pos(x + 1, y + 2));
-
-        if (x - 1 >= 0 && x - 1 <= 7 && y + 2 >= 0 && y + 2 <= 7)
-            toggle_bit_on(attack_board, make_pos(x - 1, y + 2));
-
-        if (x + 1 >= 0 && x + 1 <= 7 && y - 2 >= 0 && y - 2 <= 7)
-            toggle_bit_on(attack_board, make_pos(x + 1, y - 2));
-
-        if (x - 1 >= 0 && x - 1 <= 7 && y - 2 >= 0 && y - 2 <= 7)
-            toggle_bit_on(attack_board, make_pos(x - 1, y - 2));
-
-        if (x + 2 >= 0 && x + 2 <= 7 && y + 1 >= 0 && y + 1 <= 7)
-            toggle_bit_on(attack_board, make_pos(x + 2, y + 1));
-
-        if (x + 2 >= 0 && x + 2 <= 7 && y - 1 >= 0 && y - 1 <= 7)
-            toggle_bit_on(attack_board, make_pos(x + 2, y - 1));
-
-        if (x - 2 >= 0 && x - 2 <= 7 && y + 1 >= 0 && y + 1 <= 7)
-            toggle_bit_on(attack_board, make_pos(x - 2, y + 1));
-
-        if (x - 2 >= 0 && x - 2 <= 7 && y - 1 >= 0 && y - 1 <= 7)
-            toggle_bit_on(attack_board, make_pos(x - 2, y - 1));
-
-    }
-    if (piece_type == W_QUEEN || piece_type == B_QUEEN || piece_type == W_ROOK || piece_type == B_ROOK) {
-        // Define directional deltas for each direction (up, down, left, right).
-        int xDeltas[] = {0, 0, -1, 1};
-        int yDeltas[] = {-1, 1, 0, 0};
-
-        // Loop through each direction (up, down, left, right)
-        for (int dir = 0; dir < 4; ++dir) {
-            int xIt = x + xDeltas[dir];
-            int yIt = y + yDeltas[dir];
-
-            // Check each square along the direction until edge of board or another piece is encountered.
-            while (xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8) {
-                uint8_t pos_to_check = make_pos(xIt, yIt);
-
-                // Toggle bit on attack_board and break if piece found.
-                toggle_bit_on(attack_board, pos_to_check);
-                if (get_piece(pos_to_check) != 0)
-                    break;
-
-                // Move to the next square in the current direction.
-                xIt += xDeltas[dir];
-                yIt += yDeltas[dir];
-            }
-        }
-    }
     return attack_board;
 }
 
 // Create moving board for specific piece. This is where de define the movement logic of each piece.
-uint64_t Position::make_move_board(uint8_t x, uint8_t y)
-{
+uint64_t Position::make_move_board(uint8_t x, uint8_t y) {
     uint64_t move_board = 0b0;
-
     int pos = make_pos(x, y);
-
     uint8_t piece_type = this->get_piece(pos);
 
-    int diagonals[6][2] = {
-        {x + 1, y + 1},
-        {x - 1, y + 1},
-        {x + 1, y - 1},
-        {x - 1, y - 1},
-    };
-
-    int perpendicular[6][2] = {
-        {x - 1, y},
-        {x + 1, y},
-        {x, y - 1},
-        {x, y + 1}
-    };
-
-    // This is where we determine where a piece can go.
-    if(piece_type == B_PAWN) 
-    {
-        if(get_piece(make_pos(x, y+1)) == 0)
-        {
-            if(y == 1 && get_piece(make_pos(x, y+2)) == 0)
-            {
-                // Pawn can move 2 squares.
-                toggle_bit_on(move_board, make_pos(std::min(7, x + 0), std::min(7, y+2)));
-            }
-            toggle_bit_on(move_board, make_pos(std::min(7, x + 0), std::min(7, y+1)));
-        }
+    switch (piece_type) {
+        case B_PAWN:
+            move_board = get_pawn_move(x, y, false);
+            break;
+        case W_PAWN:
+            move_board = get_pawn_move(x, y, true);
+            break;
+        case B_KING:
+        case W_KING:
+            move_board = get_king_move(x, y);
+            break;
+        case B_BISHOP:
+        case W_BISHOP:
+            move_board = get_bishop_move(x, y);
+            break;
+        case B_KNIGHT:
+        case W_KNIGHT:
+            move_board = get_knight_move(x, y);
+            break;
+        case B_ROOK:
+        case W_ROOK:
+            move_board = get_rook_move(x, y);
+            break;
+        case B_QUEEN:
+        case W_QUEEN:
+            move_board = get_queen_move(x, y);
+            break;
+        default:
+            break;
     }
-    else if(piece_type == W_PAWN)
-    {
-        if(get_piece(make_pos(x, y-1)) == 0)
-        {
-            if(y == 6 && get_piece(make_pos(x, y-2)) == 0)
-            {
-                // Pawn can move 2 squares.
-                toggle_bit_on(move_board, make_pos(std::min(7, x + 0), std::min(7, y-2)));
-            }
-            toggle_bit_on(move_board, make_pos(std::min(7, x + 0), std::min(7, y-1)));
-        }
-    }
-    else if(piece_type == B_KING || piece_type == W_KING)
-    {
-        int offsets[8][2] = {
-            {-1, -1}, {-1, 0}, {-1, 1},
-            { 0, -1},          { 0, 1},
-            { 1, -1}, { 1, 0}, { 1, 1}
-        };
-        for (int i = 0; i < 8; ++i) {
-            int new_x = x + offsets[i][0];
-            int new_y = y + offsets[i][1];
-            
-            // Check if the new position is within bounds
-            if (new_x >= 0 && new_x < 8 && new_y >= 0 && new_y < 8) {
-                if(this->get_piece(make_pos(new_x, new_y)) == 0)
-                    toggle_bit_on(move_board, make_pos(new_x, new_y));
-            }
-        }
-    }
-    else if (piece_type == B_BISHOP || piece_type == W_BISHOP || piece_type == W_QUEEN || piece_type == B_QUEEN) 
-    {
-        // Define directional deltas for each diagonal direction.
-        int xDeltas[] = {-1, 1, -1, 1};
-        int yDeltas[] = {-1, -1, 1, 1};
 
-        // Loop through each diagonal direction.
-        for (int dir = 0; dir < 4; ++dir) {
-            int xIt = x + xDeltas[dir];
-            int yIt = y + yDeltas[dir];
-
-            // Check each square along the diagonal until edge of board or another piece is encountered.
-            while (xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8) {
-                uint8_t pos_to_check = make_pos(xIt, yIt);
-
-                if (get_piece(pos_to_check) == 0)
-                    toggle_bit_on(move_board, pos_to_check);
-
-                if (get_piece(pos_to_check) != 0)
-                    break;
-
-                // Move to the next square in the diagonal.
-                xIt += xDeltas[dir];
-                yIt += yDeltas[dir];
-            }
-        }
-    }
-    else if (piece_type == B_KNIGHT || piece_type == W_KNIGHT)
-    {
-        int offsets[8][2] = 
-        {
-            {1, 2}, {-1, 2}, {1, -2}, {-1, -2},
-            {2, 1}, {2, -1}, {-2, 1}, {-2, -1}
-        };
-        for (int i = 0; i < 8; ++i) 
-        {
-            int new_x = x + offsets[i][0];
-            int new_y = y + offsets[i][1];
-            
-            // Check if the new position is within bounds
-            if (new_x >= 0 && new_x <= 7 && new_y >= 0 && new_y <= 7) 
-            {
-                uint8_t new_pos = make_pos(new_x, new_y);
-                uint8_t piece_to_check = get_piece(new_pos);
-                if(this->get_piece(make_pos(new_x, new_y)) == 0)
-                    toggle_bit_on(move_board, new_pos);
-            }
-        }
-    }
-    if (piece_type == W_QUEEN || piece_type == B_QUEEN || piece_type == W_ROOK || piece_type == B_ROOK) {
-        // Define directional deltas for each direction (up, down, left, right).
-        int xDeltas[] = {0, 0, -1, 1};
-        int yDeltas[] = {-1, 1, 0, 0};
-
-        // Loop through each direction (up, down, left, right).
-        for (int dir = 0; dir < 4; ++dir) {
-            int xIt = x + xDeltas[dir];
-            int yIt = y + yDeltas[dir];
-
-            // Check each square along the direction until edge of board or another piece is encountered.
-            while (xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8) {
-                uint8_t pos_to_check = make_pos(xIt, yIt);
-
-                if (get_piece(pos_to_check) == 0)
-                    toggle_bit_on(move_board, pos_to_check);
-
-                if (get_piece(pos_to_check) != 0)
-                    break;
-
-                // Move to the next square in the current direction.
-                xIt += xDeltas[dir];
-                yIt += yDeltas[dir];
-            }
-        }
-    }
     return move_board;
 }
 
@@ -437,6 +257,79 @@ void Position::do_move(Move* move)
     this->set_piece(this->get_piece(move->start_location), move->end_location);
     this->set_piece(0b0000, move->start_location);
 
+    // Check if move was an passant.
+    if(move->move_takes_an_passant)
+    {
+        uint8_t taking_pawn_color = (get_piece(move->end_location));
+        if(taking_pawn_color == true)
+            this->set_piece(0b0000, move->end_location-8);
+        else
+            this->set_piece(0b0000, move->end_location+8);
+    }
+
+    // Reset an passant status.
+    en_passant = 0b11111111;
+
+    // Check if move is a special case.
+    if(move->special_cases != 0 && move->special_cases != 5)
+    {
+        // Is a castling move.
+        Move* rook_move;
+        // Check which rook to move.
+        switch(move->special_cases)
+        {
+            case 1:
+                rook_move = new Move(63, 61);
+                break;
+            case 2:
+                rook_move = new Move(56, 59);
+                break;
+            case 3:
+                rook_move = new Move(7, 5);
+                break;
+            case 4: 
+                rook_move = new Move(0, 2);
+                break;
+            default:
+                break;
+        }
+
+        // Move the rook.
+        do_move(rook_move);
+        delete rook_move;
+    }
+    // Check if an passant is possible after this move.
+    else if(move->special_cases == 5)
+    {
+        // Move is a pawn 2 forward, check if an passant is possible.
+        uint8_t piece_on_left = get_piece(move->end_location-1);
+        uint8_t piece_on_right = get_piece(move->end_location+1);
+        uint8_t color_sign = get_color(get_piece(move->end_location));
+
+        if(piece_on_left == W_PAWN || piece_on_left == B_PAWN)
+        {
+            if(color_sign != get_color(piece_on_left))
+            {
+                // An passant is possible for pawn on -1.
+                this->en_passant = 0b10000000;
+                this->en_passant += (move->end_location%8);
+                if(color_sign)
+                    en_passant |= 0b01000000;
+            }
+        }
+        else if(piece_on_right == W_PAWN || piece_on_right == B_PAWN)
+        {
+            if(color_sign != get_color(piece_on_right))
+            {
+                // An passant is possible for pawn on +1.
+                this->en_passant = 0b00000000;
+                this->en_passant += (move->end_location%8);
+                if(color_sign)
+                    en_passant |= 0b01000000;
+            }
+        }
+    }
+
     last_move = new Move(move->start_location, move->end_location);
 }
 
@@ -476,27 +369,86 @@ std::vector<Move> Position::determine_moves(bool color_sign)
                     Move move(pos,i);
 
                     // Copy board state.
-                    uint64_t first = this->first_16;
-                    uint64_t second = this->second_16;
-                    uint64_t third = this->third_16;
-                    uint64_t fourth = this->fourth_16;
+                    Position* copy = new Position(*this);
 
-                    this->do_move(&move);
-                    if(!this->king_under_attack(color_sign))
+                    copy->do_move(&move);
+                    if(!copy->king_under_attack(color_sign))
                     {   
                         // Move is possible.
+
+                        if((piece_type == B_PAWN || piece_type == W_PAWN) && (i-pos) > 8)
+                        {
+                            // Pawn moves two forward, engine should check if an passant is possible after this move.
+                            move.special_cases = 5;
+                        }
+
                         possible_moves.push_back(move);
                     }
 
-                    // Restore position.
-                    this->first_16 = first;
-                    this->second_16 = second;
-                    this->third_16 = third;
-                    this->fourth_16 = fourth;
+                    // delete copy position.
+                    delete copy;
                 }
             }
         }
     }
+    // Check if player has castle rights.
+    if(color_sign && get_bit(casling_rights, 6))
+    {
+        // Black may be able to castle king side.
+        if(get_piece(5) == 0 && get_piece(6) == 0)
+        {
+            Move move(4,6);
+            move.special_cases = 3;
+            possible_moves.push_back(move);
+        }
+    }
+    if(color_sign && get_bit(casling_rights, 7))
+    {
+        // Black may be able to castle queen side.
+        if(get_piece(1) == 0 && get_piece(2) == 0 && get_piece(3) == 0)
+        {
+            Move move(4,2);
+            move.special_cases = 4;
+            possible_moves.push_back(move);
+        }
+    }
+    if(!color_sign && get_bit(casling_rights, 4))
+    {
+        // White may be able to castle king side.
+        if(get_piece(61) == 0 && get_piece(62) == 0)
+        {
+            Move move(60,62);
+            move.special_cases = 1;
+            possible_moves.push_back(move);
+        }
+    }
+    if(!color_sign && get_bit(casling_rights, 5))
+    {
+        // White may be able to castle queen side.
+        if(get_piece(59) == 0 && get_piece(58) == 0 && get_piece(57) == 0)
+        {
+            Move move(60,58);
+            move.special_cases = 2;
+            possible_moves.push_back(move);
+        }
+    }
+    if(en_passant != 0b11111111)
+    {
+        // En passant is possible.
+        uint8_t to = (en_passant & 0b00111111);
+        uint8_t from = to + ((en_passant & 0b10000000) ? -1 : +1);
+        uint8_t color_sign = (en_passant & 0b01000000);
+        
+        uint8_t row = color_sign ? 3 : 4;
+
+        uint8_t end_square = make_pos(to, row-1);
+        uint8_t start_square = make_pos(from, row);
+
+        Move move(start_square, end_square);
+        move.move_takes_an_passant = true;
+        possible_moves.push_back(move);
+    }
+
     return possible_moves;
 }
 
