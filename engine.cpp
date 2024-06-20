@@ -100,25 +100,25 @@ float Engine::maximizer(int depth, int alpha, int beta, int& position_count, Pos
         Position* new_position = new Position(*position);
 
         // Make hash copy.
-        uint64_t hash_copy = transposition_table.current_hash;
+        // uint64_t hash_copy = transposition_table.current_hash;
 
         // do move.
         new_position->do_move(&move);
 
         // Update hash.
-        hasher.update_zobrist_hash(&move, new_position, 0, hash_copy);
+        // hasher.update_zobrist_hash(&move, new_position, 0, hash_copy);
 
         // If hash is in hash table, skip this move. 
-        if(transposition_table.contains(hash_copy))
-            continue;
-        else
-            transposition_table.insert(hash_copy);
+        // if(transposition_table.contains(hash_copy))
+        //     continue;
+        // else
+        //     transposition_table.insert(hash_copy);
 
         // Recursive call on child.
         int eval = minimizer(depth-1, alpha, beta, position_count, new_position, best_move, false);
 
         // Restore hash key.
-        transposition_table.current_hash = hash_copy;
+        // transposition_table.current_hash = hash_copy;
 
         // Clean up the new position.
         if(new_position != nullptr)
@@ -172,28 +172,28 @@ float Engine::minimizer(int depth, int alpha, int beta, int& position_count, Pos
         Position* new_position = new Position(*position);
 
         // Make hash copy.
-        uint64_t hash_copy = transposition_table.current_hash;
+        // uint64_t hash_copy = transposition_table.current_hash;
 
         // do move.
         new_position->do_move(&move);
 
         // Update hash.
-        hasher.update_zobrist_hash(&move, new_position, 0, hash_copy);
+        // hasher.update_zobrist_hash(&move, new_position, 0, hash_copy);
 
         // If hash is in hash table, skip this move. 
-        if(transposition_table.contains(hash_copy))
-        {
-            delete new_position;
-            continue;
-        }
-        else
-            transposition_table.insert(hash_copy);
+        // if(transposition_table.contains(hash_copy))
+        // {
+        //     delete new_position;
+        //     continue;
+        // }
+        // else
+        //     transposition_table.insert(hash_copy);
 
         // Recursive call on child.
         int eval = maximizer(depth-1, alpha, beta, position_count, new_position, best_move, false);
 
         // Restore hash key.
-        transposition_table.current_hash = hash_copy;
+        // transposition_table.current_hash = hash_copy;
 
         if(eval < min_eval)
         {

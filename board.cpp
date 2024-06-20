@@ -280,16 +280,24 @@ void Position::move_piece(Move* move)
     this->set_piece(EMPTY, move->start_location);
 }
 
+// TODO: fix crash.
 void Position::handle_en_passant_capture(Move* move)
 {
-    // Check if move was an passant.
-    if(move->move_takes_an_passant)
+    // Check if move was an en passant capture.
+    if (move->move_takes_an_passant)
     {
-        uint8_t taking_pawn_color = (get_piece(move->end_location));
-        if(taking_pawn_color == true)
-            this->set_piece(0b0000, move->end_location-8);
-        else
-            this->set_piece(0b0000, move->end_location+8);
+        uint8_t taking_pawn_color = get_piece(move->end_location);
+
+        if (taking_pawn_color == B_PAWN && move->end_location >= 8)
+        {
+            // Black pawn captured en passant (from row 3 to row 2).
+            set_piece(EMPTY, move->end_location - 8);
+        }
+        else if (taking_pawn_color == W_PAWN && move->end_location < 56)
+        {
+            // White pawn captured en passant (from row 4 to row 5).
+            set_piece(EMPTY, move->end_location + 8);
+        }
     }
 }
 
@@ -494,6 +502,7 @@ void Position::generate_castling_moves(bool color_sign, std::vector<Move>& possi
     }
 }
 
+// TODO: check if not in check afterwards.
 void Position::generate_en_passant_move(bool color_sign, std::vector<Move>& possible_moves)
 {
     if (en_passant != 0b11111111)
