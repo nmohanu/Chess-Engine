@@ -199,48 +199,56 @@ bool Position::king_under_attack(bool color_sign)
 
 void Position::set_piece(uint8_t new_piece, uint8_t pos)
 {
+    assert(pos <= 63);
+    assert(pos >= 0);
+    
     // This will be the new 64 bits replacing the old rows.
     uint64_t new_squares = 0b0;
 
-    // Determine the shift amount and the correct bitfield.
-    uint64_t* target_squares = nullptr;
-    if (pos < 16) 
+    // The amount to shift in the rows.
+    int shift_amount = 0;
+
+    // The old 64 bits.
+    uint64_t* old_squares = nullptr;
+
+    // Determine the shift amount and old 64 bits.
+    if (pos < 16)
     {
-        target_squares = &this->first_16;
-    } else if (pos < 32) 
-    {
-        target_squares = &this->second_16;
-    } else if (pos < 48) 
-    {
-        target_squares = &this->third_16;
-    } else 
-    {
-        target_squares = &this->fourth_16;
+        shift_amount = (15-pos)*4;
+        old_squares = &this->first_16;
     }
-
-    // Calculate the shift amount within the 16-bit block.
-    int shift_amount = (15 - (pos % 16)) * 4;
-
-    uint64_t mask_left = *target_squares;
-    uint64_t mask_right = *target_squares;
-    
-    if(shift_amount == 0)
-        mask_right = 0ul;
-    else if(shift_amount == 60)
-        mask_left = 0ul;
+    else if (pos < 32)
+    {
+        shift_amount = (15 - (pos - 16))*4;
+        old_squares = &this->second_16;
+    }
+    else if (pos < 48)
+    {
+        shift_amount = (15 - (pos - 32))*4;
+        old_squares = &this->third_16;
+    }
     else
     {
-        // Isolate the left side of the piece to be replaced.
-        mask_left  >>= (shift_amount + 4);
-        mask_left <<= (shift_amount + 4);
-        
-        // Isolate right side.
-        mask_right <<= (64-shift_amount);
-        mask_right >>= (64-shift_amount);
+        shift_amount = (15 - (pos - 48))*4;
+        old_squares = &this->fourth_16;
     }
-    
+
+    // Isolate the left side of the piece to be replaced.
+    uint64_t mask_left = *old_squares;
+    mask_left  >>= (shift_amount + 4);
+    mask_left <<= (shift_amount + 4);
+
     // Make mask for the piece.
     uint64_t mask_piece = static_cast<uint64_t>(new_piece) << shift_amount;
+    // Isolate right side.
+    uint64_t mask_right = *old_squares;
+    mask_right <<= (64-shift_amount);
+    mask_right >>= (64-shift_amount);
+
+    if(shift_amount == 0)
+        mask_right = 0ul;
+    if(shift_amount == 60)
+        mask_left = 0ul;
 
     // Make new 64 bits representing the two rows.
     new_squares |= mask_left;
@@ -248,7 +256,7 @@ void Position::set_piece(uint8_t new_piece, uint8_t pos)
     new_squares |= mask_right; 
 
     // Replace.
-    *target_squares = new_squares;
+    *old_squares = new_squares;
 }
 
 void Position::do_move(Move* move)
