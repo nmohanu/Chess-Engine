@@ -3,19 +3,34 @@
 #include <math.h>
 #include <stack>
 #include <array>
-#include <unordered_set>
+#include <unordered_map>
+#include <optional>
+#include <random>
 
-struct TranspositionTable
-{
-    uint64_t current_hash = 0b0;
-    std::unordered_set<uint64_t> table;
-    
+struct TranspositionTableEntry {
+    uint64_t hash;
+    int depth;
+    float score;
+};
+
+struct TranspositionTable {
+    std::unordered_map<uint64_t, TranspositionTableEntry> table;
+
     bool contains(uint64_t hash) {
         return table.find(hash) != table.end();
     }
-    
-    void insert(uint64_t hash) {
-        table.insert(hash);
+
+    void insert(uint64_t hash, int depth, float score) {
+        table[hash] = {hash, depth, score};
+    }
+
+    std::optional<TranspositionTableEntry> get(uint64_t hash) {
+        auto it = table.find(hash);
+        if (it != table.end()) {
+            return it->second;
+        } else {
+            return std::nullopt;
+        }
     }
 
     void clear() {

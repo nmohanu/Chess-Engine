@@ -2,20 +2,24 @@
 
 void ZobristHash::init_zobrist_keys()
 {
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_int_distribution<uint64_t> dis;
+
     // Initialize piece keys for each piece type and each square
     for (int piece = 0b0; piece <= 0b1110; piece++) {
         for (int sq = 0; sq < 64; ++sq) {
-            zobrist_pieces[sq][piece] = rand();
+            zobrist_pieces[sq][piece] = dis(gen);
         }
     }
 
     // Initialize en passant keys for each file
     for (int file = 0; file < 8; ++file) {
-        zobrist_en_passant_file[file] = rand();
+        zobrist_en_passant_file[file] = dis(gen);
     }
 
     // Initialize key for current player turn (Black to move)
-    zobrist_black_to_move = rand();
+    zobrist_black_to_move = dis(gen);
 }
 
 uint64_t ZobristHash::calculate_zobrist_key(Position* position, uint8_t current_player_sign)
