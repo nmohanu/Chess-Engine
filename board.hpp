@@ -125,6 +125,8 @@ struct Move
     uint8_t special_cases = 0b0;
 
     bool move_takes_an_passant;
+
+    float evaluation;
 };
 
 #endif

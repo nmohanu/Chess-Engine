@@ -26,32 +26,22 @@ float Engine::evaluate_position(Position* position)
 
 void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
 {
-    std::sort(moves.begin(), moves.end(), [position](const Move& a, const Move& b) 
+    for (Move& move : moves)
     {
-        // Prioritize captures and checks first.
-        bool a_is_capture = a.is_capture(position);
-        bool b_is_capture = b.is_capture(position);
-        bool a_is_check = a.is_check(position);
-        bool b_is_check = b.is_check(position);
+        // Make copy of the board.
+        Position* new_position = new Position(*position);
 
-        // If one move is a capture and the other is not, prioritize capture.
-        if (a_is_capture && !b_is_capture)
-            return true;
-        if (!a_is_capture && b_is_capture)
-            return false;
+        // do move.
+        new_position->do_move(&move);
 
-        // If both are captures or both are not, compare capture values.
-        if (a_is_capture && b_is_capture) {
-            return a.capture_value(position) > b.capture_value(position); // Higher capture value first.
-        }
+        move.evaluation = evaluate_position(new_position);
 
-        // If neither is a capture, prioritize checks.
-        if (a_is_check && !b_is_check)
-            return true;
-        if (!a_is_check && b_is_check)
-            return false;
+        delete new_position;
+    }
 
-        return false; // Default case: no special priority.
+    std::sort(moves.begin(), moves.end(), [](const Move& a, const Move& b) 
+    {
+        return a.evaluation < b.evaluation;
     });
 }
 

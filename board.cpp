@@ -12,6 +12,7 @@ Move::Move(const Move& other)
     this->end_location = other.end_location;
     this->special_cases = other.special_cases;
     this->move_takes_an_passant = other.move_takes_an_passant;
+    this->evaluation = other.evaluation;
 }
 
 void Position::initialize()
@@ -413,7 +414,8 @@ std::vector<Move> Position::determine_moves(bool color_sign)
     }
 
     // Check castling rights.
-    generate_castling_moves(color_sign, possible_moves);
+    if(!king_under_attack(color_sign))
+        generate_castling_moves(color_sign, possible_moves);
 
     // Check en passant.
     generate_en_passant_move(color_sign, possible_moves);

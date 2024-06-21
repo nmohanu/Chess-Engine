@@ -74,19 +74,17 @@ private:
 
     float evaluate_piece_sum(Position* position, uint8_t color_sign);
 
-    // TODO:
+    float evaluate_position(Position* position);
 
-    void zobrist_hash(Position* position);
+    // TODO:
+    
+    float evaluate_square_bonus(Position* position, uint8_t color_sign);
 
     float evaluate_piece_value(Position* position, uint8_t square);
-
-    float evaluate_position(Position* position);
 
     float evaluate_color(Position* position, uint8_t color_sign);
 
     float evaluate_mobility(Position* position, uint8_t color_sign);
-
-    float evaluate_square_bonus(Position* position, uint8_t color_sign);
 
     float evaluate_outpost_bonus(Position* position, uint8_t color_sign);
 
