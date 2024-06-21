@@ -3,9 +3,9 @@
 #include <math.h>
 #include <stack>
 #include <array>
+#include <random>
 #include <unordered_map>
 #include <optional>
-#include <random>
 
 struct TranspositionTableEntry {
     uint64_t hash;
@@ -48,11 +48,10 @@ struct ZobristHash
 
     void update_zobrist_hash(Move* move, Position* position, uint8_t current_player_sign, uint64_t& old_hash);
 
-    std::array<std::array<uint64_t, 12>, 64> zobrist_pieces;
-
-    std::array<uint64_t, 8> zobrist_en_passant_file;
-
-    uint64_t zobrist_black_to_move;
+    uint64_t piece_keys[14][64];
+    uint64_t enpassant_keys[64];
+    uint64_t castle_keys[16];
+    uint64_t side_key;
 };
 
 class Engine 
