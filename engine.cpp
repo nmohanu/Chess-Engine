@@ -16,13 +16,64 @@ float Engine::evaluate_position(Position* position)
     float total_eval = 0.f;
 
     // Calculate difference in pieced value.
-    float black_points = evaluate_piece_sum(position, 1);
-    float white_points = evaluate_piece_sum(position, 0);
+    float black_points = evaluate_piece_sum(position, 1) * piece_value_weight;
+    float white_points = evaluate_piece_sum(position, 0) * piece_value_weight;
 
-    total_eval += white_points - black_points;
-
+    // Evaluate piece positions.
+    black_points += evaluate_square_bonus(position, 1) * square_bonus_weight;
+    white_points += evaluate_square_bonus(position, 0) * square_bonus_weight;
+    
+    total_eval = white_points - black_points;
     return total_eval;
 }
+
+float Engine::evaluate_square_bonus(Position* position, uint8_t color_sign)
+{   
+    float total = 0.f;
+    for(int i = 0; i < 64; i++)
+    {
+        uint8_t piece = position->get_piece(i);
+        if(color_sign != get_color(piece) || piece == 0)
+            continue;
+        else
+        {
+            int it = i;
+            if(color_sign)
+                it = 63-i;
+            switch(piece)
+            {
+                case B_PAWN:
+                case W_PAWN:
+                    total += PAWN_BONUS[it];
+                    break;
+                case B_KNIGHT:
+                case W_KNIGHT:
+                    total += KNIGHT_BONUS[it];
+                    break;
+                case B_BISHOP: 
+                case W_BISHOP:
+                    total += BISHOP_BONUS[it];
+                    break;
+                case B_ROOK:
+                case W_ROOK:
+                    total += ROOK_BONUS[it];
+                    break;
+                case B_QUEEN:
+                case W_QUEEN:
+                    total += QUEEN_BONUS[it];
+                    break;
+                case B_KING:
+                case W_KING:
+                        total += KING_BONUS[it];
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+    return total;
+}
+
 
 void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
 {
@@ -50,7 +101,7 @@ Move Engine::best_move(Position* position, bool color_sign, int depth)
     int count = 0;
     int alpha = INT_MIN;
     int beta = INT_MAX;
-    float score = 0;
+    float score = 0.f;
     Move best_move;
 
     if(color_sign)
@@ -94,19 +145,19 @@ float Engine::maximizer(int depth, int alpha, int beta, int& position_count, Pos
 
         uint64_t hash_copy = hasher.calculate_zobrist_key(new_position, 1);
 
-        auto transposition_entry = transposition_table.get(hash_copy);
-        if (transposition_entry) {
-            float eval = transposition_entry->score;
-            if (eval > max_eval) {
-                max_eval = eval;
-                local_best_move = Move(move);
-            }
-            if(eval >= alpha)  
-                alpha = eval;
-            if (alpha >= beta)
-                break;
-            continue;
-        }
+        // auto transposition_entry = transposition_table.get(hash_copy);
+        // if (transposition_entry) {
+        //     float eval = transposition_entry->score;
+        //     if (eval > max_eval) {
+        //         max_eval = eval;
+        //         local_best_move = Move(move);
+        //     }
+        //     if(eval >= alpha)  
+        //         alpha = eval;
+        //     if (alpha >= beta)
+        //         break;
+        //     continue;
+        // }
 
         // Recursive call on child.
         int eval = minimizer(depth-1, alpha, beta, position_count, new_position, best_move, false);
@@ -174,19 +225,19 @@ float Engine::minimizer(int depth, int alpha, int beta, int& position_count, Pos
 
         uint64_t hash_copy = hasher.calculate_zobrist_key(new_position, 0);
 
-        auto transposition_entry = transposition_table.get(hash_copy);
-        if (transposition_entry) {
-            float eval = transposition_entry->score;
-            if (eval < min_eval) {
-                min_eval = eval;
-                local_best_move = Move(move);
-            }
-            if(eval <= beta) 
-                beta = eval;
-            if (alpha >= beta)
-                break;
-            continue;
-        }
+        // auto transposition_entry = transposition_table.get(hash_copy);
+        // if (transposition_entry) {
+        //     float eval = transposition_entry->score;
+        //     if (eval < min_eval) {
+        //         min_eval = eval;
+        //         local_best_move = Move(move);
+        //     }
+        //     if(eval <= beta) 
+        //         beta = eval;
+        //     if (alpha >= beta)
+        //         break;
+        //     continue;
+        // }
 
         // Recursive call on child.
         int eval = maximizer(depth-1, alpha, beta, position_count, new_position, best_move, false);

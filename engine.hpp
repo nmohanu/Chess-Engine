@@ -77,7 +77,7 @@ private:
     float evaluate_position(Position* position);
 
     // TODO:
-    
+
     float evaluate_square_bonus(Position* position, uint8_t color_sign);
 
     float evaluate_piece_value(Position* position, uint8_t square);
@@ -120,6 +120,8 @@ private:
     const float pin_weight = 1.f;
     const float skewer_weight = 1.f;
     const float possible_checks_weight = 1.f;
+    const float piece_value_weight = 2.f;
+    const float square_bonus_weight = 0.5f;
 
     TranspositionTable transposition_table;
 
