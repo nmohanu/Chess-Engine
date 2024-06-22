@@ -98,6 +98,8 @@ Move Engine::best_move(Position* position, bool color_sign, int depth)
     float score = 0.f;
     Move best_move;
 
+    clock_t timer = clock();
+
     if(color_sign)
     {
         score = minimizer(depth, alpha, beta, count, position, best_move, true);
@@ -106,9 +108,13 @@ Move Engine::best_move(Position* position, bool color_sign, int depth)
     {
         score = maximizer(depth, alpha, beta, count, position, best_move, true);
     }
+
+    timer = clock() - timer;
+    float elapsed_seconds = static_cast<float>(timer) / CLOCKS_PER_SEC;
     
     std::cout << "Positions evaluated: " << count << "\n";
     std::cout << "Score found was: " << score << "\n";
+    std::cout << "Average positions per second: " << count / elapsed_seconds << '\n';
     return best_move;
 }
 

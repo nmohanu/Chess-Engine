@@ -6,6 +6,7 @@
 #include <random>
 #include <unordered_map>
 #include <optional>
+#include <ctime>
 
 struct TranspositionTableEntry {
     uint64_t hash;
