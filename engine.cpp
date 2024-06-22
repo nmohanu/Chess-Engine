@@ -165,7 +165,6 @@ void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
         } else 
         {
             move.priority_group = 3;
-            move.evaluation = evaluate_position(new_position);
         }
 
         // Capture value for sorting capture moves.
@@ -182,11 +181,6 @@ void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
         // Sort by priority_group first.
         if (a.priority_group != b.priority_group) {
             return a.priority_group < b.priority_group;
-        }
-
-        // For capture moves, sort by capture value.
-        if (a.priority_group == 2) {
-            return a.capture_val > b.capture_val;
         }
 
         return a.evaluation > b.evaluation; 

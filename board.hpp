@@ -125,7 +125,7 @@ struct Move
 
     int priority_group = 5;
 
-    int capture_val;
+    int capture_val = -1;
 
     float evaluation;
 };
