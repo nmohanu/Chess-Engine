@@ -79,10 +79,7 @@ public:
     // Furthermore, the right most bits indicate the file on which an passant is captured.
     uint8_t en_passant = 0b11111111;
 
-    Move* last_move = nullptr;
-
 private:
-    void update_last_move(Move* move);
     void check_en_passant_possibility(Move* move);
     void handle_castling(Move* move);
     void handle_special_cases(Move* move);
@@ -125,6 +122,8 @@ struct Move
     uint8_t special_cases = 0b0;
 
     bool move_takes_an_passant;
+
+    float evaluation;
 };
 
 #endif

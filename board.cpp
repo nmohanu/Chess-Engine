@@ -12,6 +12,7 @@ Move::Move(const Move& other)
     this->end_location = other.end_location;
     this->special_cases = other.special_cases;
     this->move_takes_an_passant = other.move_takes_an_passant;
+    this->evaluation = other.evaluation;
 }
 
 void Position::initialize()
@@ -34,11 +35,6 @@ Position::Position(const Position& other)
     this->fourth_16 = other.fourth_16;
     this->casling_rights = other.casling_rights;
     this->en_passant = other.en_passant;
-    if (other.last_move != nullptr) {
-        this->last_move = new Move(*other.last_move);
-    } else {
-        this->last_move = nullptr;
-    }
 }
 
 Board::Board()
@@ -56,12 +52,6 @@ Board::~Board()
 
 Position::~Position()
 {
-    // Delete last move pointer.
-    if(last_move != nullptr)
-    {
-        delete last_move;
-        last_move = nullptr;
-    }
 }
 
 // Create attack board for specific piece. This is where we define the attacking logic for each piece.
@@ -271,7 +261,6 @@ void Position::do_move(Move* move)
     handle_en_passant_capture(move);
     reset_en_passant_status();
     handle_special_cases(move);
-    update_last_move(move);
 }
 
 void Position::move_piece(Move* move)
@@ -381,13 +370,6 @@ void Position::check_en_passant_possibility(Move* move)
     }
 }
 
-void Position::update_last_move(Move* move)
-{
-    if(last_move != nullptr)
-        delete last_move;
-    last_move = new Move(move->start_location, move->end_location);
-}
-
 std::vector<Move> Position::determine_moves(bool color_sign)
 {
     std::vector<Move> possible_moves;
@@ -413,7 +395,8 @@ std::vector<Move> Position::determine_moves(bool color_sign)
     }
 
     // Check castling rights.
-    generate_castling_moves(color_sign, possible_moves);
+    if(!king_under_attack(color_sign))
+        generate_castling_moves(color_sign, possible_moves);
 
     // Check en passant.
     generate_en_passant_move(color_sign, possible_moves);

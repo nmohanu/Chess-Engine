@@ -1,44 +1,10 @@
-#include "board.hpp"
-#include "thread"
+#include "transposition_table.hpp"
 #include <math.h>
 #include <stack>
 #include <array>
-#include <unordered_set>
-
-struct TranspositionTable
-{
-    uint64_t current_hash = 0b0;
-    std::unordered_set<uint64_t> table;
-    
-    bool contains(uint64_t hash) {
-        return table.find(hash) != table.end();
-    }
-    
-    void insert(uint64_t hash) {
-        table.insert(hash);
-    }
-
-    void clear() {
-        table.clear();
-    }
-};
-
-struct ZobristHash
-{
-    ZobristHash(){}
-
-    void init_zobrist_keys();
-
-    uint64_t calculate_zobrist_key(Position* position, uint8_t current_player_sign);
-
-    void update_zobrist_hash(Move* move, Position* position, uint8_t current_player_sign, uint64_t& old_hash);
-
-    std::array<std::array<uint64_t, 12>, 64> zobrist_pieces;
-
-    std::array<uint64_t, 8> zobrist_en_passant_file;
-
-    uint64_t zobrist_black_to_move;
-};
+#include <ctime>
+#include <algorithm>
+#include <iostream>
 
 class Engine 
 {
@@ -53,25 +19,23 @@ private:
 
     // Working but can be improved later:
 
-    float maximizer(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level);
+    float search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips);
 
-    float minimizer(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level);
+    Move find_best_move(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing);
 
     float evaluate_piece_sum(Position* position, uint8_t color_sign);
 
+    float evaluate_position(Position* position);
+
     // TODO:
 
-    void zobrist_hash(Position* position);
+    float evaluate_square_bonus(Position* position, uint8_t color_sign);
 
     float evaluate_piece_value(Position* position, uint8_t square);
-
-    float evaluate_position(Position* position);
 
     float evaluate_color(Position* position, uint8_t color_sign);
 
     float evaluate_mobility(Position* position, uint8_t color_sign);
-
-    float evaluate_square_bonus(Position* position, uint8_t color_sign);
 
     float evaluate_outpost_bonus(Position* position, uint8_t color_sign);
 
@@ -107,6 +71,8 @@ private:
     const float pin_weight = 1.f;
     const float skewer_weight = 1.f;
     const float possible_checks_weight = 1.f;
+    const float piece_value_weight = 2.f;
+    const float square_bonus_weight = 0.5f;
 
     TranspositionTable transposition_table;
 

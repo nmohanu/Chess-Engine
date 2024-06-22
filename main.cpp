@@ -108,6 +108,17 @@ int main()
             if(event.type == sf::Event::Closed)
                 window.close();
         }
+
+        if(!is_white_turn)
+        {
+            bool color_sign = !is_white_turn;
+            float alpha = MIN_EVAL;  
+            float beta = MAX_EVAL;
+            Move best_move = engine.best_move(board->position, color_sign, 5);
+            board->position->do_move(&best_move);
+            is_white_turn = !is_white_turn;
+            possible_moves = board->position->determine_moves(!is_white_turn);
+        }
         
         sf::Vector2i mouse_position;
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && !mouse_pressed)
@@ -151,17 +162,6 @@ int main()
         else
         {
             mouse_pressed = false;
-        }
-        
-        if(!is_white_turn)
-        {
-            bool color_sign = !is_white_turn;
-            float alpha = MIN_EVAL;  
-            float beta = MAX_EVAL; 
-            Move best_move = engine.best_move(board->position, color_sign, 4);
-            board->position->do_move(&best_move);
-            is_white_turn = !is_white_turn;
-            possible_moves = board->position->determine_moves(!is_white_turn);
         }
 
         // std::cout << clicked_square.first << " " << clicked_square.second << '\n';
