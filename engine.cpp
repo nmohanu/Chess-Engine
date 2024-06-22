@@ -146,20 +146,48 @@ void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
         // Make copy of the board.
         Position* new_position = new Position(*position);
 
-        // do move.
+        // Apply the move to the copied position.
         new_position->do_move(&move);
 
+        // Evaluate the position after the move.
         move.evaluation = evaluate_position(new_position);
+        
+        // Check if the move gives check.
+        bool gives_check = move.is_check(new_position);
+        
+        // Set priority groups based on properties.
+        if (move.is_capture(position)) {
+            move.priority_group = 1;
+        } else if (gives_check) {
+            move.priority_group = 2;
+        } else {
+            move.priority_group = 3;
+        }
+
+        // Capture value for sorting capture moves.
+        if (move.priority_group == 2) {
+            move.capture_val = move.capture_value(position);
+        }
 
         delete new_position;
     }
 
-    // Sort vector in order from good to bad (greedy).
-    std::sort(moves.begin(), moves.end(), [](const Move& a, const Move& b) 
-    {
-        return a.evaluation < b.evaluation;
+    // Sort vector according to priority groups.
+    std::sort(moves.begin(), moves.end(), [](const Move& a, const Move& b) {
+        // Sort by priority_group first.
+        if (a.priority_group != b.priority_group) {
+            return a.priority_group < b.priority_group;
+        }
+
+        // For capture moves, sort by capture value.
+        if (a.priority_group == 2) {
+            return a.capture_val > b.capture_val;
+        }
+
+        return a.evaluation > b.evaluation; 
     });
 }
+
 
 float Engine::evaluate_piece_sum(Position* position, uint8_t color_sign)
 {
