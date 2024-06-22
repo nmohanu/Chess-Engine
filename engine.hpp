@@ -19,7 +19,7 @@ private:
 
     // Working but can be improved later:
 
-    float search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips);
+    float search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips, int depth_limit);
 
     Move find_best_move(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing);
 
