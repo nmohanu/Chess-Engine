@@ -5,6 +5,173 @@ Engine::Engine()
     hasher.init_zobrist_keys();
 }
 
+Move Engine::best_move(Position* position, bool color_sign, int depth)
+{
+    int count = 0;
+    int alpha = INT_MIN;
+    int beta = INT_MAX;
+    float score = 0.f;
+
+    clock_t timer = clock();
+    
+    Move best_move;
+
+    score = search(depth, alpha, beta, count, position, best_move, true, !color_sign);
+
+    timer = clock() - timer;
+    float elapsed_seconds = static_cast<float>(timer) / CLOCKS_PER_SEC;
+    
+    std::cout << "Positions evaluated: " << count << "\n";
+    std::cout << "Score found was: " << score << "\n";
+    std::cout << "Average positions per second: " << count / elapsed_seconds << '\n';
+    std::cout << "Time taken: " << elapsed_seconds << "\n";
+    return best_move;
+}
+
+float Engine::search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing)
+{
+    position_count++;
+
+    int hashf = hashfALPHA;
+
+    uint64_t key = hasher.calculate_zobrist_key(position, !maximizing);
+
+    int entry_key_value = transposition_table.read_hash_entry(alpha, beta, depth, key);
+    // Read hash entry.
+    if(entry_key_value != no_hash_entry)
+    {
+        return entry_key_value;
+    }
+
+    if(depth == 0)
+    {
+        int val = evaluate_position(position);
+        transposition_table.insert_hash(depth, val, hashfEXACT, key);
+        return val;
+    }
+
+    std::vector<Move> possible_moves = position->determine_moves(!maximizing);
+    if(possible_moves.empty())
+        return maximizing ? -1000 : 1000;
+
+    sort_move_priority(possible_moves, position);
+
+    float eval = maximizing ? -1000 : 1000;
+
+    Move local_best_move;
+    
+    for(Move& move : possible_moves)
+    {
+        // Make copy of the board.
+        Position* new_position = new Position(*position);
+        new_position->do_move(&move);
+
+        float score =  search(depth-1, alpha, beta, position_count, new_position, best_move, false, !maximizing);
+
+        delete new_position;
+
+        if (maximizing)
+        {
+            if (score > eval)
+            {
+                eval = score;
+                if (eval > alpha)
+                {
+                    alpha = eval;
+                    local_best_move = Move(move);
+                    hashf = hashfEXACT;
+                }
+            }
+            if (eval >= beta)
+            {
+                transposition_table.insert_hash(depth, eval, hashfBETA, key);
+                break;
+            }
+        }
+        else
+        {
+            if (score < eval)
+            {
+                eval = score;
+                if (eval < beta)
+                {
+                    beta = eval;
+                    local_best_move = Move(move);
+                    hashf = hashfEXACT;
+                }
+            }
+            if (eval <= alpha)
+            {
+                transposition_table.insert_hash(depth, eval, hashfALPHA, key);
+                break;
+            }
+        }
+    }
+
+    if(top_level)
+        best_move = local_best_move;
+
+    transposition_table.insert_hash(depth, eval, hashf, key);
+    return eval;
+}
+
+bool Engine::process_alpha_beta(int& alpha, int& beta, bool maximizing, int eval, int& bound)
+{
+    bool new_best = false;
+    if (maximizing && eval > bound) 
+    {
+        bound = eval;
+        new_best = true;
+    }
+    if(maximizing && eval >= alpha)  
+        alpha = eval;
+    if (!maximizing && eval < bound)
+    {
+        bound = eval;
+        new_best = true;
+    }
+    if(!maximizing && eval <= beta) 
+        beta = eval;
+    return new_best;
+}
+
+void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
+{
+    for (Move& move : moves)
+    {
+        // Make copy of the board.
+        Position* new_position = new Position(*position);
+
+        // do move.
+        new_position->do_move(&move);
+
+        move.evaluation = evaluate_position(new_position);
+
+        delete new_position;
+    }
+
+    std::sort(moves.begin(), moves.end(), [](const Move& a, const Move& b) 
+    {
+        return a.evaluation < b.evaluation;
+    });
+}
+
+float Engine::evaluate_piece_sum(Position* position, uint8_t color_sign)
+{
+    float points = 0.f;
+    for(int i = 0; i < 64; i++)
+    {
+        uint8_t piece = position->get_piece(i);
+        
+        if(piece == 0 || get_color(piece) != color_sign)
+            continue;
+
+        points += get_piece_value(piece);
+    }
+
+    return points;
+}
+
 float Engine::evaluate_position(Position* position)
 {
     float total_eval = 0.f;
@@ -67,139 +234,3 @@ float Engine::evaluate_square_bonus(Position* position, uint8_t color_sign)
     }
     return total;
 }
-
-
-void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
-{
-    for (Move& move : moves)
-    {
-        // Make copy of the board.
-        Position* new_position = new Position(*position);
-
-        // do move.
-        new_position->do_move(&move);
-
-        move.evaluation = evaluate_position(new_position);
-
-        delete new_position;
-    }
-
-    std::sort(moves.begin(), moves.end(), [](const Move& a, const Move& b) 
-    {
-        return a.evaluation < b.evaluation;
-    });
-}
-
-Move Engine::best_move(Position* position, bool color_sign, int depth)
-{
-    int count = 0;
-    int alpha = INT_MIN;
-    int beta = INT_MAX;
-    float score = 0.f;
-
-    clock_t timer = clock();
-    
-    Move best_move;
-
-    // if(color_sign)
-    // {
-    //     score = minimizer(depth, alpha, beta, count, position, best_move, true);
-    // }
-    // else
-    // {
-    //     score = maximizer(depth, alpha, beta, count, position, best_move, true);
-    // }
-
-    score = search(depth, alpha, beta, count, position, best_move, true, !color_sign);
-
-    timer = clock() - timer;
-    float elapsed_seconds = static_cast<float>(timer) / CLOCKS_PER_SEC;
-    
-    std::cout << "Positions evaluated: " << count << "\n";
-    std::cout << "Score found was: " << score << "\n";
-    std::cout << "Average positions per second: " << count / elapsed_seconds << '\n';
-    std::cout << "Time taken: " << elapsed_seconds << "\n";
-    return best_move;
-}
-
-float Engine::search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing)
-{
-    position_count++;
-
-    if(depth == 0)
-        return evaluate_position(position);
-
-    std::vector<Move> possible_moves = position->determine_moves(!maximizing);
-    if(possible_moves.empty())
-        return maximizing ? INT_MIN : INT_MAX;
-    sort_move_priority(possible_moves, position);
-
-    int bound = maximizing ? INT_MIN : INT_MAX;
-
-    Move local_best_move;
-    
-    for(Move& move : possible_moves)
-    {
-        // Make copy of the board.
-        Position* new_position = new Position(*position);
-        new_position->do_move(&move);
-
-        float eval = search(depth-1, alpha, beta, position_count, new_position, best_move, false, !maximizing);
-
-        delete new_position;
-
-        if(process_alpha_beta(alpha, beta, maximizing, eval, bound))
-            local_best_move = Move(move);
-
-        if (alpha >= beta)
-            break;
-        continue;
-    }
-
-    if(top_level)
-        best_move = local_best_move;
-
-    return bound;
-}
-
-bool Engine::process_alpha_beta(int& alpha, int& beta, bool maximizing, int eval, int& bound)
-{
-    bool new_best = false;
-    if (maximizing && eval > bound) 
-    {
-        bound = eval;
-        new_best = true;
-    }
-    if(maximizing && eval >= alpha)  
-        alpha = eval;
-    if (!maximizing && eval < bound)
-    {
-        bound = eval;
-        new_best = true;
-    }
-    if(!maximizing && eval <= beta) 
-        beta = eval;
-    return new_best;
-}
-
-float Engine::evaluate_piece_sum(Position* position, uint8_t color_sign)
-{
-    float points = 0.f;
-    for(int i = 0; i < 64; i++)
-    {
-        uint8_t piece = position->get_piece(i);
-        
-        if(piece == 0 || get_color(piece) != color_sign)
-            continue;
-
-        points += get_piece_value(piece);
-    }
-
-    return points;
-}
-
-// void Engine::zobrist_hash(Position* position, uint64_t old_hash, Move* move)
-// {
-//     // uint64_t hash = 0b0;
-
-// }

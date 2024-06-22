@@ -4,35 +4,78 @@
 #include <optional>
 #include <random>
 
-struct TranspositionTableEntry {
-    uint64_t hash;
+#ifndef TT_HPP
+#define TT_HPP
+
+// Data structure for the transposition table.
+typedef struct 
+{
+    uint64_t key = no_hash_entry;
     int depth;
-    float score;
-};
+    int flags;
+    int score;
+} tt;
 
-struct TranspositionTable {
-    std::unordered_map<uint64_t, TranspositionTableEntry> table;
-
-    bool contains(uint64_t hash) {
-        return table.find(hash) != table.end();
+struct TranspositionTable
+{
+    TranspositionTable() : transposition_table(hash_table_size) {
+        clear_table(); // Ensure the table is initialized with invalid entries.
     }
 
-    void insert(uint64_t hash, int depth, float score) {
-        table[hash] = {hash, depth, score};
+    int read_hash_entry(int alpha, int beta, int depth, uint64_t key)
+    {
+        tt* hash_entry = &transposition_table[key % hash_table_size];
+
+        // Check if position is correct.
+        if(hash_entry->key != no_hash_entry && hash_entry->key == key)
+        {
+            // Make sure our depth is correct.
+            if(hash_entry->depth >= depth)
+            {
+                if(hash_entry->flags == hashfEXACT)
+                {
+                    return hash_entry->score;
+                }
+                if(hash_entry->flags == hashfALPHA && hash_entry->score <= alpha)
+                {
+                    return alpha;
+                }
+                if(hash_entry->flags == hashfBETA && hash_entry->score >= beta)
+                {
+                    return beta;
+                }
+            }
+        }
+        
+        // Does not exist.
+        return no_hash_entry;
     }
 
-    std::optional<TranspositionTableEntry> get(uint64_t hash) {
-        auto it = table.find(hash);
-        if (it != table.end()) {
-            return it->second;
-        } else {
-            return std::nullopt;
+    // Store hash entry in the table.
+    void insert_hash(int depth, int score, int hash_flag, uint64_t key)
+    {
+        tt* hash_entry = &transposition_table[key % hash_table_size];
+
+        hash_entry->depth = depth;
+        hash_entry->flags = hash_flag;
+        hash_entry->score = score;
+        hash_entry->key = key;
+    }
+
+    // clear table.
+    void clear_table()
+    {
+        for(int index = 0; index < transposition_table.size(); index++)
+        {
+            transposition_table[index].key = no_hash_entry;
+            transposition_table[index].depth = 0;
+            transposition_table[index].flags = 0;
+            transposition_table[index].score = 0;
         }
     }
 
-    void clear() {
-        table.clear();
-    }
+    // TT instance.
+    std::vector<tt> transposition_table;
 };
 
 struct ZobristHash
@@ -50,3 +93,5 @@ struct ZobristHash
     uint64_t castle_keys[16];
     uint64_t side_key;
 };
+
+#endif

@@ -52,6 +52,18 @@
 #define MAX_EVAL 999999999.f
 #define MIN_EVAL -999999999.f
 
+// Transposition table.
+
+#define hashfEXACT 0
+#define hashfALPHA 1
+#define hashfBETA 2
+
+// Table size.
+#define hash_table_size 0x400000
+
+// No entry found.
+#define no_hash_entry 999999999
+
 // Constants.
 const float ROOK_VALUE = 5.f;
 const float QUEEN_VALUE = 9.f;
@@ -59,7 +71,8 @@ const float KNIGHT_VALUE = 3.f;
 const float BISHOP_VALUE = 3.f;
 const float PAWN_VALUE = 1.f;
 
-const float PAWN_BONUS[64] = {
+const float PAWN_BONUS[64] = 
+{
     0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f,
     5.0f,   5.0f,   5.0f,   5.0f,   5.0f,   5.0f,   5.0f,   5.0f,
     1.0f,   1.0f,   2.0f,   3.0f,   3.0f,   2.0f,   1.0f,   1.0f,
@@ -70,7 +83,8 @@ const float PAWN_BONUS[64] = {
     0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f
 };
 
-const float KNIGHT_BONUS[64] = {
+const float KNIGHT_BONUS[64] = 
+{
     -5.0f, -4.0f, -3.0f, -3.0f, -3.0f, -3.0f, -4.0f, -5.0f,
     -4.0f, -2.0f,  0.0f,  0.5f,  0.5f,  0.0f, -2.0f, -4.0f,
     -3.0f,  0.5f,  1.0f,  2.0f,  2.0f,  1.0f,  0.5f, -3.0f,
@@ -81,7 +95,8 @@ const float KNIGHT_BONUS[64] = {
     -5.0f, -4.0f, -3.0f, -3.0f, -3.0f, -3.0f, -4.0f, -5.0f
 };
 
-const float BISHOP_BONUS[64] = {
+const float BISHOP_BONUS[64] = 
+{
     -2.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -2.0f,
     -1.0f,  0.0f,  0.0f,  0.5f,  0.5f,  0.0f,  0.0f, -1.0f,
     -1.0f,  0.5f,  0.5f,  1.0f,  1.0f,  0.5f,  0.5f, -1.0f,
@@ -92,7 +107,8 @@ const float BISHOP_BONUS[64] = {
     -2.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -2.0f
 };
 
-const float ROOK_BONUS[64] = {
+const float ROOK_BONUS[64] = 
+{
      0.0f,  0.0f,  0.0f,  0.5f,  0.5f,  0.0f,  0.0f,  0.0f,
     -0.5f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f, -0.5f,
     -0.5f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f, -0.5f,
@@ -103,7 +119,8 @@ const float ROOK_BONUS[64] = {
      0.0f,  0.0f,  0.0f,  0.5f,  0.5f,  0.0f,  0.0f,  0.0f
 };
 
-const float QUEEN_BONUS[64] = {
+const float QUEEN_BONUS[64] = 
+{
     -2.0f, -1.0f, -1.0f, -0.5f, -0.5f, -1.0f, -1.0f, -2.0f,
     -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f, -1.0f,
     -1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.5f,  0.0f, -1.0f,
@@ -114,7 +131,8 @@ const float QUEEN_BONUS[64] = {
     -2.0f, -1.0f, -1.0f, -0.5f, -0.5f, -1.0f, -1.0f, -2.0f
 };
 
-const float KING_BONUS[64] = {
+const float KING_BONUS[64] = 
+{
     -3.0f, -4.0f, -4.0f, -5.0f, -5.0f, -4.0f, -4.0f, -3.0f,
     -3.0f, -4.0f, -4.0f, -5.0f, -5.0f, -4.0f, -4.0f, -3.0f,
     -3.0f, -4.0f, -4.0f, -5.0f, -5.0f, -4.0f, -4.0f, -3.0f,
@@ -125,7 +143,8 @@ const float KING_BONUS[64] = {
      2.0f,  3.0f,  1.0f,  0.0f,  0.0f,  1.0f,  3.0f,  2.0f
 };
 
-const float KING_BONUS_ENDGAME[64] = {
+const float KING_BONUS_ENDGAME[64] = 
+{
     -5.0f, -4.0f, -3.0f, -2.0f, -2.0f, -3.0f, -4.0f, -5.0f,
     -3.0f, -2.0f, -1.0f,  0.0f,  0.0f, -1.0f, -2.0f, -3.0f,
     -3.0f, -1.0f,  2.0f,  3.0f,  3.0f,  2.0f, -1.0f, -3.0f,

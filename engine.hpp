@@ -3,6 +3,8 @@
 #include <stack>
 #include <array>
 #include <ctime>
+#include <algorithm>
+#include <iostream>
 
 class Engine 
 {
