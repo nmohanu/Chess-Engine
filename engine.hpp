@@ -1,4 +1,3 @@
-#include "threadpool.hpp"
 #include "transposition_table.hpp"
 #include <math.h>
 #include <stack>
@@ -18,13 +17,15 @@ private:
 
     // Working but can be improved later:
 
-    float maximizer(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level);
+    float search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing);
 
-    float minimizer(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level);
+    Move find_best_move(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing);
 
     float evaluate_piece_sum(Position* position, uint8_t color_sign);
 
     float evaluate_position(Position* position);
+
+    bool process_alpha_beta(int& alpha, int& beta, bool maximizing, int eval, int& bound);
 
     // TODO:
 
@@ -74,8 +75,6 @@ private:
     const float square_bonus_weight = 0.5f;
 
     TranspositionTable transposition_table;
-
-    ThreadPool thread_pool;
 
     ZobristHash hasher;
 };

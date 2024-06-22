@@ -96,18 +96,21 @@ Move Engine::best_move(Position* position, bool color_sign, int depth)
     int alpha = INT_MIN;
     int beta = INT_MAX;
     float score = 0.f;
-    Move best_move;
 
     clock_t timer = clock();
+    
+    Move best_move;
 
-    if(color_sign)
-    {
-        score = minimizer(depth, alpha, beta, count, position, best_move, true);
-    }
-    else
-    {
-        score = maximizer(depth, alpha, beta, count, position, best_move, true);
-    }
+    // if(color_sign)
+    // {
+    //     score = minimizer(depth, alpha, beta, count, position, best_move, true);
+    // }
+    // else
+    // {
+    //     score = maximizer(depth, alpha, beta, count, position, best_move, true);
+    // }
+
+    score = search(depth, alpha, beta, count, position, best_move, true, !color_sign);
 
     timer = clock() - timer;
     float elapsed_seconds = static_cast<float>(timer) / CLOCKS_PER_SEC;
@@ -119,151 +122,79 @@ Move Engine::best_move(Position* position, bool color_sign, int depth)
     return best_move;
 }
 
-float Engine::maximizer(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level)
+float Engine::search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing)
 {
     position_count++;
 
     if(depth == 0)
         return evaluate_position(position);
 
-    std::vector<Move> possible_moves = position->determine_moves(0);
-    // Check if current player loses.
+    std::vector<Move> possible_moves = position->determine_moves(!maximizing);
     if(possible_moves.empty())
-        return INT_MIN;
-
+        return maximizing ? INT_MIN : INT_MAX;
     sort_move_priority(possible_moves, position);
-    
-    int max_eval = INT_MIN;
-    Move local_best_move;
 
+    int bound = maximizing ? INT_MIN : INT_MAX;
+
+    Move local_best_move;
+    
     for(Move& move : possible_moves)
     {
         // Make copy of the board.
         Position* new_position = new Position(*position);
-
-        // do move.
         new_position->do_move(&move);
 
         // Make hash copy.
-        uint64_t hash = hasher.calculate_zobrist_key(new_position, 1);
+        uint64_t hash = hasher.calculate_zobrist_key(new_position, !maximizing);
 
         auto transposition_entry = transposition_table.get(hash);
-        if (transposition_entry) {
+        if (transposition_entry) 
+        {
             float eval = transposition_entry->score;
-            if (eval > max_eval) {
-                max_eval = eval;
+            if(process_alpha_beta(alpha, beta, maximizing, eval, bound))
                 local_best_move = Move(move);
-            }
-            if(eval >= alpha)  
-                alpha = eval;
             if (alpha >= beta)
                 break;
             continue;
         }
 
-        // Recursive call on child.
-        float eval = minimizer(depth-1, alpha, beta, position_count, new_position, best_move, false);
+        float eval = search(depth-1, alpha, beta, position_count, new_position, best_move, false, !maximizing);
 
-        // Clean up the new position.
-        if(new_position != nullptr)
-            delete new_position;
-        new_position = nullptr;
+        // transposition_table.insert(hash, depth, eval);
 
-        if(eval > max_eval) 
-        {
-            max_eval = eval;
-            local_best_move = Move(move); 
-        }
+        delete new_position;
 
-        // Evaluate the found score.
-        if(eval >= alpha)  
-            alpha = eval;
+        if(process_alpha_beta(alpha, beta, maximizing, eval, bound))
+            local_best_move = Move(move);
 
-        if(alpha >= beta)
-        {
+        if (alpha >= beta)
             break;
-        }
-    } 
-
-    if(top_level)
-    {
-        best_move = local_best_move;
+        continue;
     }
 
-    return max_eval;
+    if(top_level)
+        best_move = local_best_move;
+
+    return bound;
 }
 
-float Engine::minimizer(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level)
+bool Engine::process_alpha_beta(int& alpha, int& beta, bool maximizing, int eval, int& bound)
 {
-    position_count++;
-
-    if(depth == 0)
-        return evaluate_position(position);
-
-    std::vector<Move> possible_moves = position->determine_moves(1);
-    // Check if current player loses.
-    if(possible_moves.empty())
-        return INT_MAX;
-
-    sort_move_priority(possible_moves, position);
-
-    int min_eval = INT_MAX;
-    Move local_best_move;
-
-    for(Move& move : possible_moves)
+    if (maximizing && eval > bound) 
     {
-        // Make copy of the board.
-        Position* new_position = new Position(*position);
-
-        // do move.
-        new_position->do_move(&move);
-
-        uint64_t hash = hasher.calculate_zobrist_key(new_position, 0);
-
-        auto transposition_entry = transposition_table.get(hash);
-        if (transposition_entry) {
-            float eval = transposition_entry->score;
-            if (eval < min_eval) {
-                min_eval = eval;
-                local_best_move = Move(move);
-            }
-            if(eval <= beta) 
-                beta = eval;
-            if (alpha >= beta)
-                break;
-            continue;
-        }
-
-        // Recursive call on child.
-        float eval = maximizer(depth-1, alpha, beta, position_count, new_position, best_move, false);
-
-        if(eval < min_eval)
-        {
-            min_eval = eval;
-            local_best_move = Move(move);
-        }
-
-        // Clean up the new position.
-        if(new_position != nullptr)
-            delete new_position;
-        new_position = nullptr;
-
-        // Evaluate the found score.
-        if(eval <= beta) 
-            beta = eval;
-
-        if(beta <= alpha)
-        {
-            break;
-        }
-    } 
-
-    if(top_level)
-    {
-        best_move = local_best_move;
+        bound = eval;
+        return true;
     }
-
-    return min_eval;
+    if(maximizing && eval >= alpha)  
+        alpha = eval;
+    else if (!maximizing && eval < bound)
+    {
+        bound = eval;
+        return true;
+    }
+    if(!maximizing && eval <= beta) 
+        beta = eval;
+    return false;
 }
 
 float Engine::evaluate_piece_sum(Position* position, uint8_t color_sign)
