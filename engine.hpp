@@ -1,59 +1,9 @@
-#include "board.hpp"
-#include "thread"
+#include "threadpool.hpp"
+#include "transposition_table.hpp"
 #include <math.h>
 #include <stack>
 #include <array>
-#include <random>
-#include <unordered_map>
-#include <optional>
 #include <ctime>
-
-struct TranspositionTableEntry {
-    uint64_t hash;
-    int depth;
-    float score;
-};
-
-struct TranspositionTable {
-    std::unordered_map<uint64_t, TranspositionTableEntry> table;
-
-    bool contains(uint64_t hash) {
-        return table.find(hash) != table.end();
-    }
-
-    void insert(uint64_t hash, int depth, float score) {
-        table[hash] = {hash, depth, score};
-    }
-
-    std::optional<TranspositionTableEntry> get(uint64_t hash) {
-        auto it = table.find(hash);
-        if (it != table.end()) {
-            return it->second;
-        } else {
-            return std::nullopt;
-        }
-    }
-
-    void clear() {
-        table.clear();
-    }
-};
-
-struct ZobristHash
-{
-    ZobristHash(){}
-
-    void init_zobrist_keys();
-
-    uint64_t calculate_zobrist_key(Position* position, uint8_t current_player_sign);
-
-    void update_zobrist_hash(Move* move, Position* position, uint8_t current_player_sign, uint64_t& old_hash);
-
-    uint64_t piece_keys[14][64];
-    uint64_t enpassant_keys[64];
-    uint64_t castle_keys[16];
-    uint64_t side_key;
-};
 
 class Engine 
 {
@@ -124,6 +74,8 @@ private:
     const float square_bonus_weight = 0.5f;
 
     TranspositionTable transposition_table;
+
+    ThreadPool thread_pool;
 
     ZobristHash hasher;
 };

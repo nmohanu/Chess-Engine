@@ -115,6 +115,7 @@ Move Engine::best_move(Position* position, bool color_sign, int depth)
     std::cout << "Positions evaluated: " << count << "\n";
     std::cout << "Score found was: " << score << "\n";
     std::cout << "Average positions per second: " << count / elapsed_seconds << '\n';
+    std::cout << "Time taken: " << elapsed_seconds << "\n";
     return best_move;
 }
 
@@ -161,7 +162,7 @@ float Engine::maximizer(int depth, int alpha, int beta, int& position_count, Pos
         }
 
         // Recursive call on child.
-        int eval = minimizer(depth-1, alpha, beta, position_count, new_position, best_move, false);
+        float eval = minimizer(depth-1, alpha, beta, position_count, new_position, best_move, false);
 
         // Clean up the new position.
         if(new_position != nullptr)
@@ -234,7 +235,7 @@ float Engine::minimizer(int depth, int alpha, int beta, int& position_count, Pos
         }
 
         // Recursive call on child.
-        int eval = maximizer(depth-1, alpha, beta, position_count, new_position, best_move, false);
+        float eval = maximizer(depth-1, alpha, beta, position_count, new_position, best_move, false);
 
         if(eval < min_eval)
         {
