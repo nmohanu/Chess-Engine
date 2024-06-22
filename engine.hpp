@@ -1,5 +1,4 @@
 #include "threadpool.hpp"
-#include "transposition_table.hpp"
 #include <math.h>
 #include <stack>
 #include <array>
@@ -76,6 +75,7 @@ private:
     TranspositionTable transposition_table;
 
     ThreadPool thread_pool;
+    std::mutex guard;
 
     ZobristHash hasher;
 };
