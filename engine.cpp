@@ -150,22 +150,27 @@ void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
         new_position->do_move(&move);
 
         // Evaluate the position after the move.
-        move.evaluation = evaluate_position(new_position);
+        
         
         // Check if the move gives check.
         bool gives_check = move.is_check(new_position);
         
         // Set priority groups based on properties.
-        if (move.is_capture(position)) {
+        if (move.is_capture(position)) 
+        {
             move.priority_group = 1;
-        } else if (gives_check) {
+        } else if (gives_check) 
+        {
             move.priority_group = 2;
-        } else {
+        } else 
+        {
             move.priority_group = 3;
+            move.evaluation = evaluate_position(new_position);
         }
 
         // Capture value for sorting capture moves.
-        if (move.priority_group == 2) {
+        if (move.priority_group == 2) 
+        {
             move.capture_val = move.capture_value(position);
         }
 
