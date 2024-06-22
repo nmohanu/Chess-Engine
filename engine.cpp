@@ -11,12 +11,13 @@ Move Engine::best_move(Position* position, bool color_sign, int depth)
     int alpha = INT_MIN;
     int beta = INT_MAX;
     float score = 0.f;
+    int zobrist_skips = 0;
 
     clock_t timer = clock();
     
     Move best_move;
 
-    score = search(depth, alpha, beta, count, position, best_move, true, !color_sign);
+    score = search(depth, alpha, beta, count, position, best_move, true, !color_sign, zobrist_skips);
 
     timer = clock() - timer;
     float elapsed_seconds = static_cast<float>(timer) / CLOCKS_PER_SEC;
@@ -25,10 +26,11 @@ Move Engine::best_move(Position* position, bool color_sign, int depth)
     std::cout << "Score found was: " << score << "\n";
     std::cout << "Average positions per second: " << count / elapsed_seconds << '\n';
     std::cout << "Time taken: " << elapsed_seconds << "\n";
+    std::cout << "Nodes skipped thanks to mr Zobrist: " << zobrist_skips << "\n";
     return best_move;
 }
 
-float Engine::search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing)
+float Engine::search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips)
 {
     position_count++;
 
@@ -40,6 +42,7 @@ float Engine::search(int depth, int alpha, int beta, int& position_count, Positi
     // Read hash entry.
     if(entry_key_value != no_hash_entry)
     {
+        zobrist_skips++;
         return entry_key_value;
     }
 
@@ -66,7 +69,7 @@ float Engine::search(int depth, int alpha, int beta, int& position_count, Positi
         Position* new_position = new Position(*position);
         new_position->do_move(&move);
 
-        float score =  search(depth-1, alpha, beta, position_count, new_position, best_move, false, !maximizing);
+        float score =  search(depth-1, alpha, beta, position_count, new_position, best_move, false, !maximizing, zobrist_skips);
 
         delete new_position;
 
@@ -113,26 +116,6 @@ float Engine::search(int depth, int alpha, int beta, int& position_count, Positi
 
     transposition_table.insert_hash(depth, eval, hashf, key);
     return eval;
-}
-
-bool Engine::process_alpha_beta(int& alpha, int& beta, bool maximizing, int eval, int& bound)
-{
-    bool new_best = false;
-    if (maximizing && eval > bound) 
-    {
-        bound = eval;
-        new_best = true;
-    }
-    if(maximizing && eval >= alpha)  
-        alpha = eval;
-    if (!maximizing && eval < bound)
-    {
-        bound = eval;
-        new_best = true;
-    }
-    if(!maximizing && eval <= beta) 
-        beta = eval;
-    return new_best;
 }
 
 void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)

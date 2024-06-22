@@ -59,7 +59,7 @@
 #define hashfBETA 2
 
 // Table size.
-#define hash_table_size 0x400000
+#define hash_table_size 0x4000000
 
 // No entry found.
 #define no_hash_entry 999999999
