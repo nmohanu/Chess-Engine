@@ -144,23 +144,7 @@ float Engine::search(int depth, int alpha, int beta, int& position_count, Positi
         Position* new_position = new Position(*position);
         new_position->do_move(&move);
 
-        // Make hash copy.
-        uint64_t hash = hasher.calculate_zobrist_key(new_position, !maximizing);
-
-        auto transposition_entry = transposition_table.get(hash);
-        if (transposition_entry) 
-        {
-            float eval = transposition_entry->score;
-            if(process_alpha_beta(alpha, beta, maximizing, eval, bound))
-                local_best_move = Move(move);
-            if (alpha >= beta)
-                break;
-            continue;
-        }
-
         float eval = search(depth-1, alpha, beta, position_count, new_position, best_move, false, !maximizing);
-
-        // transposition_table.insert(hash, depth, eval);
 
         delete new_position;
 
@@ -180,21 +164,22 @@ float Engine::search(int depth, int alpha, int beta, int& position_count, Positi
 
 bool Engine::process_alpha_beta(int& alpha, int& beta, bool maximizing, int eval, int& bound)
 {
+    bool new_best = false;
     if (maximizing && eval > bound) 
     {
         bound = eval;
-        return true;
+        new_best = true;
     }
     if(maximizing && eval >= alpha)  
         alpha = eval;
-    else if (!maximizing && eval < bound)
+    if (!maximizing && eval < bound)
     {
         bound = eval;
-        return true;
+        new_best = true;
     }
     if(!maximizing && eval <= beta) 
         beta = eval;
-    return false;
+    return new_best;
 }
 
 float Engine::evaluate_piece_sum(Position* position, uint8_t color_sign)
