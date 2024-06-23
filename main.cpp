@@ -2,6 +2,15 @@
 #include <SFML/Graphics.hpp>
 #include <utility>
 #include <iostream>
+#include <thread>
+
+void calculate_best_move(Engine* engine, Position* position, int color_sign, int depth, Move& result) 
+{
+    move_found = false;
+    engine->best_move(position, color_sign, depth, result);
+    engine_is_searching = false;
+    move_found = true;
+}
 
 int main()
 {
@@ -13,11 +22,22 @@ int main()
         return 1;
     }
 
+    clock_t start;
+
+    float last_time_check = 0.f;
+
     int checkpoint_count = 0;
 
     bool mouse_pressed = false;
 
     bool is_white_turn = true;
+
+    // We want to store the found move here.
+    Move engine_move_choice;
+    Move engine_move_final;
+    
+    const float seconds_for_engine = 6;
+    int current_depth = 1;
 
     Engine engine;
 
@@ -109,16 +129,66 @@ int main()
                 window.close();
         }
 
+        // ENGINE TURN ==================================================================================================================
+
         if(!is_white_turn)
         {
-            bool color_sign = !is_white_turn;
-            float alpha = MIN_EVAL;  
-            float beta = MAX_EVAL;
-            Move best_move = engine.best_move(board->position, color_sign, 6);
-            board->position->do_move(&best_move);
-            is_white_turn = !is_white_turn;
-            possible_moves = board->position->determine_moves(!is_white_turn);
+            // Engine timer starts. Because our engine can start searching.
+            if(!engine_is_searching && engine.time_up)
+            {
+                // Start the timer.
+                engine.time_up = false;
+                start = clock();
+            }
+    
+            if(!engine_is_searching && !move_found && !engine.time_up)
+            {
+                // Engine can start. 
+                engine_is_searching = true;
+                
+                // Call thread to use engine and find the best move for our current depth.
+                std::thread calculator(calculate_best_move, &engine, board->position, !is_white_turn, current_depth, std::ref(engine_move_choice));
+                calculator.detach();
+            }
+            
+            // Calculate the time that has been spent so far.
+            double time_spent = double(clock() - start) / CLOCKS_PER_SEC;
+            // std::cout << "Time spent so far: " << time_spent << '\n';
+            // std::cout << "Time up (main): " << engine.time_up << '\n';
+
+            // The engine found a new best move with time left. It can try a higher depth.
+            if(seconds_for_engine - time_spent >= 0 && !engine_is_searching && move_found)
+            {
+                std::cout << "Depth: " << current_depth << std::endl;
+                // A best move was found in time, we can store this one.
+                engine_move_final = Move(engine_move_choice);
+                // Increment the search depth.
+                current_depth++;
+                // Reset move found status, lets search for a new one.
+                move_found = false;
+            }
+
+            // Time is up. Discard results of engine's current search and use the previous move that was found in time.
+            if(time_spent >= seconds_for_engine)
+            {
+                // Signal thread to stop looking.
+                engine.time_up = true;
+                // Reset search depth.
+                current_depth = 1;
+                // Do the move.
+                board->position->do_move(&engine_move_final);
+                // Switch player to move.
+                is_white_turn = !is_white_turn;
+                // Determine moves for other player.
+                possible_moves = board->position->determine_moves(!is_white_turn);
+                // Engine is done searching.
+                engine_is_searching = false;
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
+
+        // PLAYER TURN ==================================================================================================================
         
         sf::Vector2i mouse_position;
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && !mouse_pressed)

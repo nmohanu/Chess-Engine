@@ -6,7 +6,7 @@ Engine::Engine()
 }
 
 // Function to return the best found move.
-Move Engine::best_move(Position* position, bool color_sign, int depth)
+void Engine::best_move(Position* position, bool color_sign, int depth, Move& best_move)
 {
     // For analysis.
     int count = 0;
@@ -18,32 +18,47 @@ Move Engine::best_move(Position* position, bool color_sign, int depth)
     int beta = 100;
     float score = 0.f;
     
-    Move best_move;
+    Move best_found;
 
     // Find best move.
-    score = search(depth, alpha, beta, count, position, best_move, true, !color_sign, zobrist_skips, 0);
+    score = search(depth, alpha, beta, count, position, best_found, true, !color_sign, zobrist_skips, 0);
+
+    // Chech if engine was stopped due to time.
+    if(score == -999999)
+    {
+        return;
+    }
+
+    previous_score = score;
 
     // Analysis.
     timer = clock() - timer;
     float elapsed_seconds = static_cast<float>(timer) / CLOCKS_PER_SEC;
     
+    // Output results.
     std::cout << "Positions evaluated: " << count << "\n";
     std::cout << "Score found was: " << score << "\n";
     std::cout << "Average positions per second: " << count / elapsed_seconds << '\n';
     std::cout << "Time taken: " << elapsed_seconds << "\n";
-    std::cout << "Nodes skipped thanks to mr Zobrist: " << zobrist_skips << "\n";
-    return best_move;
+    std::cout << "Nodes skipped thanks to mr. Zobrist: " << zobrist_skips << "\n";
+
+    // Check if a valid move was found. 64 is the signal that none was found.
+    assert(best_move.start_location != 64);
+    best_move = Move(best_found);
+    return;
 }
 
 float Engine::search(int current_depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips, int depth_limit)
 {
+    if(time_up)
+        return -999999;
     // Make hash entries of position.
     int hashf = hashfALPHA;
     uint64_t key = hasher.calculate_zobrist_key(position, !maximizing);
     int entry_key_value = transposition_table.read_hash_entry(alpha, beta, current_depth, key);
 
     // Read hash entry.
-    if(entry_key_value != no_hash_entry)
+    if(entry_key_value != no_hash_entry && !top_level)
     {
         // Position wes already evaluated in a different order.
         zobrist_skips++;
@@ -72,9 +87,9 @@ float Engine::search(int current_depth, int alpha, int beta, int& position_count
 
     float eval = maximizing ? -100 : 100;
 
-    Move local_best_move;
+    Move local_best_move = possible_moves.front();
 
-    bool first_node = true;
+    // bool first_node = true;
     
     for(Move& move : possible_moves)
     {
@@ -82,22 +97,19 @@ float Engine::search(int current_depth, int alpha, int beta, int& position_count
         Position* new_position = new Position(*position);
         new_position->do_move(&move);
         float score;
-        if(first_node)
-        {
-            score = search(current_depth-1, alpha, beta, position_count, new_position, best_move, false, !maximizing, zobrist_skips, 0);
-            first_node = false;
-        }
-        else
-            score = search(current_depth-1, alpha, beta, position_count, new_position, best_move, false, !maximizing, zobrist_skips, depth_limit+1);
-
+        score = search(current_depth - 1, alpha, beta, position_count, new_position, best_move, false, !maximizing, zobrist_skips, depth_limit);
+        
+        if(score == -999999)
+            return -999999;
         // Undo.
         delete new_position;
 
         // Evaluate found score and edit alpha, beta, and best move accordingly.
         if (maximizing)
         {
-            if (score > eval)
+            if (score >= eval)
             {
+                
                 eval = score;
                 if (eval > alpha)
                 {
@@ -114,8 +126,9 @@ float Engine::search(int current_depth, int alpha, int beta, int& position_count
         }
         else
         {
-            if (score < eval)
+            if (score <= eval)
             {
+                
                 eval = score;
                 if (eval < beta)
                 {
