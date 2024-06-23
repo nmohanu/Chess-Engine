@@ -1,228 +1,190 @@
 #include "board.hpp"
 
-uint64_t Position::get_pawn_reach(uint8_t x, uint8_t y, bool is_white) {
-    uint64_t attack_board = 0b0;
+// ==============================================================================================
 
-    if (is_white) {
-        if (x + 1 <= 7 && y - 1 >= 0)
-            toggle_bit_on(attack_board, make_pos(x + 1, y - 1));
-        if (x - 1 >= 0 && y - 1 >= 0)
-            toggle_bit_on(attack_board, make_pos(x - 1, y - 1));
-    } else {
-        if (x + 1 <= 7 && y + 1 <= 7)
-            toggle_bit_on(attack_board, make_pos(x + 1, y + 1));
-        if (x - 1 >= 0 && y + 1 <= 7)
-            toggle_bit_on(attack_board, make_pos(x - 1, y + 1));
-    }
+// Moving logic: 
 
-    return attack_board;
+// ==============================================================================================
+
+// Pawn moving.
+uint64_t Position::get_pawn_move(uint8_t square, bool is_black) {
+    uint64_t move_board = 0b0;
+
+    // Check if the pawn is white or black.
+    if (!is_black && square_in_bounds(square-8) && get_piece(square-8) == EMPTY) 
+    {
+        // Check if pawn can move 2 squares. Only if in itial position and target square is empty.
+        if (square > 47 && get_piece(square - 16) == EMPTY) 
+        {
+            toggle_bit_on(move_board, square - 16);
+        }
+        toggle_bit_on(move_board, square-8);
+    } 
+    // Now for black.
+    else if (square_in_bounds(square+8) && get_piece(square+8) == EMPTY) 
+    {
+        // Check if pawn can move 2 squares. Only if in itial position and target square is empty.
+        if (square < 16 && get_piece(square + 16) == EMPTY) 
+        {
+            toggle_bit_on(move_board, square+16);
+        }
+        toggle_bit_on(move_board, square+8);
+    } 
+
+    return move_board;
 }
 
-uint64_t Position::get_king_reach(uint8_t x, uint8_t y) {
-    uint64_t attack_board = 0b0;
-    int offsets[8][2] = {
+// ==============================================================================================
+
+// King moving.
+uint64_t Position::get_king_move(uint8_t square, bool is_black) 
+{
+    // Initialize.
+    uint64_t move_board = 0b0;
+    int directions[8][2] = 
+    {
         {-1, -1}, {-1, 0}, {-1, 1},
         { 0, -1},          { 0, 1},
         { 1, -1}, { 1, 0}, { 1, 1}
     };
 
-    for (int i = 0; i < 8; ++i) {
-        int new_x = x + offsets[i][0];
-        int new_y = y + offsets[i][1];
-        if (new_x >= 0 && new_x < 8 && new_y >= 0 && new_y < 8) {
-            int pos = make_pos(new_x, new_y);
-            toggle_bit_on(attack_board, pos);
-        }
+    // Toggle all empty bits around the king
+    for (uint8_t i = 0; i < 8; i++) 
+    {
+        uint8_t new_square = square + directions[i][0] + 8*directions[i][1];
+
+        if(!square_in_bounds(new_square))
+            continue;
+    
+        // if (new_x >= 0 && new_x < 8 && new_y >= 0 && new_y < 8) {
+        toggle_bit_on(move_board, new_square);
     }
 
-    return attack_board;
+    // King cannot move to square containing pieces of their own color.
+    move_board &= (is_black) ? ~bit_boards[BLACK_PIECES] : bit_boards[BLACK_PIECES];
+
+    // Remove occupied squares.
+    return move_board;
 }
 
-uint64_t Position::get_bishop_reach(uint8_t x, uint8_t y) {
-    uint64_t attack_board = 0b0;
-    int xDeltas[] = {-1, 1, -1, 1};
-    int yDeltas[] = {-1, -1, 1, 1};
+// ==============================================================================================
 
-    for (int dir = 0; dir < 4; ++dir) {
-        int xIt = x + xDeltas[dir];
-        int yIt = y + yDeltas[dir];
+// Bishop moving logic.
+uint64_t Position::get_bishop_move(uint8_t square, bool is_black) 
+{
+    uint64_t move_board = 0b0;
 
-        while (xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8) {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            toggle_bit_on(attack_board, pos_to_check);
+    // Define the directions as square increments.
+    int directions[4][2] = 
+    {
+        {-1, -1},   {-1, 1},
+        { 1, -1},   { 1, 1}
+    };
 
-            if (get_piece(pos_to_check) != 0)
+    // Loop over directions.
+    for (uint8_t dir = 0; dir < 4; dir++) 
+    {   
+        uint8_t offset = 1;
+        // Continue until another piece is found.
+        while (true)
+        {
+            // Calculate square to check.
+            uint8_t new_square = square + directions[dir][0]*offset + 8*directions[dir][1]*offset;
+
+            // Square may be off board.
+            if(!square_in_bounds(square-8))
+                continue;
+
+            // Toggle bit on.
+            toggle_bit_on(move_board, new_square);
+
+            // If a piece is found, stop looking in this direction.
+            if(get_bit(bit_boards[TOTAL], new_square))
                 break;
 
-            xIt += xDeltas[dir];
-            yIt += yDeltas[dir];
+            // Look one square further.
+            offset++;
         }
     }
-
-    return attack_board;
+    // Can't move to squares occupied by own color.
+    move_board &= (is_black) ? ~bit_boards[BLACK_PIECES] : bit_boards[BLACK_PIECES];
+    return move_board;
 }
 
-uint64_t Position::get_knight_reach(uint8_t x, uint8_t y) {
-    uint64_t attack_board = 0b0;
-    int knight_moves[8][2] = {
+// ==============================================================================================
+
+// Knight move logic.
+uint64_t Position::get_knight_move(uint8_t square, bool is_black) 
+{
+    uint64_t move_board = 0b0;
+
+    // Define directions.
+    int directions[8][2] = 
+    {
         { 1,  2}, { 1, -2}, {-1,  2}, {-1, -2},
         { 2,  1}, { 2, -1}, {-2,  1}, {-2, -1}
     };
 
-    for (int i = 0; i < 8; ++i) {
-        int new_x = x + knight_moves[i][0];
-        int new_y = y + knight_moves[i][1];
-        if (new_x >= 0 && new_x <= 7 && new_y >= 0 && new_y <= 7) {
-            toggle_bit_on(attack_board, make_pos(new_x, new_y));
-        }
+    // Loop through candidate squares.
+    for (int i = 0; i < 8; ++i) 
+    {
+        uint8_t new_square = square + directions[i][0] + 8*directions[i][1];
+
+        // Square may be off bounds.
+        if(!square_in_bounds(new_square))
+            continue;
+
+        if (this->get_piece(new_square) == EMPTY)
+            toggle_bit_on(move_board, new_square);
     }
 
-    return attack_board;
-}
-
-uint64_t Position::get_rook_reach(uint8_t x, uint8_t y) {
-    uint64_t attack_board = 0b0;
-    int xDeltas[] = {0, 0, -1, 1};
-    int yDeltas[] = {-1, 1, 0, 0};
-
-    for (int dir = 0; dir < 4; ++dir) {
-        int xIt = x + xDeltas[dir];
-        int yIt = y + yDeltas[dir];
-
-        while (xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8) {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-            toggle_bit_on(attack_board, pos_to_check);
-
-            if (get_piece(pos_to_check) != 0)
-                break;
-
-            xIt += xDeltas[dir];
-            yIt += yDeltas[dir];
-        }
-    }
-
-    return attack_board;
-}
-
-uint64_t Position::get_queen_reach(uint8_t x, uint8_t y) {
-    return get_bishop_reach(x, y) | get_rook_reach(x, y);
-}
-
-// Moving logic: ================================================
-
-uint64_t Position::get_pawn_move(uint8_t x, uint8_t y, bool is_white) {
-    uint64_t move_board = 0b0;
-
-    if (is_white) {
-        if (get_piece(make_pos(x, y-1)) == 0) {
-            if (y == 6 && get_piece(make_pos(x, y-2)) == 0) {
-                toggle_bit_on(move_board, make_pos(x, y-2));
-            }
-            toggle_bit_on(move_board, make_pos(x, y-1));
-        }
-    } else {
-        if (get_piece(make_pos(x, y+1)) == 0) {
-            if (y == 1 && get_piece(make_pos(x, y+2)) == 0) {
-                toggle_bit_on(move_board, make_pos(x, y+2));
-            }
-            toggle_bit_on(move_board, make_pos(x, y+1));
-        }
-    }
-
+    // Can't move to squares occupied by own color.
+    move_board &= (is_black) ? ~bit_boards[BLACK_PIECES] : bit_boards[BLACK_PIECES];
     return move_board;
 }
 
-uint64_t Position::get_king_move(uint8_t x, uint8_t y) {
+// ==============================================================================================
+
+// Rook move logic.
+uint64_t Position::get_rook_move(uint8_t square, bool is_black) 
+{
     uint64_t move_board = 0b0;
-    int offsets[8][2] = {
-        {-1, -1}, {-1, 0}, {-1, 1},
-        { 0, -1},          { 0, 1},
-        { 1, -1}, { 1, 0}, { 1, 1}
+    int directions[4][2] =
+    {
+        {-1, 0}, {1, 0},
+        {0, -1}, {0, 1}
     };
 
-    for (int i = 0; i < 8; ++i) {
-        int new_x = x + offsets[i][0];
-        int new_y = y + offsets[i][1];
-        if (new_x >= 0 && new_x < 8 && new_y >= 0 && new_y < 8) {
-            if (this->get_piece(make_pos(new_x, new_y)) == 0)
-                toggle_bit_on(move_board, make_pos(new_x, new_y));
-        }
-    }
+    // Loop through directions. 
+    for (int dir = 0; dir < 4; dir++) 
+    {
+        uint8_t offset = 1;
 
-    return move_board;
-}
+        while (true) 
+        {
+            // Calculate target square.
+            uint8_t new_square = square + directions[dir][0]*offset + 8*directions[dir][1]*offset;
 
-uint64_t Position::get_bishop_move(uint8_t x, uint8_t y) {
-    uint64_t move_board = 0b0;
-    int xDeltas[] = {-1, 1, -1, 1};
-    int yDeltas[] = {-1, -1, 1, 1};
+            if(!square_in_bounds(new_square))
+                continue;
 
-    for (int dir = 0; dir < 4; ++dir) {
-        int xIt = x + xDeltas[dir];
-        int yIt = y + yDeltas[dir];
+            toggle_bit_on(move_board, new_square);
 
-        while (xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8) {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-
-            if (get_piece(pos_to_check) == 0)
-                toggle_bit_on(move_board, pos_to_check);
-
-            if (get_piece(pos_to_check) != 0)
+            if (get_piece(new_square) != EMPTY)
                 break;
 
-            xIt += xDeltas[dir];
-            yIt += yDeltas[dir];
+            offset++;
         }
     }
-
+    // Can't move to squares occupied by own color.
+    move_board &= (is_black) ? ~bit_boards[BLACK_PIECES] : bit_boards[BLACK_PIECES];
     return move_board;
 }
 
-uint64_t Position::get_knight_move(uint8_t x, uint8_t y) {
-    uint64_t move_board = 0b0;
-    int offsets[8][2] = {
-        { 1,  2}, { 1, -2}, {-1,  2}, {-1, -2},
-        { 2,  1}, { 2, -1}, {-2,  1}, {-2, -1}
-    };
+// ==============================================================================================
 
-    for (int i = 0; i < 8; ++i) {
-        int new_x = x + offsets[i][0];
-        int new_y = y + offsets[i][1];
-        if (new_x >= 0 && new_x < 8 && new_y >= 0 && new_y < 8) {
-            if (this->get_piece(make_pos(new_x, new_y)) == 0)
-                toggle_bit_on(move_board, make_pos(new_x, new_y));
-        }
-    }
-
-    return move_board;
-}
-
-uint64_t Position::get_rook_move(uint8_t x, uint8_t y) {
-    uint64_t move_board = 0b0;
-    int xDeltas[] = {0, 0, -1, 1};
-    int yDeltas[] = {-1, 1, 0, 0};
-
-    for (int dir = 0; dir < 4; ++dir) {
-        int xIt = x + xDeltas[dir];
-        int yIt = y + yDeltas[dir];
-
-        while (xIt >= 0 && yIt >= 0 && xIt < 8 && yIt < 8) {
-            uint8_t pos_to_check = make_pos(xIt, yIt);
-
-            if (get_piece(pos_to_check) == 0)
-                toggle_bit_on(move_board, pos_to_check);
-
-            if (get_piece(pos_to_check) != 0)
-                break;
-
-            xIt += xDeltas[dir];
-            yIt += yDeltas[dir];
-        }
-    }
-
-    return move_board;
-}
-
-uint64_t Position::get_queen_move(uint8_t x, uint8_t y) {
-    return get_bishop_move(x, y) | get_rook_move(x, y);
+// Queen move logic.
+uint64_t Position::get_queen_move(uint8_t square, bool is_black) 
+{   
+    return get_bishop_move(square, is_black) | get_rook_move(square, is_black);   
 }

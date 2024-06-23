@@ -1,9 +1,10 @@
 #include "board.hpp"
 
-Move::Move()
-{
 
-}
+// ==============================================================================================
+
+// Move constructors.
+Move::Move() {}
 
 Move::Move(const Move& other)
 {
@@ -13,44 +14,38 @@ Move::Move(const Move& other)
     this->special_cases = other.special_cases;
     this->move_takes_an_passant = other.move_takes_an_passant;
     this->evaluation = other.evaluation;
+    this->moving_piece = other.moving_piece;
+    this->captured_piece = other.captured_piece;
 }
 
-void Position::initialize()
-{
-    // Initialize to default chess position.
-    this->first_16 = FIRST_16_SQUARES;
-    this->second_16 = SECOND_16_SQUARES;
-    this->third_16 = THIRD_16_SQUARES;
-    this->fourth_16 = FOURTH_16_SQUARES;
-}
+// ==============================================================================================
 
-Position::Position() 
-{
-    board[0] = &first_16;
-    board[1] = &second_16;
-    board[2] = &third_16;
-    board[3] = &fourth_16;
-}
+// Position constructors.
+Position::Position() {}
 
 Position::Position(const Position& other) 
 {
     // Copy contents of position.
-    this->first_16 = other.first_16;
-    this->second_16 = other.second_16;
-    this->third_16 = other.third_16;
-    this->fourth_16 = other.fourth_16;
     this->casling_rights = other.casling_rights;
     this->en_passant = other.en_passant;
-    board[0] = &first_16;
-    board[1] = &second_16;
-    board[2] = &third_16;
-    board[3] = &fourth_16;
+    this->white_to_turn = other.white_to_turn;
+
+    // Copy bitboards.
+    for(uint8_t piece = W_KING; piece < B_PAWN; piece++)
+    {
+        this->bit_boards[piece] = other.bit_boards[piece];
+    }
 }
 
+// Destructor.
+Position::~Position() {}
+
+// ==============================================================================================
+
+// Board constructors.
 Board::Board()
 {
     position = new Position();
-    position->initialize();
 }
 
 Board::~Board()
@@ -60,228 +55,182 @@ Board::~Board()
     position = nullptr;
 }
 
-Position::~Position()
-{
-}
+// ==============================================================================================
 
 // Create attack board for specific piece. This is where we define the attacking logic for each piece.
-uint64_t Position::make_reach_board(uint8_t x, uint8_t y) {
+uint64_t Position::make_reach_board(uint8_t square, bool is_black) 
+{
     uint64_t attack_board = 0b0;
-    int pos = make_pos(x, y);
-    uint8_t piece_type = this->get_piece(pos);
+    uint8_t piece_type = this->get_piece(square);
 
     switch (piece_type) {
         case B_PAWN:
-            attack_board = get_pawn_reach(x, y, false);
-            break;
         case W_PAWN:
-            attack_board = get_pawn_reach(x, y, true);
+            attack_board = get_pawn_move(square, is_black);
             break;
         case B_KING:
         case W_KING:
-            attack_board = get_king_reach(x, y);
+            attack_board = get_king_move(square, is_black);
             break;
         case B_BISHOP:
         case W_BISHOP:
-            attack_board = get_bishop_reach(x, y);
+            attack_board = get_bishop_move(square, is_black);
             break;
         case B_KNIGHT:
         case W_KNIGHT:
-            attack_board = get_knight_reach(x, y);
+            attack_board = get_knight_move(square, is_black);
             break;
         case B_ROOK:
         case W_ROOK:
-            attack_board = get_rook_reach(x, y);
+            attack_board = get_rook_move(square, is_black);
             break;
         case B_QUEEN:
         case W_QUEEN:
-            attack_board = get_queen_reach(x, y);
+            attack_board = get_queen_move(square, is_black);
             break;
         default:
+            attack_board = 0b0;
             break;
     }
 
     return attack_board;
 }
 
-// Create moving board for specific piece. This is where de define the movement logic of each piece.
-uint64_t Position::make_move_board(uint8_t x, uint8_t y) {
-    uint64_t move_board = 0b0;
-    int pos = make_pos(x, y);
-    uint8_t piece_type = this->get_piece(pos);
-
-    switch (piece_type) {
-        case B_PAWN:
-            move_board = get_pawn_move(x, y, false);
-            break;
-        case W_PAWN:
-            move_board = get_pawn_move(x, y, true);
-            break;
-        case B_KING:
-        case W_KING:
-            move_board = get_king_move(x, y);
-            break;
-        case B_BISHOP:
-        case W_BISHOP:
-            move_board = get_bishop_move(x, y);
-            break;
-        case B_KNIGHT:
-        case W_KNIGHT:
-            move_board = get_knight_move(x, y);
-            break;
-        case B_ROOK:
-        case W_ROOK:
-            move_board = get_rook_move(x, y);
-            break;
-        case B_QUEEN:
-        case W_QUEEN:
-            move_board = get_queen_move(x, y);
-            break;
-        default:
-            break;
-    }
-
-    return move_board;
-}
-
-// Get position of a piece. (first one of its type found).
-uint8_t Position::get_piece_position(uint8_t piece)
-{
-    for (int y = 0; y < 8; y++)
-    {
-        for (int x = 0; x < 8; x++)
-        {
-            uint8_t piece_at_pos = get_piece(make_pos(x,y));
-            if(piece_at_pos == piece)
-            {
-                return make_pos(x, y);
-            }
-        }
-    }
-    
-    return -1;
-}
+// ==============================================================================================
 
 // Create the attack board for all pieces of a player.
-uint64_t Position::color_reach_board(bool color_sign)
+uint64_t Position::color_reach_board(bool is_black)
 {
     uint64_t attack_board = 0;
 
-    for(int y = 0; y < 8; y++)
+    for(uint8_t square = 0; square < 64; square++)
     {
-        for(int x = 0; x < 8; x++)
-        {
-            uint8_t piece = get_piece(make_pos(x, y));
-            bool piece_color = get_color(piece);
-            if(piece != 0 && color_sign == piece_color)
-            {
-                uint64_t piece_reach = this->make_reach_board(x, y);
-                attack_board |= piece_reach;
-            }
-        }
+        // Check if piece belongs to color we are checking. Also skip if square is empty.
+        if(is_black != get_bit_64(bit_boards[BLACK_PIECES], square) || !get_bit_64(bit_boards[TOTAL], square))
+            continue;
+        
+        // Add piece reach to total reach.
+        attack_board |= make_reach_board(square, is_black);
     }
     // print_binary(attack_board);
     return attack_board;
 }
 
+// ==============================================================================================
+
 // Check if the king is in check.
-bool Position::king_under_attack(bool color_sign)
+bool Position::king_under_attack(bool is_black)
 {
     // King is under attack if it intersects with the attack board of opposite player.
-    uint8_t pos = (color_sign) ? get_piece_position(B_KING) : get_piece_position(W_KING);
+    uint64_t king_board = (is_black) ? bit_boards[B_KING] : bit_boards[W_KING];
 
     // Check attack board for other position.
-    uint64_t attacked_positions = color_reach_board(!color_sign);
+    uint64_t attacked_positions = color_reach_board(!is_black);
 
     // Check if intersect on king position.
-    return get_bit_64(attacked_positions, pos);
+    return (king_board & attacked_positions) > 0;
 }
 
-void Position::set_piece(uint8_t new_piece, uint8_t pos)
-{
-    assert(pos <= 63);
-    assert(pos >= 0);
-    
-    // This will be the new 64 bits replacing the old rows.
-    uint64_t new_squares = 0b0;
-
-    // The amount to shift in the rows.
-    int shift_amount = 0;
-
-    // The old 64 bits.
-    uint64_t* old_squares = nullptr;
-
-    int index = pos / 16;
-    old_squares = board[index];
-    shift_amount = (15-(pos - shift_correction[index]))*4;
-
-    // Isolate the left side of the piece to be replaced.
-    uint64_t mask_left = *old_squares;
-    mask_left  >>= (shift_amount + 4);
-    mask_left <<= (shift_amount + 4);
-
-    // Make mask for the piece.
-    uint64_t mask_piece = static_cast<uint64_t>(new_piece) << shift_amount;
-    // Isolate right side.
-    uint64_t mask_right = *old_squares;
-    mask_right <<= (64-shift_amount);
-    mask_right >>= (64-shift_amount);
-
-    if(shift_amount == 0 || shift_amount == 60)
-        mask_right = 0ul;
-
-    // Make new 64 bits representing the two rows.
-    new_squares |= mask_left;
-    new_squares |= mask_piece;
-    new_squares |= mask_right; 
-
-    // Replace.
-    *old_squares = new_squares;
-}
+// ==============================================================================================
 
 void Position::do_move(Move* move)
 {
-    assert(move->start_location >= 0 && move->start_location <= 63);
-    assert(move->end_location >= 0 && move->end_location <= 63);
-    move_piece(move);
-    handle_en_passant_capture(move);
+    if(!move->move_takes_an_passant)
+        move_piece(move);
+    else
+        handle_en_passant_capture(move);
     reset_en_passant_status();
     handle_special_cases(move);
 }
 
+// ==============================================================================================
+
 void Position::move_piece(Move* move)
 {
-    this->set_piece(this->get_piece(move->start_location), move->end_location);
-    this->set_piece(EMPTY, move->start_location);
+    // Double check. Should be in bounds, but this way we can catch bugs correlating to 
+    // memory corruption, for example.
+    uint8_t start_square = move->start_location;
+    uint8_t end_square = move->end_location;
+    assert(square_in_bounds(start_square) && square_in_bounds(end_square));
+    
+    // The piece we are moving.
+    uint8_t moved_piece = move->moving_piece;
+
+    // Toggle bit in piece board.
+    toggle_bit_on(bit_boards[moved_piece], end_square);
+    toggle_bit_off(bit_boards[moved_piece], start_square);
+
+    // Toggle bit in total board.
+    toggle_bit_on(bit_boards[TOTAL], end_square);
+    toggle_bit_off(bit_boards[TOTAL], start_square);
+
+    // If necessary, toggle bit in color board.
+    if(moved_piece > 5)
+    {
+        toggle_bit_on(bit_boards[BLACK_PIECES], end_square);
+        toggle_bit_off(bit_boards[BLACK_PIECES], start_square);
+    }
+
+    // Check if there was a piece captured.
+    uint8_t captured_piece = move->captured_piece;
+    if(captured_piece < 12)
+    {
+        toggle_bit_off(bit_boards[captured_piece], end_square);
+
+        // Now check if we need to update color board because of capture.
+        if(captured_piece > 5)
+        {
+            toggle_bit_off(bit_boards[BLACK_PIECES], end_square);
+        }
+    }
 }
 
-// TODO: fix crash.
+// ==============================================================================================
+
+// Process en passant capture seperately.
 void Position::handle_en_passant_capture(Move* move)
 {
     // Check if move was an en passant capture.
     if (move->move_takes_an_passant)
     {
-        uint8_t taking_pawn_color = get_piece(move->end_location);
+        uint8_t start_location = move->start_location;
+        uint8_t end_location = move->end_location;
+        bool taking_pawn_black = move->moving_piece > 5;
 
-        if (taking_pawn_color == B_PAWN && move->end_location >= 8)
+        // Move pawn.
+        toggle_bit_off(bit_boards[W_PAWN + 6*taking_pawn_black], start_location);
+        // Pawn is captured. Toggle bits off for taken piece.
+        toggle_bit_off(bit_boards[W_PAWN + 6*taking_pawn_black], ((end_location + 8) - 16*taking_pawn_black));
+        // Total board taken piece.
+        toggle_bit_off(bit_boards[TOTAL], ((end_location + 8) - 16*taking_pawn_black));
+        // Total board new position.
+        toggle_bit_on(bit_boards[TOTAL], end_location);
+        // Update color board.
+        if(taking_pawn_black)
         {
-            // Black pawn captured en passant (from row 3 to row 2).
-            set_piece(EMPTY, move->end_location - 8);
+            toggle_bit_on(bit_boards[BLACK_PIECES], end_location);
+            toggle_bit_off(bit_boards[BLACK_PIECES], start_location);
         }
-        else if (taking_pawn_color == W_PAWN && move->end_location < 56)
+        else
         {
-            // White pawn captured en passant (from row 4 to row 5).
-            set_piece(EMPTY, move->end_location + 8);
+            toggle_bit_off(bit_boards[BLACK_PIECES], end_location + 8);
         }
     }
 }
 
+// ==============================================================================================
+
+// After a move is done, we need to reset the en passant status to default.
+// After the move is done, we check to see if en passant is possible and update accordingly.
 void Position::reset_en_passant_status()
 {
     // Reset an passant status.
     en_passant = 0b11111111;
 }
 
+// ==============================================================================================
+
+// Check if we need to handle castling or update en passant rights.
 void Position::handle_special_cases(Move* move)
 {
     // Check if move is a special case.
@@ -296,8 +245,13 @@ void Position::handle_special_cases(Move* move)
     }
 }
 
+// ==============================================================================================
+
+// Handle castling move.
 void Position::handle_castling(Move* move)
 {
+    bool is_black = move->moving_piece > 5;
+
     // Check which rook to move.
     uint8_t rook_start, rook_end;
     switch(move->special_cases)
@@ -321,93 +275,111 @@ void Position::handle_castling(Move* move)
         default:
             return;
     }
-    this->set_piece(this->get_piece(rook_start), rook_end);
-    this->set_piece(EMPTY, rook_start);
+    // Move rook and update bitboards.
+    toggle_bit_off(bit_boards[W_ROOK + 6*is_black], rook_start);
+    toggle_bit_on(bit_boards[W_ROOK + 6*is_black], rook_end);
+    if(is_black)
+    {
+        toggle_bit_off(bit_boards[BLACK_PIECES], rook_start);
+        toggle_bit_off(bit_boards[BLACK_PIECES], rook_end);
+    }
+    toggle_bit_off(bit_boards[TOTAL], rook_start);
+    toggle_bit_off(bit_boards[TOTAL], rook_end);
 }
 
+// ==============================================================================================
+
+// Check en passant possibility and update rights.
 void Position::check_en_passant_possibility(Move* move)
 {
     // Move is a pawn 2 forward, check if an passant is possible.
     uint8_t piece_on_left = (move->end_location % 8 > 0) ? get_piece(move->end_location - 1) : EMPTY;
     uint8_t piece_on_right = (move->end_location % 8 < 7) ? get_piece(move->end_location + 1) : EMPTY;
-    uint8_t color_sign = get_color(get_piece(move->end_location));
+    bool is_black = move->moving_piece > 5;
 
-    if((piece_on_left == W_PAWN || piece_on_left == B_PAWN) && color_sign != get_color(piece_on_left))
+    // Check if there is an enemy pawn next to the moved pawn.
+    if(piece_on_left - is_black*6 == W_PAWN && is_black != (piece_on_left > 5))
     {
         // An passant is possible for pawn on -1.
         this->en_passant = 0b10000000;
         this->en_passant += (move->end_location % 8);
-        if(color_sign)
+        if(is_black)
             en_passant |= 0b01000000;
     }
-    else if((piece_on_right == W_PAWN || piece_on_right == B_PAWN) && color_sign != get_color(piece_on_right))
+    else if(piece_on_right - is_black * 6 == W_PAWN && is_black != (piece_on_left > 5))
     {
         // An passant is possible for pawn on +1.
         this->en_passant = 0b00000000;
         this->en_passant += (move->end_location % 8);
-        if(color_sign)
+        if(is_black)
             en_passant |= 0b01000000;
     }
 }
 
-std::vector<Move> Position::determine_moves(bool color_sign)
+// ==============================================================================================
+
+// Generate all possible moves for a color and return them in a vector.
+std::vector<Move> Position::determine_moves(bool is_black)
 {
     std::vector<Move> possible_moves;
 
     // Loop through board to find player's pieces.
-    for (int y = 0; y < 8; y++)
+    for (uint8_t square = 0; square < 64; square++)
     {
-        for (int x = 0; x < 8; x++)
-        {
-            int pos = make_pos(x, y);
-            uint8_t piece_type = this->get_piece(pos);
+        // get piece type.
+        uint8_t piece_type = get_piece(square);
 
-            // Empty square or wrong color.
-            if (piece_type == 0 || get_color(piece_type) != color_sign)
-                continue;
+        // Empty square or wrong color.
+        if (piece_type == EMPTY || is_black != (piece_type > 5))
+            continue;
 
-            uint64_t move_squares = this->make_move_board(x, y);
-            uint64_t reach_squares = this->make_reach_board(x, y);
+        uint64_t move_squares = make_reach_board(square, is_black);
 
-            // Generate moves for the piece.
-            generate_piece_moves(pos, piece_type, move_squares, reach_squares, color_sign, possible_moves);
-        }
+        // Generate moves for the piece.
+        generate_piece_moves(square, piece_type, move_squares, is_black, possible_moves);
     }
 
     // Check castling rights.
-    if(!king_under_attack(color_sign))
-        generate_castling_moves(color_sign, possible_moves);
+    if(!king_under_attack(is_black))
+        generate_castling_moves(is_black, possible_moves);
 
     // Check en passant.
-    generate_en_passant_move(color_sign, possible_moves);
+    generate_en_passant_move(is_black, possible_moves);
 
+    // Return the found moves.
     return possible_moves;
 }
 
-void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, uint64_t reach_squares, bool color_sign, std::vector<Move>& possible_moves)
+void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, std::vector<Move>& possible_moves)
 {
     for (int i = 0; i < 64; i++)
     {
         uint8_t piece_at_square = this->get_piece(i);
         bool can_move = get_bit_64(move_squares, i);
-        bool can_attack = (piece_at_square != 0) && (color_sign != get_color(piece_at_square)) && get_bit_64(reach_squares, i);
+        bool can_attack = (piece_at_square != EMPTY) && (is_black != (piece_at_square > 5));
 
         if (can_move || can_attack)
         {
             Move move(pos, i);
+            
+            // Insert move data.
+            if(can_attack)
+                move.captured_piece = piece_at_square;
+            move.moving_piece = piece_type;
 
             // Simulate the move.
             Position* copy = new Position(*this);
             copy->do_move(&move);
 
             // Check if king is not under attack after the move.
-            if (!copy->king_under_attack(color_sign))
+            if (!copy->king_under_attack(is_black))
             {
                 // Handle special case for pawn two-square move.
-                if ((piece_type == B_PAWN || piece_type == W_PAWN) && (i - pos) > 8)
+                if ((piece_type == B_PAWN && (i - pos) == 16 || piece_type == W_PAWN && (pos - i) == 16))
                 {
                     move.special_cases = 5;
                 }
+                // Insert into possible moves vector.
                 if(move.move_bounds_valid())
                     possible_moves.push_back(move);
             }
@@ -417,51 +389,56 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
     }
 }
 
+// ==============================================================================================
+
 // TODO: check if castling is not under check.
-void Position::generate_castling_moves(bool color_sign, std::vector<Move>& possible_moves)
+// Generate all possible castling moves.
+void Position::generate_castling_moves(bool is_black, std::vector<Move>& possible_moves)
 {
-    if (color_sign && get_bit(casling_rights, 6))
+    if (is_black && get_bit(casling_rights, 6))
     {
         // Black kingside castling.
-        if (get_piece(5) == 0 && get_piece(6) == 0)
+        if (get_piece(5) == EMPTY && get_piece(6) == EMPTY)
         {
             Move move(4, 6);
+            move.moving_piece = B_ROOK;
             move.special_cases = 3;
             if(move.move_bounds_valid())
                 possible_moves.push_back(move);
         }
     }
-
-    if (color_sign && get_bit(casling_rights, 7))
-    {
-        // Black queenside castling.
-        if (get_piece(1) == 0 && get_piece(2) == 0 && get_piece(3) == 0)
-        {
-            Move move(4, 2);
-            move.special_cases = 4;
-            if(move.move_bounds_valid())
-                possible_moves.push_back(move);
-        }
-    }
-
-    if (!color_sign && get_bit(casling_rights, 4))
+    else if (!is_black && get_bit(casling_rights, 4))
     {
         // White kingside castling.
-        if (get_piece(61) == 0 && get_piece(62) == 0)
+        if (get_piece(61) == EMPTY && get_piece(62) == EMPTY)
         {
             Move move(60, 62);
+            move.moving_piece = W_ROOK;
             move.special_cases = 1;
             if(move.move_bounds_valid())
                 possible_moves.push_back(move);
         }
     }
 
-    if (!color_sign && get_bit(casling_rights, 5))
+    if (is_black && get_bit(casling_rights, 7))
+    {
+        // Black queenside castling.
+        if (get_piece(1) == EMPTY && get_piece(2) == EMPTY && get_piece(3) == EMPTY)
+        {
+            Move move(4, 2);
+            move.moving_piece = B_ROOK;
+            move.special_cases = 4;
+            if(move.move_bounds_valid())
+                possible_moves.push_back(move);
+        }
+    }
+    else if (!is_black && get_bit(casling_rights, 5))
     {
         // White queenside castling.
-        if (get_piece(59) == 0 && get_piece(58) == 0 && get_piece(57) == 0)
+        if (get_piece(59) == EMPTY && get_piece(58) == EMPTY && get_piece(57) == EMPTY)
         {
             Move move(60, 58);
+            move.moving_piece = W_ROOK;
             move.special_cases = 2;
             if(move.move_bounds_valid())
                 possible_moves.push_back(move);
@@ -469,17 +446,20 @@ void Position::generate_castling_moves(bool color_sign, std::vector<Move>& possi
     }
 }
 
-// TODO: check if not in check afterwards.
-void Position::generate_en_passant_move(bool color_sign, std::vector<Move>& possible_moves)
+// ==============================================================================================
+
+// TODO: check if not in check afterwards. also double check for bugs.
+// Generate en passant moves.
+void Position::generate_en_passant_move(bool is_black, std::vector<Move>& possible_moves)
 {
     if (en_passant != 0b11111111)
     {
         uint8_t to = (en_passant & 0b00111111);
         uint8_t from = to + ((en_passant & 0b10000000) ? -1 : +1);
-        uint8_t row = color_sign ? 3 : 4;
+        uint8_t row = is_black ? 3 : 4;
 
-        uint8_t end_square = make_pos(to, row - 1);
-        uint8_t start_square = make_pos(from, row);
+        uint8_t end_square = to + (row-1) * 8;
+        uint8_t start_square = from + row * 8;
 
         Move move(start_square, end_square);
         move.move_takes_an_passant = true;
@@ -488,32 +468,52 @@ void Position::generate_en_passant_move(bool color_sign, std::vector<Move>& poss
     }
 }
 
+// ==============================================================================================
+
+// Function to check if the bounds of a move are valid.
 bool Move::move_bounds_valid()
 {
-    return  (this->start_location >= 0 && this->start_location <= 63)
-            && (this->end_location >= 0 && this->end_location <= 63);
+    return  square_in_bounds(start_location) && square_in_bounds(end_location);
 }
+
+// ==============================================================================================
 
 // Get the piece on position x, y.
 uint8_t Position::get_piece(uint8_t pos) const
-{
-    // Rightshift the corresponding 64 bits to get the 4 bits of the position.
-    uint8_t piece;
-
-    // This is actually faster than using the array.
-    if (pos < 16)
-        piece = this->first_16 >> (15 - pos)*4;
-    else if (pos < 32)
-        piece = this->second_16 >> (15 - (pos - 16))*4;
-    else if (pos < 48)
-        piece = this->third_16 >> (15 - (pos - 32))*4;
-    else
-        piece = this->fourth_16 >> (15 - (pos - 48))*4;
-
-    // Take only the right 4 bits.
-    return (piece & 0b00001111);
+{   
+    if(!get_bit_64(bit_boards[TOTAL], pos))
+        return EMPTY;
+    else if (get_bit_64(bit_boards[B_PAWN], pos))
+        return B_PAWN;      // Black pawn
+    else if (get_bit_64(bit_boards[W_PAWN], pos))
+        return W_PAWN;      // White pawn
+    else if (get_bit_64(bit_boards[B_KNIGHT], pos))
+        return B_KNIGHT;    // Black knight
+    else if (get_bit_64(bit_boards[W_KNIGHT], pos))
+        return W_KNIGHT;    // White knight
+    else if (get_bit_64(bit_boards[B_BISHOP], pos))
+        return B_BISHOP;    // Black bishop
+    else if (get_bit_64(bit_boards[W_BISHOP], pos))
+        return W_BISHOP;    // White bishop
+    else if (get_bit_64(bit_boards[B_ROOK], pos))
+        return B_ROOK;      // Black rook
+    else if (get_bit_64(bit_boards[W_ROOK], pos))
+        return W_ROOK;      // White rook
+    else if (get_bit_64(bit_boards[B_QUEEN], pos))
+        return B_QUEEN;     // Black queen
+    else if (get_bit_64(bit_boards[W_QUEEN], pos))
+        return W_QUEEN;     // White queen
+    else if (get_bit_64(bit_boards[B_KING], pos))
+        return B_KING;      // Black king
+    else if (get_bit_64(bit_boards[W_KING], pos))
+        return W_KING;      // White king
+     
+    return INVALID;
 }
 
+// ==============================================================================================
+
+// Check if a position is in check after this move is done.
 bool Move::is_check(Position* position) const
 {
     Position* copy = new Position(*position);
@@ -521,22 +521,29 @@ bool Move::is_check(Position* position) const
     if(copy_move.move_bounds_valid())
         copy->do_move(&copy_move);
 
-    bool is_check = copy->king_under_attack(!get_color(position->get_piece(this->start_location)));
+    bool is_check = copy->king_under_attack( !(moving_piece > 5) );
 
     delete copy;
 
     return is_check;
 }
 
+// ==============================================================================================
+
+// Check if move is a capture.
 bool Move::is_capture(Position* position) const
 {
-    uint8_t start_square = position->get_piece(this->start_location);
-    uint8_t capture_square = position->get_piece(this->end_location);
-    return (capture_square != 0 && get_color(start_square) != get_color(end_location));
+    // We need to check that the color of the start square is different than the end square.
+    // Secondly, we need to check that there is a piece on the target square.
+    // Otherwise, black piece to empty square would be seen as a capture.
+    return (get_bit_64(position->bit_boards[BLACK_PIECES], start_location) != get_bit_64(position->bit_boards[BLACK_PIECES], end_location)) 
+        && get_bit_64(position->bit_boards[TOTAL], end_location);
 }
 
+// ==============================================================================================
+
+// Get capture value of a move.
 float Move::capture_value(Position* position) const
 {
-    uint8_t capture_square = position->get_piece(this->end_location);
-    return get_piece_value(capture_square);
+    return get_piece_value(position->get_piece(this->end_location));
 }

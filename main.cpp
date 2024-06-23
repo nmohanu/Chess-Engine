@@ -210,13 +210,13 @@ int main()
             mouse_position = sf::Mouse::getPosition(window);
             clicked_square.first = (mouse_position.x - offset.x) / (16 * SCALE_FACTOR);
             clicked_square.second = (mouse_position.y - offset.y) / (16 * SCALE_FACTOR);
+            int square = clicked_square.first + clicked_square.second*8;
 
             // Check if user is moving a piece.
             if(last_clicked_square != clicked_square)
             {
-                selected_piece = board->position->get_piece(make_pos(clicked_square.first, clicked_square.second));
+                selected_piece = board->position->get_piece(square);
 
-                move_board = board->position->make_move_board(clicked_square.first, clicked_square.second);
                 reach_board = board->position->make_reach_board(clicked_square.first, clicked_square.second);
                 if(selected_piece == 0)
                 {
@@ -226,7 +226,7 @@ int main()
                 
                 for (Move move : possible_moves)
                 {
-                    if(move.start_location == make_pos(last_clicked_square.first, last_clicked_square.second) && move.end_location == make_pos(clicked_square.first, clicked_square.second))
+                    if(move.start_location == square && move.end_location == square)
                     {
                         board->position->do_move(&move);
                         is_white_turn = !is_white_turn;
@@ -337,7 +337,7 @@ int main()
                 }
 
                 uint8_t piece_at_pos = board->position->get_piece(pos);
-                if((get_bit_64(move_board, pos) || get_bit_64(reach_board, pos) && get_color(piece_at_pos) == is_white_turn && piece_at_pos != 0) && get_color(selected_piece) != is_white_turn)
+                if((get_bit_64(move_board, pos) || get_bit_64(reach_board, pos) && piece_at_pos > 5 == is_white_turn && piece_at_pos != 0) && piece_at_pos > 5 != is_white_turn)
                 {
                     selection_square.setPosition(sf::Vector2f(print_position));
                     window.draw(selection_square);

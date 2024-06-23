@@ -8,7 +8,6 @@ Engine::Engine()
 void Engine::do_perft_test(int depth)
 {
     Position position;
-    position.initialize();
     clock_t start = clock();
     uint64_t nodes = perft_test(&position, depth, false);
     clock_t end = clock();
@@ -225,12 +224,6 @@ void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
             move.priority_group = 3;
         }
 
-        // Capture value for sorting capture moves.
-        if (move.priority_group == 2) 
-        {
-            move.capture_val = move.capture_value(position);
-        }
-
         delete new_position;
     }
 
@@ -253,7 +246,7 @@ float Engine::evaluate_piece_sum(Position* position, uint8_t color_sign)
     {
         uint8_t piece = position->get_piece(i);
         
-        if(piece == 0 || get_color(piece) != color_sign)
+        if(piece == EMPTY || piece > 5 != color_sign)
             continue;
 
         points += get_piece_value(piece);
@@ -284,7 +277,7 @@ float Engine::evaluate_square_bonus(Position* position, uint8_t color_sign)
     for(int i = 0; i < 64; i++)
     {
         uint8_t piece = position->get_piece(i);
-        if(color_sign != get_color(piece) || piece == 0)
+        if(color_sign != piece > 5 || piece == EMPTY)
             continue;
         else
         {
