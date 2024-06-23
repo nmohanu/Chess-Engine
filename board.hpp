@@ -123,6 +123,10 @@ struct Move
 
     bool move_takes_an_passant;
 
+    int priority_group = 5;
+
+    int capture_val = -1;
+
     float evaluation;
 };
 

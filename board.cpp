@@ -447,7 +447,8 @@ void Position::generate_castling_moves(bool color_sign, std::vector<Move>& possi
         {
             Move move(4, 6);
             move.special_cases = 3;
-            possible_moves.push_back(move);
+            if(move.move_bounds_valid())
+                possible_moves.push_back(move);
         }
     }
 
@@ -458,7 +459,8 @@ void Position::generate_castling_moves(bool color_sign, std::vector<Move>& possi
         {
             Move move(4, 2);
             move.special_cases = 4;
-            possible_moves.push_back(move);
+            if(move.move_bounds_valid())
+                possible_moves.push_back(move);
         }
     }
 
@@ -469,7 +471,8 @@ void Position::generate_castling_moves(bool color_sign, std::vector<Move>& possi
         {
             Move move(60, 62);
             move.special_cases = 1;
-            possible_moves.push_back(move);
+            if(move.move_bounds_valid())
+                possible_moves.push_back(move);
         }
     }
 
@@ -480,7 +483,8 @@ void Position::generate_castling_moves(bool color_sign, std::vector<Move>& possi
         {
             Move move(60, 58);
             move.special_cases = 2;
-            possible_moves.push_back(move);
+            if(move.move_bounds_valid())
+                possible_moves.push_back(move);
         }
     }
 }

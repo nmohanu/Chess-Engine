@@ -6,12 +6,17 @@
 #include <algorithm>
 #include <iostream>
 
+#ifndef ENGINE_HPP
+#define ENGINE_HPP
+
 class Engine 
 {
 public:
 
     // Call recursive functions to determine best move.
-    Move best_move(Position* position, bool color_sign, int depth);
+    void best_move(Position* position, bool color_sign, int depth,  Move& best_move);
+
+    bool time_up = false;
 
     Engine();
 
@@ -19,9 +24,7 @@ private:
 
     // Working but can be improved later:
 
-    float search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips);
-
-    Move find_best_move(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing);
+    float search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips, int depth_limit);
 
     float evaluate_piece_sum(Position* position, uint8_t color_sign);
 
@@ -77,5 +80,8 @@ private:
     TranspositionTable transposition_table;
 
     ZobristHash hasher;
+
+    int previous_score = 0;
 };
 
+#endif

@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <atomic>
 
 // 0000 empty.
 
@@ -63,6 +64,10 @@
 
 // No entry found.
 #define no_hash_entry 999999999
+
+// Whether there is a search going on or not.
+static std::atomic<bool> engine_is_searching(false);
+static std::atomic<bool> move_found(false);
 
 // Constants.
 const float ROOK_VALUE = 5.f;

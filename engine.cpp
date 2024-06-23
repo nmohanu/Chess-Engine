@@ -5,78 +5,111 @@ Engine::Engine()
     hasher.init_zobrist_keys();
 }
 
-Move Engine::best_move(Position* position, bool color_sign, int depth)
+// Function to return the best found move.
+void Engine::best_move(Position* position, bool color_sign, int depth, Move& best_move)
 {
+    // For analysis.
     int count = 0;
-    int alpha = INT_MIN;
-    int beta = INT_MAX;
-    float score = 0.f;
     int zobrist_skips = 0;
-
     clock_t timer = clock();
+
+    // Initialize
+    int alpha = -100;
+    int beta = 100;
+    float score = 0.f;
     
-    Move best_move;
+    Move best_found;
 
-    score = search(depth, alpha, beta, count, position, best_move, true, !color_sign, zobrist_skips);
+    // Find best move.
+    score = search(depth, alpha, beta, count, position, best_found, true, !color_sign, zobrist_skips, 0);
 
+    // Chech if engine was stopped due to time.
+    if(score == -999999)
+    {
+        return;
+    }
+
+    previous_score = score;
+
+    // Analysis.
     timer = clock() - timer;
     float elapsed_seconds = static_cast<float>(timer) / CLOCKS_PER_SEC;
     
+    // Output results.
     std::cout << "Positions evaluated: " << count << "\n";
     std::cout << "Score found was: " << score << "\n";
     std::cout << "Average positions per second: " << count / elapsed_seconds << '\n';
     std::cout << "Time taken: " << elapsed_seconds << "\n";
-    std::cout << "Nodes skipped thanks to mr Zobrist: " << zobrist_skips << "\n";
-    return best_move;
+    std::cout << "Nodes skipped thanks to mr. Zobrist: " << zobrist_skips << "\n";
+
+    // Check if a valid move was found. 64 is the signal that none was found.
+    assert(best_move.start_location != 64);
+    best_move = Move(best_found);
+    return;
 }
 
-float Engine::search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips)
+float Engine::search(int current_depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips, int depth_limit)
 {
-    position_count++;
-
+    if(time_up)
+        return -999999;
+    // Make hash entries of position.
     int hashf = hashfALPHA;
-
     uint64_t key = hasher.calculate_zobrist_key(position, !maximizing);
+    int entry_key_value = transposition_table.read_hash_entry(alpha, beta, current_depth, key);
 
-    int entry_key_value = transposition_table.read_hash_entry(alpha, beta, depth, key);
     // Read hash entry.
-    if(entry_key_value != no_hash_entry)
+    if(entry_key_value != no_hash_entry && !top_level)
     {
+        // Position wes already evaluated in a different order.
         zobrist_skips++;
         return entry_key_value;
     }
 
-    if(depth == 0)
+    // Count unique positions visited.
+    position_count++;
+
+    // End of depth, evaluate position.
+    if(current_depth <= depth_limit)
     {
         int val = evaluate_position(position);
-        transposition_table.insert_hash(depth, val, hashfEXACT, key);
+        transposition_table.insert_hash(current_depth, val, hashfEXACT, key);
         return val;
     }
 
+    // Determine possible moves.
     std::vector<Move> possible_moves = position->determine_moves(!maximizing);
+
+    // No moves available means current player loses.
     if(possible_moves.empty())
-        return maximizing ? -1000 : 1000;
+        return maximizing ? -100 : 100;
 
     sort_move_priority(possible_moves, position);
 
-    float eval = maximizing ? -1000 : 1000;
+    float eval = maximizing ? -100 : 100;
 
-    Move local_best_move;
+    Move local_best_move = possible_moves.front();
+
+    // bool first_node = true;
     
     for(Move& move : possible_moves)
     {
         // Make copy of the board.
         Position* new_position = new Position(*position);
         new_position->do_move(&move);
-
-        float score =  search(depth-1, alpha, beta, position_count, new_position, best_move, false, !maximizing, zobrist_skips);
-
+        float score;
+        score = search(current_depth - 1, alpha, beta, position_count, new_position, best_move, false, !maximizing, zobrist_skips, depth_limit);
+        
+        if(score == -999999)
+            return -999999;
+        // Undo.
         delete new_position;
 
+        // Evaluate found score and edit alpha, beta, and best move accordingly.
         if (maximizing)
         {
-            if (score > eval)
+            if (score >= eval)
             {
+                
                 eval = score;
                 if (eval > alpha)
                 {
@@ -87,14 +120,15 @@ float Engine::search(int depth, int alpha, int beta, int& position_count, Positi
             }
             if (eval >= beta)
             {
-                transposition_table.insert_hash(depth, eval, hashfBETA, key);
+                transposition_table.insert_hash(current_depth, eval, hashfBETA, key);
                 break;
             }
         }
         else
         {
-            if (score < eval)
+            if (score <= eval)
             {
+                
                 eval = score;
                 if (eval < beta)
                 {
@@ -105,7 +139,7 @@ float Engine::search(int depth, int alpha, int beta, int& position_count, Positi
             }
             if (eval <= alpha)
             {
-                transposition_table.insert_hash(depth, eval, hashfALPHA, key);
+                transposition_table.insert_hash(current_depth, eval, hashfALPHA, key);
                 break;
             }
         }
@@ -114,7 +148,7 @@ float Engine::search(int depth, int alpha, int beta, int& position_count, Positi
     if(top_level)
         best_move = local_best_move;
 
-    transposition_table.insert_hash(depth, eval, hashf, key);
+    transposition_table.insert_hash(current_depth, eval, hashf, key);
     return eval;
 }
 
@@ -125,19 +159,47 @@ void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
         // Make copy of the board.
         Position* new_position = new Position(*position);
 
-        // do move.
+        // Apply the move to the copied position.
         new_position->do_move(&move);
 
-        move.evaluation = evaluate_position(new_position);
+        // Evaluate the position after the move.
+        
+        
+        // Check if the move gives check.
+        bool gives_check = move.is_check(new_position);
+        
+        // Set priority groups based on properties.
+        if (move.is_capture(position)) 
+        {
+            move.priority_group = 1;
+        } else if (gives_check) 
+        {
+            move.priority_group = 2;
+        } else 
+        {
+            move.priority_group = 3;
+        }
+
+        // Capture value for sorting capture moves.
+        if (move.priority_group == 2) 
+        {
+            move.capture_val = move.capture_value(position);
+        }
 
         delete new_position;
     }
 
-    std::sort(moves.begin(), moves.end(), [](const Move& a, const Move& b) 
-    {
-        return a.evaluation < b.evaluation;
+    // Sort vector according to priority groups.
+    std::sort(moves.begin(), moves.end(), [](const Move& a, const Move& b) {
+        // Sort by priority_group first.
+        if (a.priority_group != b.priority_group) {
+            return a.priority_group < b.priority_group;
+        }
+
+        return a.evaluation > b.evaluation; 
     });
 }
+
 
 float Engine::evaluate_piece_sum(Position* position, uint8_t color_sign)
 {
