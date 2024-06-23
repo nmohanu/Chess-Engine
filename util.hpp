@@ -76,6 +76,8 @@ const float KNIGHT_VALUE = 3.f;
 const float BISHOP_VALUE = 3.f;
 const float PAWN_VALUE = 1.f;
 
+const int shift_correction[4] = {0, 16, 32, 48};
+
 const float PAWN_BONUS[64] = 
 {
     0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f,

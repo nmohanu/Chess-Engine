@@ -24,7 +24,13 @@ void Position::initialize()
     this->fourth_16 = FOURTH_16_SQUARES;
 }
 
-Position::Position() {}
+Position::Position() 
+{
+    board[0] = &first_16;
+    board[1] = &second_16;
+    board[2] = &third_16;
+    board[3] = &fourth_16;
+}
 
 Position::Position(const Position& other) 
 {
@@ -35,6 +41,10 @@ Position::Position(const Position& other)
     this->fourth_16 = other.fourth_16;
     this->casling_rights = other.casling_rights;
     this->en_passant = other.en_passant;
+    board[0] = &first_16;
+    board[1] = &second_16;
+    board[2] = &third_16;
+    board[3] = &fourth_16;
 }
 
 Board::Board()
@@ -201,27 +211,9 @@ void Position::set_piece(uint8_t new_piece, uint8_t pos)
     // The old 64 bits.
     uint64_t* old_squares = nullptr;
 
-    // Determine the shift amount and old 64 bits.
-    if (pos < 16)
-    {
-        shift_amount = (15-pos)*4;
-        old_squares = &this->first_16;
-    }
-    else if (pos < 32)
-    {
-        shift_amount = (15 - (pos - 16))*4;
-        old_squares = &this->second_16;
-    }
-    else if (pos < 48)
-    {
-        shift_amount = (15 - (pos - 32))*4;
-        old_squares = &this->third_16;
-    }
-    else
-    {
-        shift_amount = (15 - (pos - 48))*4;
-        old_squares = &this->fourth_16;
-    }
+    int index = pos / 16;
+    old_squares = board[index];
+    shift_amount = (15-(pos - shift_correction[index]))*4;
 
     // Isolate the left side of the piece to be replaced.
     uint64_t mask_left = *old_squares;
@@ -235,10 +227,8 @@ void Position::set_piece(uint8_t new_piece, uint8_t pos)
     mask_right <<= (64-shift_amount);
     mask_right >>= (64-shift_amount);
 
-    if(shift_amount == 0)
+    if(shift_amount == 0 || shift_amount == 60)
         mask_right = 0ul;
-    if(shift_amount == 60)
-        mask_left = 0ul;
 
     // Make new 64 bits representing the two rows.
     new_squares |= mask_left;
@@ -251,10 +241,6 @@ void Position::set_piece(uint8_t new_piece, uint8_t pos)
 
 void Position::do_move(Move* move)
 {
-    if(!move->move_bounds_valid())
-    {
-        std::cout << "Invalid move found! \n"; 
-    }
     assert(move->start_location >= 0 && move->start_location <= 63);
     assert(move->end_location >= 0 && move->end_location <= 63);
     move_piece(move);
@@ -346,27 +332,21 @@ void Position::check_en_passant_possibility(Move* move)
     uint8_t piece_on_right = (move->end_location % 8 < 7) ? get_piece(move->end_location + 1) : EMPTY;
     uint8_t color_sign = get_color(get_piece(move->end_location));
 
-    if(piece_on_left == W_PAWN || piece_on_left == B_PAWN)
+    if((piece_on_left == W_PAWN || piece_on_left == B_PAWN) && color_sign != get_color(piece_on_left))
     {
-        if(color_sign != get_color(piece_on_left))
-        {
-            // An passant is possible for pawn on -1.
-            this->en_passant = 0b10000000;
-            this->en_passant += (move->end_location % 8);
-            if(color_sign)
-                en_passant |= 0b01000000;
-        }
+        // An passant is possible for pawn on -1.
+        this->en_passant = 0b10000000;
+        this->en_passant += (move->end_location % 8);
+        if(color_sign)
+            en_passant |= 0b01000000;
     }
-    else if(piece_on_right == W_PAWN || piece_on_right == B_PAWN)
+    else if((piece_on_right == W_PAWN || piece_on_right == B_PAWN) && color_sign != get_color(piece_on_right))
     {
-        if(color_sign != get_color(piece_on_right))
-        {
-            // An passant is possible for pawn on +1.
-            this->en_passant = 0b00000000;
-            this->en_passant += (move->end_location % 8);
-            if(color_sign)
-                en_passant |= 0b01000000;
-        }
+        // An passant is possible for pawn on +1.
+        this->en_passant = 0b00000000;
+        this->en_passant += (move->end_location % 8);
+        if(color_sign)
+            en_passant |= 0b01000000;
     }
 }
 
@@ -519,22 +499,16 @@ uint8_t Position::get_piece(uint8_t pos) const
 {
     // Rightshift the corresponding 64 bits to get the 4 bits of the position.
     uint8_t piece;
+
+    // This is actually faster than using the array.
     if (pos < 16)
-    {
         piece = this->first_16 >> (15 - pos)*4;
-    }
     else if (pos < 32)
-    {
         piece = this->second_16 >> (15 - (pos - 16))*4;
-    }
     else if (pos < 48)
-    {
         piece = this->third_16 >> (15 - (pos - 32))*4;
-    }
     else
-    {
         piece = this->fourth_16 >> (15 - (pos - 48))*4;
-    }
 
     // Take only the right 4 bits.
     return (piece & 0b00001111);
@@ -558,9 +532,7 @@ bool Move::is_capture(Position* position) const
 {
     uint8_t start_square = position->get_piece(this->start_location);
     uint8_t capture_square = position->get_piece(this->end_location);
-    if(capture_square != 0 && get_color(start_square) != get_color(end_location))
-        return true;
-    return false;
+    return (capture_square != 0 && get_color(start_square) != get_color(end_location));
 }
 
 float Move::capture_value(Position* position) const

@@ -32,6 +32,10 @@ int main()
 
     bool is_white_turn = true;
 
+    bool do_perft_test = true;
+
+    int perft_depth = 5;
+
     // We want to store the found move here.
     Move engine_move_choice;
     Move engine_move_final;
@@ -118,6 +122,14 @@ int main()
     selection_square.setTextureRect(sf::IntRect(224, 0, 16, 16));
     selection_square.setScale(SCALE_FACTOR, SCALE_FACTOR);
 
+    
+
+    if(do_perft_test)
+    {
+        engine.do_perft_test(perft_depth);
+        return 0;
+    }
+
     sf::RenderWindow window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Chess Engine");
 
     while(window.isOpen())
@@ -128,10 +140,10 @@ int main()
             if(event.type == sf::Event::Closed)
                 window.close();
         }
-
+        
         // ENGINE TURN ==================================================================================================================
 
-        if(!is_white_turn)
+        if(!is_white_turn && !do_perft_test)
         {
             // Engine timer starts. Because our engine can start searching.
             if(!engine_is_searching && engine.time_up)
@@ -234,8 +246,7 @@ int main()
             mouse_pressed = false;
         }
 
-        // std::cout << clicked_square.first << " " << clicked_square.second << '\n';
-        // std::cout << mouse_position.x << " " << mouse_position.y << '\n';
+        // Render ==================================================================================================================
 
         window.clear();
 

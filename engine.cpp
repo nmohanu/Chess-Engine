@@ -5,6 +5,43 @@ Engine::Engine()
     hasher.init_zobrist_keys();
 }
 
+void Engine::do_perft_test(int depth)
+{
+    Position position;
+    position.initialize();
+    clock_t start = clock();
+    uint64_t nodes = perft_test(&position, depth, false);
+    clock_t end = clock();
+    double time_cost = double(end - start) / CLOCKS_PER_SEC;
+    std::cout << "PERFT results: \nNodes evaluated: " << nodes << "\nTime cost: " << time_cost << '\n';
+    std::cout << "Nodes per second " << nodes / time_cost << '\n';
+}
+
+uint64_t Engine::perft_test(Position* position, int depth, bool color_sign)
+{
+    // Determine possible moves.
+    std::vector<Move> possible_moves = position->determine_moves(color_sign);
+    uint64_t nodes = 0;
+
+    // Base case.
+    if(depth == 1)
+        return possible_moves.size();
+
+    for(Move& move : possible_moves)
+    {
+        // Make copy of the board.
+        Position* new_position = new Position(*position);
+        // Do move.
+        new_position->do_move(&move);
+        // Recursive call.
+        nodes += perft_test(new_position, depth-1, !color_sign);
+        // Undo move.
+        delete new_position;
+    }
+    // Return result.
+    return nodes;
+}
+
 // Function to return the best found move.
 void Engine::best_move(Position* position, bool color_sign, int depth, Move& best_move)
 {
@@ -50,8 +87,12 @@ void Engine::best_move(Position* position, bool color_sign, int depth, Move& bes
 
 float Engine::search(int current_depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips, int depth_limit)
 {
+    // Initialize ==================================================================================================================
+
+    // Check if the time is up. If so, signal this to parent calls.
     if(time_up)
         return -999999;
+
     // Make hash entries of position.
     int hashf = hashfALPHA;
     uint64_t key = hasher.calculate_zobrist_key(position, !maximizing);
@@ -90,19 +131,23 @@ float Engine::search(int current_depth, int alpha, int beta, int& position_count
     Move local_best_move = possible_moves.front();
 
     // bool first_node = true;
+
+    // Actual search. ==================================================================================================================
     
     for(Move& move : possible_moves)
     {
         // Make copy of the board.
         Position* new_position = new Position(*position);
+        // Do move.
         new_position->do_move(&move);
+        // Evaluate.
         float score;
         score = search(current_depth - 1, alpha, beta, position_count, new_position, best_move, false, !maximizing, zobrist_skips, depth_limit);
-        
-        if(score == -999999)
-            return -999999;
         // Undo.
         delete new_position;
+        // Check if time is up.
+        if(score == -999999)
+            return -999999;
 
         // Evaluate found score and edit alpha, beta, and best move accordingly.
         if (maximizing)

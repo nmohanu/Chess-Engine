@@ -69,6 +69,8 @@ public:
     uint64_t third_16;
     uint64_t fourth_16;
 
+    uint64_t* board[4];
+
     // By default, castling rights are true. We only use the rightmost 4 bits.
     // From left to right:
     // white kingside, white queenside, black kingside, black queenside.

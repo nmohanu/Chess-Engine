@@ -16,6 +16,10 @@ public:
     // Call recursive functions to determine best move.
     void best_move(Position* position, bool color_sign, int depth,  Move& best_move);
 
+    void do_perft_test(int depth);
+
+    uint64_t perft_test(Position* position, int depth, bool color_sign);
+
     bool time_up = false;
 
     Engine();
