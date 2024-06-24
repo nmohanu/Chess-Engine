@@ -458,10 +458,9 @@ bool Position::king_look_around(bool is_black)
     uint8_t king_position = find_bit_position(bit_boards[W_KING + 6*is_black]);
     uint64_t king_board = bit_boards[W_KING + 6*is_black];
 
-    // Check if a pawn is in range of king.
-    uint64_t pawn_check = get_pawn_move(king_position, is_black);
-    // make_reach_board(king_position, is_black, W_PAWN + 6*is_black);
-    if(boards_intersect(bit_boards[W_PAWN + !is_black * 6], pawn_check))
+    // Check bishop checks, and diagonal queen checks.
+    uint64_t bishop_check = get_bishop_move(king_position, is_black);
+    if(boards_intersect(bit_boards[W_BISHOP + !is_black * 6], bishop_check) || boards_intersect(bit_boards[W_QUEEN + !is_black * 6], bishop_check))
         return true;
     // Check rook checks. And horizontal queen checks.
     uint64_t rook_check = get_rook_move(king_position, is_black);
@@ -471,11 +470,12 @@ bool Position::king_look_around(bool is_black)
     uint64_t knight_check = get_knight_move(king_position, is_black);
     if(boards_intersect(bit_boards[W_KNIGHT + !is_black * 6], knight_check))
         return true;
-    // Check bishop checks, and diagonal queen checks.
-    uint64_t bishop_check = get_bishop_move(king_position, is_black);
-    if(boards_intersect(bit_boards[W_BISHOP + !is_black * 6], bishop_check) || boards_intersect(bit_boards[W_QUEEN + !is_black * 6], bishop_check))
+    // Check if a pawn is in range of king.
+    uint64_t pawn_check = get_pawn_move(king_position, is_black);
+    // make_reach_board(king_position, is_black, W_PAWN + 6*is_black);
+    if(boards_intersect(bit_boards[W_PAWN + !is_black * 6], pawn_check))
         return true;
-    
+    // Finally check king intersect.
     uint64_t king_check = get_king_move(king_position, is_black);
 
     return boards_intersect(bit_boards[W_KING + !is_black * 6], king_check);
