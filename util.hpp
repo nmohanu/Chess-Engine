@@ -164,3 +164,8 @@ float get_piece_value(uint8_t piece);
 
 // Check if square is on the board;
 bool square_in_bounds(uint8_t square);
+
+// Check if two bitboards intersect.
+bool boards_intersect(uint64_t one, uint64_t two);
+
+uint8_t find_bit_position(uint64_t num);

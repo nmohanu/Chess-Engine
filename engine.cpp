@@ -18,7 +18,7 @@ void Engine::do_perft_test(int depth)
     std::cout << "Depth: " << depth << '\n';
     std::cout << "PERFT results: \nNodes evaluated: " << nodes << "\nCaptures: " << captures << "\nChecks: " << checks << "\nCheckmates: " << check_mates <<
         "\nTime cost: " << time_cost << '\n';
-    std::cout << "Nodes per second " << nodes / time_cost << '\n';
+    std::cout << "Nodes per second " << (nodes / 1000) / time_cost << "Knps" << '\n';
     std::cout << "================================================================================ \n";
 }
 
@@ -27,12 +27,6 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
     // Determine possible moves.
     std::vector<Move> possible_moves = position->determine_moves(color_sign);
     uint64_t nodes = 0;
-
-    // if(possible_moves.empty())
-    // {
-    //     check_mates++;
-    //     return 1;
-    // }
 
     // Base case.
     if(depth == 0)

@@ -1,5 +1,8 @@
 #include "board.hpp"
 
+// ==============================================================================================
+
+// Board and position logic. 
 
 // ==============================================================================================
 
@@ -124,7 +127,7 @@ bool Position::king_under_attack(bool is_black, uint64_t enemy_reach)
     uint64_t king_board = (is_black) ? bit_boards[B_KING] : bit_boards[W_KING];
 
     // Check if intersect on king position.
-    return (king_board & enemy_reach) > 0;
+    return boards_intersect(king_board, enemy_reach);
 }
 
 // ==============================================================================================
@@ -417,32 +420,65 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
             move.captured_piece = piece_at_square;
         move.moving_piece = piece_type;
 
-        if (piece_type >= 12) {
-            throw std::out_of_range("move invalid");
-        }
-
         // Simulate the move.
         Position* copy = new Position(*this);
         assert(move.moving_piece < 12);
         copy->do_move(&move);
 
         // TODO: MAKE SURE THIS IS NOT NECESSARY EVERY TIME WE CHECK!!!. <=============================================<
-        enemy_reach = copy->color_reach_board(!is_black);
+        // enemy_reach = copy->color_reach_board(!is_black);
 
         // Check if king is not under attack after the move.
-        if (!copy->king_under_attack(is_black, enemy_reach))
+        if (copy->king_look_around(is_black))
         {
-            // Handle special case for pawn two-square move.
-            if ((piece_type == B_PAWN && (i - pos) == 16 || piece_type == W_PAWN && (pos - i) == 16))
-            {
-                move.special_cases = 5;
-            }
-            // Insert into possible moves vector.
-            possible_moves.push_back(move);
+            delete copy;
+            continue;
         }
+        // Handle special case for pawn two-square move.
+        else if ((piece_type == B_PAWN && (i - pos) == 16 || piece_type == W_PAWN && (pos - i) == 16))
+        {
+            move.special_cases = 5;
+        }
+        // Insert into possible moves vector.
+        possible_moves.push_back(move);
 
+        // Clean up.
         delete copy;
     }
+}
+
+// ==============================================================================================
+
+// Check if king is under check if we don't have an enemy reach board.
+bool Position::king_look_around(bool is_black)
+{   
+    uint8_t king_position = find_bit_position(bit_boards[W_KING + 6*is_black]);
+    uint64_t king_board = bit_boards[W_KING + 6*is_black];
+
+    // Check if a pawn is in range of king.
+    uint64_t pawn_check = get_pawn_move(king_position, is_black);
+    // make_reach_board(king_position, is_black, W_PAWN + 6*is_black);
+    if(boards_intersect(bit_boards[W_PAWN + !is_black * 6], pawn_check))
+        return true;
+
+    uint64_t rook_check = get_rook_move(king_position, is_black);
+    if(boards_intersect(bit_boards[W_ROOK + !is_black * 6], rook_check))
+        return true;
+    
+    uint64_t knight_check = get_knight_move(king_position, is_black);
+    if(boards_intersect(bit_boards[W_KNIGHT + !is_black * 6], knight_check))
+        return true;
+
+    uint64_t bishop_check = get_bishop_move(king_position, is_black);
+    if(boards_intersect(bit_boards[W_BISHOP + !is_black * 6], bishop_check))
+        return true;
+
+    if(boards_intersect(bit_boards[W_QUEEN + !is_black * 6], bishop_check) || boards_intersect(bit_boards[W_QUEEN + !is_black * 6], rook_check))
+        return true;
+    
+    uint64_t king_check = get_king_move(king_position, is_black);
+
+    return boards_intersect(bit_boards[W_KING + !is_black * 6], king_check);
 }
 
 // ==============================================================================================

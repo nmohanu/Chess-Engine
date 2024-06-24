@@ -72,3 +72,22 @@ bool square_in_bounds(uint8_t square)
 {   
     return square >= 0 && square < 64;   
 }
+
+bool boards_intersect(uint64_t one, uint64_t two)
+{
+    return (one & two) != 0;
+}
+
+uint8_t find_bit_position(uint64_t num)
+{
+    uint64_t mask = 1ULL << 63;
+    for(int i = 0; i < 64; i++)
+    {   
+        if((mask & num) != 0)
+        {
+            return i;
+        }
+        mask >>= 1;
+    }
+    return 64;
+}

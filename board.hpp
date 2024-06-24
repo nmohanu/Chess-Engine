@@ -30,20 +30,13 @@ struct Position
 
     // Check if king is under attack.
     bool king_under_attack(bool color_sign, uint64_t enemy_reach);
+    bool king_look_around(bool is_black);
 
     // Create attack board for specific piece.
     uint64_t make_reach_board(uint8_t square, bool is_black, uint8_t piece_type);
 
     // Create attack board for a player.
     uint64_t color_reach_board(bool color_sign);
-
-    // Functions to get the attack / defend reach of a piece.
-    uint64_t get_pawn_reach(uint8_t square, bool is_black);
-    uint64_t get_king_reach(uint8_t square, bool is_black);
-    uint64_t get_bishop_reach(uint8_t square, bool is_black);
-    uint64_t get_knight_reach(uint8_t square, bool is_black);
-    uint64_t get_rook_reach(uint8_t square, bool is_black);
-    uint64_t get_queen_reach(uint8_t square, bool is_black);
 
     // Functions for the pieces' moving logic.
     uint64_t get_pawn_move(uint8_t square, bool is_black);
