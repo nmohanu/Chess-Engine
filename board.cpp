@@ -450,6 +450,9 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
 // ==============================================================================================
 
 // Check if king is under check if we don't have an enemy reach board.
+// We do this here by simulating different piece moves from the kings position.
+// If, from the result, we find that the king can reach that piece type of the enemy player,
+// we know it's check.
 bool Position::king_look_around(bool is_black)
 {   
     uint8_t king_position = find_bit_position(bit_boards[W_KING + 6*is_black]);
@@ -460,20 +463,17 @@ bool Position::king_look_around(bool is_black)
     // make_reach_board(king_position, is_black, W_PAWN + 6*is_black);
     if(boards_intersect(bit_boards[W_PAWN + !is_black * 6], pawn_check))
         return true;
-
+    // Check rook checks. And horizontal queen checks.
     uint64_t rook_check = get_rook_move(king_position, is_black);
-    if(boards_intersect(bit_boards[W_ROOK + !is_black * 6], rook_check))
+    if(boards_intersect(bit_boards[W_ROOK + !is_black * 6], rook_check) || boards_intersect(bit_boards[W_QUEEN + !is_black * 6], rook_check))
         return true;
-    
+    // Check knight checks.
     uint64_t knight_check = get_knight_move(king_position, is_black);
     if(boards_intersect(bit_boards[W_KNIGHT + !is_black * 6], knight_check))
         return true;
-
+    // Check bishop checks, and diagonal queen checks.
     uint64_t bishop_check = get_bishop_move(king_position, is_black);
-    if(boards_intersect(bit_boards[W_BISHOP + !is_black * 6], bishop_check))
-        return true;
-
-    if(boards_intersect(bit_boards[W_QUEEN + !is_black * 6], bishop_check) || boards_intersect(bit_boards[W_QUEEN + !is_black * 6], rook_check))
+    if(boards_intersect(bit_boards[W_BISHOP + !is_black * 6], bishop_check) || boards_intersect(bit_boards[W_QUEEN + !is_black * 6], bishop_check))
         return true;
     
     uint64_t king_check = get_king_move(king_position, is_black);
@@ -486,7 +486,7 @@ bool Position::king_look_around(bool is_black)
 // Generate all possible castling moves. 
 void Position::generate_castling_moves(bool is_black, std::vector<Move>& possible_moves, uint64_t enemy_reach)
 {
-    if(king_under_attack(is_black, enemy_reach))
+    if(king_under_attack(is_black, enemy_reach) || casling_rights == 0)
         return;
     else if (is_black && get_bit(casling_rights, 6))
     {
@@ -599,11 +599,8 @@ void Position::generate_en_passant_move(bool is_black, std::vector<Move>& possib
         assert(move.moving_piece < 12);
         copy->do_move(&move);
 
-        // TODO: MAKE SURE THIS IS NOT NECESSARY EVERY TIME WE CHECK!!!. <=============================================<
-        uint64_t enemy_reach = copy->color_reach_board(!is_black);
-
         // Check if king is not under attack after the move.
-        if (copy->king_under_attack(is_black, enemy_reach))
+        if (copy->king_look_around(is_black))
         {
             delete copy;
             return;

@@ -42,7 +42,7 @@ int main()
     Move engine_move_choice;
     Move engine_move_final;
     
-    const float seconds_for_engine = 2;
+    const float seconds_for_engine = 6;
     int current_depth = 1;
 
     Engine engine;

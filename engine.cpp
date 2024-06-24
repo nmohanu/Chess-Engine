@@ -147,13 +147,9 @@ float Engine::search(int current_depth, int alpha, int beta, int& position_count
         // Make copy of the board.
         Position* new_position = new Position(*position);
         // Do move.
-        assert(square_in_bounds(move.start_location));
-        assert(square_in_bounds(move.end_location));
-        assert(move.moving_piece < 12);
         new_position->do_move(&move);
         // Evaluate.
-        float score;
-        score = search(current_depth - 1, alpha, beta, position_count, new_position, best_move, false, !maximizing, zobrist_skips, depth_limit);
+        float score = search(current_depth - 1, alpha, beta, position_count, new_position, best_move, false, !maximizing, zobrist_skips, depth_limit);
         // Undo.
         delete new_position;
         // Check if time is up.
