@@ -61,7 +61,7 @@ struct Position
     void handle_en_passant_capture(Move* move);
     void move_piece(Move* move);
     void generate_en_passant_move(bool is_black, std::vector<Move>& possible_moves);
-    void generate_castling_moves(bool is_black, std::vector<Move>& possible_moves);
+    void generate_castling_moves(bool is_black, std::vector<Move>& possible_moves, uint64_t enemy_reach);
     void generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, std::vector<Move>& possible_moves, uint64_t enemy_reach);
 
     // Represent the board as bits.

@@ -32,11 +32,11 @@ int main()
 
     bool is_white_turn = true;
 
-    bool do_perft_test = false;
+    bool do_perft_test = true;
 
     bool engine_turned_on = false;
 
-    int perft_depth = 4;
+    int perft_depth_limit = 6;
 
     // We want to store the found move here.
     Move engine_move_choice;
@@ -128,7 +128,8 @@ int main()
 
     if(do_perft_test)
     {
-        engine.do_perft_test(perft_depth);
+        for(int depth = 1; depth <= perft_depth_limit; depth++)
+            engine.do_perft_test(depth);
         return 0;
     }
 

@@ -35,7 +35,8 @@ uint64_t Position::get_pawn_move(uint8_t square, bool is_black)
             }
         }
         // Capture to the right
-        if (square_in_bounds(square - 7) && square % 8 != 7) {
+        if (square_in_bounds(square - 7) && square % 8 != 7) 
+        {
             uint8_t piece_right = get_piece(square - 7);
             if (piece_right != EMPTY && piece_right != INVALID && piece_right > 5 != is_black) 
             {
@@ -57,7 +58,7 @@ uint64_t Position::get_pawn_move(uint8_t square, bool is_black)
             }
         }
         // Capture to the left
-        if (square_in_bounds(square + 7) && square % 8 != 7) 
+        if (square_in_bounds(square + 7) && square % 8 != 0) 
         {
             uint8_t piece_left = get_piece(square + 7);
             if (piece_left != EMPTY && piece_left != INVALID && piece_left > 5 != is_black) 
@@ -66,7 +67,7 @@ uint64_t Position::get_pawn_move(uint8_t square, bool is_black)
             }
         }
         // Capture to the right
-        if (square_in_bounds(square + 9) && square % 8 != 0) 
+        if (square_in_bounds(square + 9) && square % 8 != 7) 
         {
             uint8_t piece_right = get_piece(square + 9);
             if (piece_right != EMPTY && piece_right != INVALID && piece_right > 5 != is_black) 

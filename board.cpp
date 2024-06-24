@@ -129,6 +129,7 @@ bool Position::king_under_attack(bool is_black, uint64_t enemy_reach)
 
 // ==============================================================================================
 
+// Execute a move.
 void Position::do_move(Move* move)
 {
     assert(move->moving_piece != INVALID);
@@ -141,7 +142,7 @@ void Position::do_move(Move* move)
     handle_special_cases(move);
 }
 
-// ==============================================================================================
+// ============================================================================================== 
 
 void Position::move_piece(Move* move)
 {
@@ -215,6 +216,7 @@ void Position::handle_en_passant_capture(Move* move)
     
     // Move pawn.
     toggle_bit_off(bit_boards[board_index], start_location);
+    toggle_bit_on(bit_boards[board_index], end_location);
     // Pawn is captured. Toggle bits off for taken piece.
     toggle_bit_off(bit_boards[board_index], captured_pawn_square);
     // Total board taken piece.
@@ -325,8 +327,8 @@ void Position::check_en_passant_possibility(Move* move)
     bool moving_piece_black = move->moving_piece > 5;
 
     // Check if there is an enemy pawn next to the moved pawn.
-    bool left_is_pawn = piece_on_left - moving_piece_black*6 == W_PAWN;
-    bool right_is_pawn = piece_on_right - moving_piece_black*6 == W_PAWN;
+    bool left_is_pawn = piece_on_left == W_PAWN || piece_on_left == B_PAWN;
+    bool right_is_pawn = piece_on_right == W_PAWN || piece_on_right == B_PAWN;
     bool left_is_black = piece_on_left > 5;
     bool right_is_black = piece_on_right > 5;
 
@@ -381,8 +383,7 @@ std::vector<Move> Position::determine_moves(bool is_black)
     }
 
     // Check castling rights.
-    if(!king_under_attack(is_black, enemy_reach))
-        generate_castling_moves(is_black, possible_moves);
+    generate_castling_moves(is_black, possible_moves, enemy_reach);
 
     // Check en passant.
     generate_en_passant_move(is_black, possible_moves);
@@ -446,14 +447,18 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
 
 // ==============================================================================================
 
-// TODO: check if castling is not under check.
-// Generate all possible castling moves.
-void Position::generate_castling_moves(bool is_black, std::vector<Move>& possible_moves)
+// Generate all possible castling moves. 
+void Position::generate_castling_moves(bool is_black, std::vector<Move>& possible_moves, uint64_t enemy_reach)
 {
-    if (is_black && get_bit(casling_rights, 6))
+    if(king_under_attack(is_black, enemy_reach))
+        return;
+    else if (is_black && get_bit(casling_rights, 6))
     {
+        uint64_t check_test = bit_boards[B_KING] >> 1;
+        uint64_t check_test2 = check_test >> 1;
         // Black kingside castling.
-        if (get_piece(5) == EMPTY && get_piece(6) == EMPTY)
+        if (get_piece(5) == EMPTY && get_piece(6) == EMPTY
+            && !boards_intersect(check_test, enemy_reach) && !boards_intersect(check_test2, enemy_reach))
         {
             Move move(4, 6);
             move.moving_piece = B_ROOK;
@@ -465,8 +470,11 @@ void Position::generate_castling_moves(bool is_black, std::vector<Move>& possibl
     }
     else if (!is_black && get_bit(casling_rights, 4))
     {
+        uint64_t check_test = bit_boards[W_KING] >> 1;
+        uint64_t check_test2 = check_test >> 1;
         // White kingside castling.
-        if (get_piece(61) == EMPTY && get_piece(62) == EMPTY)
+        if (get_piece(61) == EMPTY && get_piece(62) == EMPTY
+            && !boards_intersect(check_test, enemy_reach) && !boards_intersect(check_test2, enemy_reach))
         {
             Move move(60, 62);
             move.moving_piece = W_ROOK;
@@ -479,8 +487,11 @@ void Position::generate_castling_moves(bool is_black, std::vector<Move>& possibl
 
     if (is_black && get_bit(casling_rights, 7))
     {
+        uint64_t check_test = bit_boards[B_KING] << 1;
+        uint64_t check_test2 = check_test << 1;
         // Black queenside castling.
-        if (get_piece(1) == EMPTY && get_piece(2) == EMPTY && get_piece(3) == EMPTY)
+        if (get_piece(1) == EMPTY && get_piece(2) == EMPTY && get_piece(3) == EMPTY
+            && !boards_intersect(check_test, enemy_reach) && !boards_intersect(check_test2, enemy_reach))
         {
             Move move(4, 2);
             move.moving_piece = B_ROOK;
@@ -492,8 +503,11 @@ void Position::generate_castling_moves(bool is_black, std::vector<Move>& possibl
     }
     else if (!is_black && get_bit(casling_rights, 5))
     {
+        uint64_t check_test = bit_boards[W_KING] << 1;
+        uint64_t check_test2 = check_test << 1;
         // White queenside castling.
-        if (get_piece(59) == EMPTY && get_piece(58) == EMPTY && get_piece(57) == EMPTY)
+        if (get_piece(59) == EMPTY && get_piece(58) == EMPTY && get_piece(57) == EMPTY
+            && !boards_intersect(check_test, enemy_reach) && !boards_intersect(check_test2, enemy_reach))
         {
             Move move(60, 58);
             move.moving_piece = W_ROOK;
@@ -507,7 +521,6 @@ void Position::generate_castling_moves(bool is_black, std::vector<Move>& possibl
 
 // ==============================================================================================
 
-// TODO: check if not in check afterwards. also double check for bugs.
 // Generate en passant moves.
 void Position::generate_en_passant_move(bool is_black, std::vector<Move>& possible_moves)
 {
@@ -516,26 +529,27 @@ void Position::generate_en_passant_move(bool is_black, std::vector<Move>& possib
     {
         // last 6 bits are the file of the captured piece.
         uint8_t to = (en_passant & 0b00111111);
-        assert(!(to < 0 || to > 7));
+        // assert(!(to < 0 || to > 7));
         if(to < 0 || to > 7)
             return;
 
         // first bit tells us whether the capture is from the left or from the right.
         uint8_t from = to + ((en_passant & 0b10000000) ? -1 : +1);
-        assert(!(from < 0 || from > 7));
+        // assert(!(from < 0 || from > 7));
         if(from < 0 || from > 7)
             return;
 
         // Row is on which row the capturing piece is positioned.
-        uint8_t row = is_black ? 3 : 4;
+        uint8_t start_row = is_black ? 4 : 3;
+        uint8_t end_row = is_black ? 5 : 2;
 
-        // Calculate end square for moving piece.
-        uint8_t end_square = to + (row-1) * 8;
+        // Calculate start and end squares for the moving piece.
+        uint8_t start_square = from + start_row * 8;
+        uint8_t end_square = to + end_row * 8;
+
         assert(square_in_bounds(end_square));
         if(!square_in_bounds(end_square))
             return;
-        // Calculate starting square for moving piece.
-        uint8_t start_square = from + row * 8;
         assert(square_in_bounds(start_square));
         if(!square_in_bounds(start_square))
             return;
@@ -544,6 +558,20 @@ void Position::generate_en_passant_move(bool is_black, std::vector<Move>& possib
         Move move(start_square, end_square);
         move.moving_piece = W_PAWN + 6*is_black;
         move.move_takes_an_passant = true;
+        // Simulate the move.
+        Position* copy = new Position(*this);
+        assert(move.moving_piece < 12);
+        copy->do_move(&move);
+
+        // TODO: MAKE SURE THIS IS NOT NECESSARY EVERY TIME WE CHECK!!!. <=============================================<
+        uint64_t enemy_reach = copy->color_reach_board(!is_black);
+
+        // Check if king is not under attack after the move.
+        if (copy->king_under_attack(is_black, enemy_reach))
+        {
+            delete copy;
+            return;
+        }
         assert(move.moving_piece < 12);
         assert(move.moving_piece != INVALID);
         if(move.move_bounds_valid())

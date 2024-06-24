@@ -15,16 +15,11 @@ void Engine::do_perft_test(int depth)
     uint64_t nodes = perft_test(&position, depth, false, captures, checks, check_mates);
     clock_t end = clock();
     double time_cost = double(end - start) / CLOCKS_PER_SEC;
+    std::cout << "Depth: " << depth << '\n';
     std::cout << "PERFT results: \nNodes evaluated: " << nodes << "\nCaptures: " << captures << "\nChecks: " << checks << "\nCheckmates: " << check_mates <<
         "\nTime cost: " << time_cost << '\n';
     std::cout << "Nodes per second " << nodes / time_cost << '\n';
-
-    // std::cout << "Pieces moved: \n"
-    //       << "KINGS: white " << perft_king_w << ", black " << perft_king_b << '\n'
-    //       << "QUEENS: white " << perft_queen_w << ", black " << perft_queen_b << '\n'
-    //       << "ROOKS: white " << perft_rook_w << ", black " << perft_rook_b << '\n'
-    //       << "KNIGHTS: white " << perft_knight_w << ", black " << perft_knight_b << '\n'
-    //       << "PAWNS: white " << perft_pawns_w << ", black " << perft_pawns_b << '\n';
+    std::cout << "================================================================================ \n";
 }
 
 uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& check_mates)
@@ -33,42 +28,18 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
     std::vector<Move> possible_moves = position->determine_moves(color_sign);
     uint64_t nodes = 0;
 
-    if(possible_moves.empty())
-    {
-        check_mates++;
-        return 1;
-    }
+    // if(possible_moves.empty())
+    // {
+    //     check_mates++;
+    //     return 1;
+    // }
 
     // Base case.
     if(depth == 0)
-        return 1;
+        return possible_moves.size();
 
     for(Move& move : possible_moves)
     {
-        // if (move.moving_piece == B_PAWN)
-        //     perft_pawns_b++;
-        // else if (move.moving_piece == W_PAWN)
-        //     perft_pawns_w++;
-        // else if (move.moving_piece == B_KNIGHT)
-        //     perft_knight_b++;
-        // else if (move.moving_piece == W_KNIGHT)
-        //     perft_knight_w++;
-        // else if (move.moving_piece == B_ROOK)
-        //     perft_rook_b++;
-        // else if (move.moving_piece == W_ROOK)
-        //     perft_rook_w++;
-        // else if (move.moving_piece == B_QUEEN)
-        //     perft_queen_b++;
-        // else if (move.moving_piece == W_QUEEN)
-        //     perft_queen_w++;
-        // else if (move.moving_piece == B_KING)
-        //     perft_king_b++;
-        // else if (move.moving_piece == W_KING)
-        //     perft_king_w++;
-        if(move.is_capture(position))
-            captures++;
-        if(move.is_check(position))
-            checks++;
         // Make copy of the board.
         Position* new_position = new Position(*position);
         // Do move.
