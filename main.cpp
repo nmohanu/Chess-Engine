@@ -32,15 +32,17 @@ int main()
 
     bool is_white_turn = true;
 
-    bool do_perft_test = true;
+    bool do_perft_test = false;
 
-    int perft_depth = 5;
+    bool engine_turned_on = false;
+
+    int perft_depth = 4;
 
     // We want to store the found move here.
     Move engine_move_choice;
     Move engine_move_final;
     
-    const float seconds_for_engine = 6;
+    const float seconds_for_engine = 2;
     int current_depth = 1;
 
     Engine engine;
@@ -143,7 +145,7 @@ int main()
         
         // ENGINE TURN ==================================================================================================================
 
-        if(!is_white_turn && !do_perft_test)
+        if(!is_white_turn && !do_perft_test && engine_turned_on)
         {
             // Engine timer starts. Because our engine can start searching.
             if(!engine_is_searching && engine.time_up)
@@ -210,15 +212,17 @@ int main()
             mouse_position = sf::Mouse::getPosition(window);
             clicked_square.first = (mouse_position.x - offset.x) / (16 * SCALE_FACTOR);
             clicked_square.second = (mouse_position.y - offset.y) / (16 * SCALE_FACTOR);
-            int square = clicked_square.first + clicked_square.second*8;
+            int square_on_board = clicked_square.first + clicked_square.second*8;
+            int last_square_on_board = last_clicked_square.first + last_clicked_square.second*8;
 
             // Check if user is moving a piece.
             if(last_clicked_square != clicked_square)
             {
-                selected_piece = board->position->get_piece(square);
+                selected_piece = board->position->get_piece(square_on_board);
 
-                reach_board = board->position->make_reach_board(clicked_square.first, clicked_square.second);
-                if(selected_piece == 0)
+                reach_board = board->position->make_reach_board(square_on_board, !is_white_turn, selected_piece);
+
+                if(selected_piece == EMPTY)
                 {
                     move_board = 0b0;
                     reach_board = 0b0;
@@ -226,7 +230,7 @@ int main()
                 
                 for (Move move : possible_moves)
                 {
-                    if(move.start_location == square && move.end_location == square)
+                    if(move.start_location == last_square_on_board && move.end_location == square_on_board)
                     {
                         board->position->do_move(&move);
                         is_white_turn = !is_white_turn;
@@ -337,7 +341,7 @@ int main()
                 }
 
                 uint8_t piece_at_pos = board->position->get_piece(pos);
-                if((get_bit_64(move_board, pos) || get_bit_64(reach_board, pos) && piece_at_pos > 5 == is_white_turn && piece_at_pos != 0) && piece_at_pos > 5 != is_white_turn)
+                if(get_bit_64(reach_board, pos) && selected_piece > 5 == !is_white_turn)
                 {
                     selection_square.setPosition(sf::Vector2f(print_position));
                     window.draw(selection_square);

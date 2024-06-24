@@ -18,7 +18,7 @@ public:
 
     void do_perft_test(int depth);
 
-    uint64_t perft_test(Position* position, int depth, bool color_sign);
+    uint64_t perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& check_mates);
 
     bool time_up = false;
 
@@ -86,6 +86,17 @@ private:
     ZobristHash hasher;
 
     int previous_score = 0;
+
+    int perft_pawns_w = 0;
+    int perft_pawns_b = 0;
+    int perft_knight_w = 0;
+    int perft_knight_b = 0;
+    int perft_king_w = 0;
+    int perft_king_b = 0;
+    int perft_queen_w = 0;
+    int perft_queen_b = 0;
+    int perft_rook_w = 0;
+    int perft_rook_b = 0;
 };
 
 #endif

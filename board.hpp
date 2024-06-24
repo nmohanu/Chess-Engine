@@ -29,10 +29,10 @@ struct Position
     void do_move(Move* move);
 
     // Check if king is under attack.
-    bool king_under_attack(bool color_sign);
+    bool king_under_attack(bool color_sign, uint64_t enemy_reach);
 
     // Create attack board for specific piece.
-    uint64_t make_reach_board(uint8_t square, bool is_black);
+    uint64_t make_reach_board(uint8_t square, bool is_black, uint8_t piece_type);
 
     // Create attack board for a player.
     uint64_t color_reach_board(bool color_sign);
@@ -62,7 +62,7 @@ struct Position
     void move_piece(Move* move);
     void generate_en_passant_move(bool is_black, std::vector<Move>& possible_moves);
     void generate_castling_moves(bool is_black, std::vector<Move>& possible_moves);
-    void generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, std::vector<Move>& possible_moves);
+    void generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, std::vector<Move>& possible_moves, uint64_t enemy_reach);
 
     // Represent the board as bits.
     // Index is equal to the piece number defenition. 
@@ -112,7 +112,7 @@ struct Board
 struct Move
 {   
     Move();
-    Move(const Move& other);
+    Move(Move* other);
     Move(uint8_t start, uint8_t end) : start_location(start), end_location(end) {}
 
     // Move functions.
@@ -131,7 +131,7 @@ struct Move
     // 1 = white kingside, 2 = white queenside, 3 = black kingside, 4 = black queenside, 5 = engine needs to check for an passant afterwards.
     uint8_t special_cases = 0b0;
 
-    bool move_takes_an_passant;
+    bool move_takes_an_passant = false;
 
     // For move sorting. Lower: more promising.
     int priority_group = 5;

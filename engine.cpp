@@ -9,31 +9,75 @@ void Engine::do_perft_test(int depth)
 {
     Position position;
     clock_t start = clock();
-    uint64_t nodes = perft_test(&position, depth, false);
+    int captures = 0;
+    int checks = 0;
+    int check_mates = 0;
+    uint64_t nodes = perft_test(&position, depth, false, captures, checks, check_mates);
     clock_t end = clock();
     double time_cost = double(end - start) / CLOCKS_PER_SEC;
-    std::cout << "PERFT results: \nNodes evaluated: " << nodes << "\nTime cost: " << time_cost << '\n';
+    std::cout << "PERFT results: \nNodes evaluated: " << nodes << "\nCaptures: " << captures << "\nChecks: " << checks << "\nCheckmates: " << check_mates <<
+        "\nTime cost: " << time_cost << '\n';
     std::cout << "Nodes per second " << nodes / time_cost << '\n';
+
+    // std::cout << "Pieces moved: \n"
+    //       << "KINGS: white " << perft_king_w << ", black " << perft_king_b << '\n'
+    //       << "QUEENS: white " << perft_queen_w << ", black " << perft_queen_b << '\n'
+    //       << "ROOKS: white " << perft_rook_w << ", black " << perft_rook_b << '\n'
+    //       << "KNIGHTS: white " << perft_knight_w << ", black " << perft_knight_b << '\n'
+    //       << "PAWNS: white " << perft_pawns_w << ", black " << perft_pawns_b << '\n';
 }
 
-uint64_t Engine::perft_test(Position* position, int depth, bool color_sign)
+uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& check_mates)
 {
     // Determine possible moves.
     std::vector<Move> possible_moves = position->determine_moves(color_sign);
     uint64_t nodes = 0;
 
+    if(possible_moves.empty())
+    {
+        check_mates++;
+        return 1;
+    }
+
     // Base case.
-    if(depth == 1)
-        return possible_moves.size();
+    if(depth == 0)
+        return 1;
 
     for(Move& move : possible_moves)
     {
+        // if (move.moving_piece == B_PAWN)
+        //     perft_pawns_b++;
+        // else if (move.moving_piece == W_PAWN)
+        //     perft_pawns_w++;
+        // else if (move.moving_piece == B_KNIGHT)
+        //     perft_knight_b++;
+        // else if (move.moving_piece == W_KNIGHT)
+        //     perft_knight_w++;
+        // else if (move.moving_piece == B_ROOK)
+        //     perft_rook_b++;
+        // else if (move.moving_piece == W_ROOK)
+        //     perft_rook_w++;
+        // else if (move.moving_piece == B_QUEEN)
+        //     perft_queen_b++;
+        // else if (move.moving_piece == W_QUEEN)
+        //     perft_queen_w++;
+        // else if (move.moving_piece == B_KING)
+        //     perft_king_b++;
+        // else if (move.moving_piece == W_KING)
+        //     perft_king_w++;
+        if(move.is_capture(position))
+            captures++;
+        if(move.is_check(position))
+            checks++;
         // Make copy of the board.
         Position* new_position = new Position(*position);
         // Do move.
+        assert(square_in_bounds(move.start_location));
+        assert(square_in_bounds(move.end_location));
+        assert(move.moving_piece < 12);
         new_position->do_move(&move);
         // Recursive call.
-        nodes += perft_test(new_position, depth-1, !color_sign);
+        nodes += perft_test(new_position, depth-1, !color_sign, captures, checks, check_mates);
         // Undo move.
         delete new_position;
     }
@@ -138,6 +182,9 @@ float Engine::search(int current_depth, int alpha, int beta, int& position_count
         // Make copy of the board.
         Position* new_position = new Position(*position);
         // Do move.
+        assert(square_in_bounds(move.start_location));
+        assert(square_in_bounds(move.end_location));
+        assert(move.moving_piece < 12);
         new_position->do_move(&move);
         // Evaluate.
         float score;
@@ -200,31 +247,17 @@ void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
 {
     for (Move& move : moves)
     {
-        // Make copy of the board.
-        Position* new_position = new Position(*position);
-
-        // Apply the move to the copied position.
-        new_position->do_move(&move);
-
-        // Evaluate the position after the move.
-        
-        
-        // Check if the move gives check.
-        bool gives_check = move.is_check(new_position);
-        
         // Set priority groups based on properties.
         if (move.is_capture(position)) 
         {
             move.priority_group = 1;
-        } else if (gives_check) 
+        } else if (move.is_check(position)) 
         {
             move.priority_group = 2;
         } else 
         {
             move.priority_group = 3;
         }
-
-        delete new_position;
     }
 
     // Sort vector according to priority groups.

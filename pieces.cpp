@@ -7,32 +7,78 @@
 // ==============================================================================================
 
 // Pawn moving.
-uint64_t Position::get_pawn_move(uint8_t square, bool is_black) {
+uint64_t Position::get_pawn_move(uint8_t square, bool is_black) 
+{
     uint64_t move_board = 0b0;
 
     // Check if the pawn is white or black.
-    if (!is_black && square_in_bounds(square-8) && get_piece(square-8) == EMPTY) 
-    {
-        // Check if pawn can move 2 squares. Only if in itial position and target square is empty.
-        if (square > 47 && get_piece(square - 16) == EMPTY) 
+    if (!is_black) 
+    { // White pawn
+        if (square_in_bounds(square - 8) && get_piece(square - 8) == EMPTY) 
         {
-            toggle_bit_on(move_board, square - 16);
+            // Move one square forward
+            toggle_bit_on(move_board, square - 8);
+            // Check if pawn can move 2 squares. Only if in initial position and target square is empty.
+            if (square > 47 && get_piece(square - 16) == EMPTY) 
+            {
+                assert(square_in_bounds(square - 16));
+                toggle_bit_on(move_board, square - 16);
+            }
         }
-        toggle_bit_on(move_board, square-8);
-    } 
-    // Now for black.
-    else if (square_in_bounds(square+8) && get_piece(square+8) == EMPTY) 
-    {
-        // Check if pawn can move 2 squares. Only if in itial position and target square is empty.
-        if (square < 16 && get_piece(square + 16) == EMPTY) 
+        // Capture to the left
+        if (square_in_bounds(square - 9) && square % 8 != 0) 
         {
-            toggle_bit_on(move_board, square+16);
+            uint8_t piece_left = get_piece(square - 9);
+            if (piece_left != EMPTY && piece_left != INVALID && piece_left > 5 != is_black) 
+            {
+                toggle_bit_on(move_board, square - 9);
+            }
         }
-        toggle_bit_on(move_board, square+8);
+        // Capture to the right
+        if (square_in_bounds(square - 7) && square % 8 != 7) {
+            uint8_t piece_right = get_piece(square - 7);
+            if (piece_right != EMPTY && piece_right != INVALID && piece_right > 5 != is_black) 
+            {
+                toggle_bit_on(move_board, square - 7);
+            }
+        }
     } 
+    else 
+    { // Black pawn
+        if (square_in_bounds(square + 8) && get_piece(square + 8) == EMPTY) 
+        {
+            // Move one square forward
+            toggle_bit_on(move_board, square + 8);
+            // Check if pawn can move 2 squares. Only if in initial position and target square is empty.
+            if (square < 16 && get_piece(square + 16) == EMPTY) 
+            {
+                assert(square_in_bounds(square + 16));
+                toggle_bit_on(move_board, square + 16);
+            }
+        }
+        // Capture to the left
+        if (square_in_bounds(square + 7) && square % 8 != 7) 
+        {
+            uint8_t piece_left = get_piece(square + 7);
+            if (piece_left != EMPTY && piece_left != INVALID && piece_left > 5 != is_black) 
+            {
+                toggle_bit_on(move_board, square + 7);
+            }
+        }
+        // Capture to the right
+        if (square_in_bounds(square + 9) && square % 8 != 0) 
+        {
+            uint8_t piece_right = get_piece(square + 9);
+            if (piece_right != EMPTY && piece_right != INVALID && piece_right > 5 != is_black) 
+            {
+                toggle_bit_on(move_board, square + 9);
+            }
+        }
+    }
 
     return move_board;
 }
+
 
 // ==============================================================================================
 
@@ -60,8 +106,12 @@ uint64_t Position::get_king_move(uint8_t square, bool is_black)
         toggle_bit_on(move_board, new_square);
     }
 
-    // King cannot move to square containing pieces of their own color.
-    move_board &= (is_black) ? ~bit_boards[BLACK_PIECES] : bit_boards[BLACK_PIECES];
+    // Can't move to squares occupied by own color.
+    if(is_black)
+        move_board &= ~bit_boards[COLOR_BOARD];
+    else
+        move_board &= ~(~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
+
 
     // Remove occupied squares.
     return move_board;
@@ -88,18 +138,21 @@ uint64_t Position::get_bishop_move(uint8_t square, bool is_black)
         // Continue until another piece is found.
         while (true)
         {
-            // Calculate square to check.
-            uint8_t new_square = square + directions[dir][0]*offset + 8*directions[dir][1]*offset;
-
+            int x = square % 8 + directions[dir][0]*offset;
+            int y = square / 8 + directions[dir][1]*offset;
             // Square may be off board.
-            if(!square_in_bounds(square-8))
-                continue;
+            if(x < 0 || x >= 8 || y < 0 || y >= 8)
+                break;
+
+            // Calculate square to check.
+            uint8_t new_square = x + 8*y;
 
             // Toggle bit on.
+            assert(square_in_bounds(new_square));
             toggle_bit_on(move_board, new_square);
 
             // If a piece is found, stop looking in this direction.
-            if(get_bit(bit_boards[TOTAL], new_square))
+            if(get_bit_64(bit_boards[TOTAL], new_square))
                 break;
 
             // Look one square further.
@@ -107,7 +160,12 @@ uint64_t Position::get_bishop_move(uint8_t square, bool is_black)
         }
     }
     // Can't move to squares occupied by own color.
-    move_board &= (is_black) ? ~bit_boards[BLACK_PIECES] : bit_boards[BLACK_PIECES];
+    if(is_black)
+        move_board &= ~bit_boards[COLOR_BOARD];
+    else
+        move_board &= ~(~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
+
+
     return move_board;
 }
 
@@ -128,18 +186,25 @@ uint64_t Position::get_knight_move(uint8_t square, bool is_black)
     // Loop through candidate squares.
     for (int i = 0; i < 8; ++i) 
     {
-        uint8_t new_square = square + directions[i][0] + 8*directions[i][1];
+        int x = square % 8 + directions[i][0];
+        int y = square / 8 + directions[i][1];
+        // Square may be off board.
+        if(x < 0 || x >= 8 || y < 0 || y >= 8)
+            continue;;
 
-        // Square may be off bounds.
-        if(!square_in_bounds(new_square))
-            continue;
+        // Calculate square to check.
+        uint8_t new_square = x + 8*y;
 
-        if (this->get_piece(new_square) == EMPTY)
-            toggle_bit_on(move_board, new_square);
+        assert(square_in_bounds(new_square));
+        toggle_bit_on(move_board, new_square);
     }
 
     // Can't move to squares occupied by own color.
-    move_board &= (is_black) ? ~bit_boards[BLACK_PIECES] : bit_boards[BLACK_PIECES];
+    if(is_black)
+        move_board &= ~bit_boards[COLOR_BOARD];
+    else
+        move_board &= ~(~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
+
     return move_board;
 }
 
@@ -162,22 +227,31 @@ uint64_t Position::get_rook_move(uint8_t square, bool is_black)
 
         while (true) 
         {
-            // Calculate target square.
-            uint8_t new_square = square + directions[dir][0]*offset + 8*directions[dir][1]*offset;
+            int x = square % 8 + directions[dir][0]*offset;
+            int y = square / 8 + directions[dir][1]*offset;
+            // Square may be off board.
+            if(x < 0 || x >= 8 || y < 0 || y >= 8)
+                break;
 
-            if(!square_in_bounds(new_square))
-                continue;
+            // Calculate square to check.
+            uint8_t new_square = x + 8*y;
 
+            assert(square_in_bounds(new_square));
             toggle_bit_on(move_board, new_square);
 
-            if (get_piece(new_square) != EMPTY)
+            // If a piece is found, stop looking in this direction.
+            if(get_bit_64(bit_boards[TOTAL], new_square))
                 break;
 
             offset++;
         }
     }
     // Can't move to squares occupied by own color.
-    move_board &= (is_black) ? ~bit_boards[BLACK_PIECES] : bit_boards[BLACK_PIECES];
+    if(is_black)
+        move_board &= ~bit_boards[COLOR_BOARD];
+    else
+        move_board &= ~(~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
+
     return move_board;
 }
 

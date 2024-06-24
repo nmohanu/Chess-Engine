@@ -4,6 +4,7 @@
 // Toggle bit on.
 void toggle_bit_on(uint64_t &num, uint64_t pos)
 {
+    assert(pos < 64);
     uint64_t mask = 1ULL << (63 - pos);
     num |= mask;
 }
@@ -11,8 +12,12 @@ void toggle_bit_on(uint64_t &num, uint64_t pos)
 // Toggle bit off.
 void toggle_bit_off(uint64_t &num, uint64_t pos)
 {
+    if(pos >= 64)
+        std::cout << "ehhmhmm";
+    assert(pos < 64);
     uint64_t mask = 1ULL << (63 - pos);
-    num &= ~mask;
+    mask = ~mask;
+    num &= mask;
 }
 
 // Check if a certain bit is on or off.
@@ -65,5 +70,5 @@ float get_piece_value(uint8_t piece)
 // Used for safety.
 bool square_in_bounds(uint8_t square)
 {   
-    return square > 0 && square < 64;   
+    return square >= 0 && square < 64;   
 }
