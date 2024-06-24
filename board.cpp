@@ -24,7 +24,9 @@ Move::Move(Move* other)
 // ==============================================================================================
 
 // Position constructors.
-Position::Position() {}
+Position::Position() 
+{
+}
 
 Position::Position(const Position& other) 
 {
@@ -41,7 +43,9 @@ Position::Position(const Position& other)
 }
 
 // Destructor.
-Position::~Position() {}
+Position::~Position() 
+{   
+}
 
 // ==============================================================================================
 
@@ -159,7 +163,7 @@ void Position::move_piece(Move* move)
     uint8_t moved_piece = move->moving_piece;
 
     assert(moved_piece < 12);
-
+    
     // Toggle bit in piece board.
     toggle_bit_on(bit_boards[moved_piece], end_square);
     toggle_bit_off(bit_boards[moved_piece], start_square);
@@ -449,6 +453,7 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
 
 // ==============================================================================================
 
+// TODO: ignore pawn forward as check.
 // Check if king is under check if we don't have an enemy reach board.
 // We do this here by simulating different piece moves from the kings position.
 // If, from the result, we find that the king can reach that piece type of the enemy player,

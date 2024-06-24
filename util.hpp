@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <atomic>
 #include <assert.h>
+#include "magic_arrays.hpp"
 
 // Define a number for each piece.
 #define W_KING      0

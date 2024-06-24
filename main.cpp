@@ -3,6 +3,9 @@
 #include <utility>
 #include <iostream>
 #include <thread>
+#include <fstream>
+#include <string>
+#include <sstream>
 
 void calculate_best_move(Engine* engine, Position* position, int color_sign, int depth, Move& result) 
 {
