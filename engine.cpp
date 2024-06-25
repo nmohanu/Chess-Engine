@@ -25,177 +25,177 @@ void Engine::do_perft_test(int depth)
 uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& en_passants)
 {
     // Determine possible moves.
-    std::vector<Move> possible_moves = position->determine_moves(color_sign);
+    moves possible_moves = position->determine_moves(color_sign);
     uint64_t nodes = 0;
 
     // Base case.
     if(depth == 0)
-        return possible_moves.size();
+        return possible_moves.move_count;
 
-    for(Move& move : possible_moves)
+    for(int i = 0; i < possible_moves.move_count; i++)
     {
         // Do move.
-        position->do_move(&move);
+        position->do_move(&possible_moves.moves[i]);
         // Recursive call.
         nodes += perft_test(position, depth-1, !color_sign, captures, checks, en_passants);
         // Undo move.
-        position->undo_move(&move);
+        position->undo_move(&possible_moves.moves[i]);
     }
     // Return result.
     return nodes;
 }
 
 // Function to return the best found move.
-void Engine::best_move(Position* position, bool color_sign, int depth, Move& best_move)
-{
-    // For analysis.
-    int count = 0;
-    int zobrist_skips = 0;
-    clock_t timer = clock();
+// void Engine::best_move(Position* position, bool color_sign, int depth, Move& best_move)
+// {
+//     // For analysis.
+//     int count = 0;
+//     int zobrist_skips = 0;
+//     clock_t timer = clock();
 
-    // Initialize
-    int alpha = -100;
-    int beta = 100;
-    float score = 0.f;
+//     // Initialize
+//     int alpha = -100;
+//     int beta = 100;
+//     float score = 0.f;
     
-    Move best_found;
+//     Move best_found;
 
-    // Find best move.
-    score = search(depth, alpha, beta, count, position, best_found, true, !color_sign, zobrist_skips, 0);
+//     // Find best move.
+//     score = search(depth, alpha, beta, count, position, best_found, true, !color_sign, zobrist_skips, 0);
 
-    // Chech if engine was stopped due to time.
-    if(score == -999999)
-    {
-        return;
-    }
+//     // Chech if engine was stopped due to time.
+//     if(score == -999999)
+//     {
+//         return;
+//     }
 
-    previous_score = score;
+//     previous_score = score;
 
-    // Analysis.
-    timer = clock() - timer;
-    float elapsed_seconds = static_cast<float>(timer) / CLOCKS_PER_SEC;
+//     // Analysis.
+//     timer = clock() - timer;
+//     float elapsed_seconds = static_cast<float>(timer) / CLOCKS_PER_SEC;
     
-    // Output results.
-    std::cout << "Positions evaluated: " << count << "\n";
-    std::cout << "Score found was: " << score << "\n";
-    std::cout << "Average positions per second: " << count / elapsed_seconds << '\n';
-    std::cout << "Time taken: " << elapsed_seconds << "\n";
-    std::cout << "Nodes skipped thanks to mr. Zobrist: " << zobrist_skips << "\n";
+//     // Output results.
+//     std::cout << "Positions evaluated: " << count << "\n";
+//     std::cout << "Score found was: " << score << "\n";
+//     std::cout << "Average positions per second: " << count / elapsed_seconds << '\n';
+//     std::cout << "Time taken: " << elapsed_seconds << "\n";
+//     std::cout << "Nodes skipped thanks to mr. Zobrist: " << zobrist_skips << "\n";
 
-    // Check if a valid move was found. 64 is the signal that none was found.
-    assert(best_move.start_location != 64);
-    best_move = Move(best_found);
-    return;
-}
+//     // Check if a valid move was found. 64 is the signal that none was found.
+//     assert(best_move.start_location != 64);
+//     best_move = Move(best_found);
+//     return;
+// }
 
-float Engine::search(int current_depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips, int depth_limit)
-{
-    // Initialize ==================================================================================================================
+// float Engine::search(int current_depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips, int depth_limit)
+// {
+//     // Initialize ==================================================================================================================
 
-    // Check if the time is up. If so, signal this to parent calls.
-    if(time_up)
-        return -999999;
+//     // Check if the time is up. If so, signal this to parent calls.
+//     if(time_up)
+//         return -999999;
 
-    // Make hash entries of position.
-    int hashf = hashfALPHA;
-    uint64_t key = hasher.calculate_zobrist_key(position, !maximizing);
-    int entry_key_value = transposition_table.read_hash_entry(alpha, beta, current_depth, key);
+//     // Make hash entries of position.
+//     int hashf = hashfALPHA;
+//     uint64_t key = hasher.calculate_zobrist_key(position, !maximizing);
+//     int entry_key_value = transposition_table.read_hash_entry(alpha, beta, current_depth, key);
 
-    // Read hash entry.
-    if(entry_key_value != no_hash_entry && !top_level)
-    {
-        // Position wes already evaluated in a different order.
-        zobrist_skips++;
-        return entry_key_value;
-    }
+//     // Read hash entry.
+//     if(entry_key_value != no_hash_entry && !top_level)
+//     {
+//         // Position wes already evaluated in a different order.
+//         zobrist_skips++;
+//         return entry_key_value;
+//     }
 
-    // Count unique positions visited.
-    position_count++;
+//     // Count unique positions visited.
+//     position_count++;
 
-    // End of depth, evaluate position.
-    if(current_depth <= depth_limit)
-    {
-        int val = evaluate_position(position);
-        transposition_table.insert_hash(current_depth, val, hashfEXACT, key);
-        return val;
-    }
+//     // End of depth, evaluate position.
+//     if(current_depth <= depth_limit)
+//     {
+//         int val = evaluate_position(position);
+//         transposition_table.insert_hash(current_depth, val, hashfEXACT, key);
+//         return val;
+//     }
 
-    // Determine possible moves.
-    std::vector<Move> possible_moves = position->determine_moves(!maximizing);
+//     // Determine possible moves.
+//     // std::vector<Move> possible_moves = position->determine_moves(!maximizing);
 
-    // No moves available means current player loses.
-    if(possible_moves.empty())
-        return maximizing ? -100 : 100;
+//     // No moves available means current player loses.
+//     // if(possible_moves.empty())
+//     //     return maximizing ? -100 : 100;
 
-    sort_move_priority(possible_moves, position);
+//     // sort_move_priority(possible_moves, position);
 
-    float eval = maximizing ? -100 : 100;
+//     float eval = maximizing ? -100 : 100;
 
-    Move local_best_move = possible_moves.front();
+//     // Move local_best_move = possible_moves.front();
 
-    // bool first_node = true;
+//     // bool first_node = true;
 
-    // Actual search. ==================================================================================================================
+//     // Actual search. ==================================================================================================================
     
-    for(Move& move : possible_moves)
-    {
-        // Do move.
-        position->do_move(&move);
-        // Evaluate.
-        float score = search(current_depth - 1, alpha, beta, position_count, position, best_move, false, !maximizing, zobrist_skips, depth_limit);
-        // Undo.
-        position->undo_move(&move);
-        // Check if time is up.
-        if(score == -999999)
-            return -999999;
+//     // for(Move& move : possible_moves)
+//     // {
+//     //     // Do move.
+//     //     position->do_move(&move);
+//     //     // Evaluate.
+//     //     float score = search(current_depth - 1, alpha, beta, position_count, position, best_move, false, !maximizing, zobrist_skips, depth_limit);
+//     //     // Undo.
+//     //     position->undo_move(&move);
+//     //     // Check if time is up.
+//     //     if(score == -999999)
+//     //         return -999999;
 
-        // Evaluate found score and edit alpha, beta, and best move accordingly.
-        if (maximizing)
-        {
-            if (score >= eval)
-            {
+//     //     // Evaluate found score and edit alpha, beta, and best move accordingly.
+//     //     if (maximizing)
+//     //     {
+//     //         if (score >= eval)
+//     //         {
                 
-                eval = score;
-                if (eval > alpha)
-                {
-                    alpha = eval;
-                    local_best_move = Move(move);
-                    hashf = hashfEXACT;
-                }
-            }
-            if (eval >= beta)
-            {
-                transposition_table.insert_hash(current_depth, eval, hashfBETA, key);
-                break;
-            }
-        }
-        else
-        {
-            if (score <= eval)
-            {
+//     //             eval = score;
+//     //             if (eval > alpha)
+//     //             {
+//     //                 alpha = eval;
+//     //                 local_best_move = Move(move);
+//     //                 hashf = hashfEXACT;
+//     //             }
+//     //         }
+//     //         if (eval >= beta)
+//     //         {
+//     //             transposition_table.insert_hash(current_depth, eval, hashfBETA, key);
+//     //             break;
+//     //         }
+//     //     }
+//     //     else
+//     //     {
+//     //         if (score <= eval)
+//     //         {
                 
-                eval = score;
-                if (eval < beta)
-                {
-                    beta = eval;
-                    local_best_move = Move(move);
-                    hashf = hashfEXACT;
-                }
-            }
-            if (eval <= alpha)
-            {
-                transposition_table.insert_hash(current_depth, eval, hashfALPHA, key);
-                break;
-            }
-        }
-    }
+//     //             eval = score;
+//     //             if (eval < beta)
+//     //             {
+//     //                 beta = eval;
+//     //                 local_best_move = Move(move);
+//     //                 hashf = hashfEXACT;
+//     //             }
+//     //         }
+//     //         if (eval <= alpha)
+//     //         {
+//     //             transposition_table.insert_hash(current_depth, eval, hashfALPHA, key);
+//     //             break;
+//     //         }
+//     //     }
+//     }
 
-    if(top_level)
-        best_move = local_best_move;
+//     // if(top_level)
+//     //     best_move = local_best_move;
 
-    transposition_table.insert_hash(current_depth, eval, hashf, key);
-    return eval;
-}
+//     // transposition_table.insert_hash(current_depth, eval, hashf, key);
+//     // return eval;
+// }
 
 void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
 {

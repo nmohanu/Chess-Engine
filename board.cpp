@@ -476,10 +476,10 @@ void Position::check_en_passant_possibility(Move* move)
 // ==============================================================================================
 
 // Generate all possible moves for a color and return them in a vector.
-std::vector<Move> Position::determine_moves(bool is_black)
+moves Position::determine_moves(bool is_black)
 {
     uint64_t enemy_reach = color_reach_board(!is_black);
-    std::vector<Move> possible_moves;
+    possible_moves.move_count = 0;
 
     // Loop through board to find player's pieces.
     for (uint8_t square = 0; square < 64; square++)
@@ -494,14 +494,14 @@ std::vector<Move> Position::determine_moves(bool is_black)
         uint64_t move_squares = make_reach_board(square, is_black, piece_type);
 
         // Generate moves for the piece.
-        generate_piece_moves(square, piece_type, move_squares, is_black, possible_moves, enemy_reach);
+        generate_piece_moves(square, piece_type, move_squares, is_black, enemy_reach);
     }
 
     // Check castling rights.
-    generate_castling_moves(is_black, possible_moves, enemy_reach);
+    generate_castling_moves(is_black, enemy_reach);
 
     // Check en passant.
-    generate_en_passant_move(is_black, possible_moves);
+    generate_en_passant_move(is_black);
 
     // Return the found moves.
     return possible_moves;
@@ -510,7 +510,7 @@ std::vector<Move> Position::determine_moves(bool is_black)
 // ==============================================================================================
 
 // Generate regular moves.
-void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, std::vector<Move>& possible_moves, uint64_t enemy_reach)
+void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, uint64_t enemy_reach)
 {
     // uint64_t bit_mask = 1ULL << 63;
     for (int i = 0; i < 64; i++)
@@ -529,7 +529,7 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
         do_move(&move);
         // Check if king is not under attack after the move. If not, add move to possible moves.
         if (!king_look_around(is_black))
-            possible_moves.push_back(move);
+            possible_moves.moves[possible_moves.move_count++] = move;
 
         // Clean up.
         undo_move(&move);
@@ -574,7 +574,7 @@ bool Position::king_look_around(bool is_black)
 // ==============================================================================================
 
 // Generate all possible castling moves. 
-void Position::generate_castling_moves(bool is_black, std::vector<Move>& possible_moves, uint64_t enemy_reach)
+void Position::generate_castling_moves(bool is_black, uint64_t enemy_reach)
 {
     if(king_under_attack(is_black, enemy_reach) || casling_rights == 0)
         return;
@@ -591,7 +591,7 @@ void Position::generate_castling_moves(bool is_black, std::vector<Move>& possibl
             move.special_cases = 3;
             assert(move.moving_piece < 12);
             if(move.move_bounds_valid())
-                possible_moves.push_back(move);
+                possible_moves.moves[possible_moves.move_count++] = move;
         }
     }
     else if (!is_black && get_bit(casling_rights, 4))
@@ -607,7 +607,7 @@ void Position::generate_castling_moves(bool is_black, std::vector<Move>& possibl
             move.special_cases = 1;
             assert(move.moving_piece < 12);
             if(move.move_bounds_valid())
-                possible_moves.push_back(move);
+                possible_moves.moves[possible_moves.move_count++] = move;
         }
     }
 
@@ -624,7 +624,7 @@ void Position::generate_castling_moves(bool is_black, std::vector<Move>& possibl
             move.special_cases = 4;
             assert(move.moving_piece < 12);
             if(move.move_bounds_valid())
-                possible_moves.push_back(move);
+                possible_moves.moves[possible_moves.move_count++] = move;
         }
     }
     else if (!is_black && get_bit(casling_rights, 5))
@@ -640,7 +640,7 @@ void Position::generate_castling_moves(bool is_black, std::vector<Move>& possibl
             move.special_cases = 2;
             assert(move.moving_piece < 12);
             if(move.move_bounds_valid())
-                possible_moves.push_back(move);
+                possible_moves.moves[possible_moves.move_count++] = move;
         }
     }
 }
@@ -648,7 +648,7 @@ void Position::generate_castling_moves(bool is_black, std::vector<Move>& possibl
 // ==============================================================================================
 
 // Generate en passant moves.
-void Position::generate_en_passant_move(bool is_black, std::vector<Move>& possible_moves)
+void Position::generate_en_passant_move(bool is_black)
 {
     // Check en passant status, 11111111 means no en passant is possible in this position.
     if (en_passant != 0b11111111)
@@ -692,7 +692,7 @@ void Position::generate_en_passant_move(bool is_black, std::vector<Move>& possib
         assert(move.moving_piece < 12);
         assert(move.moving_piece != INVALID);
         if(move.move_bounds_valid())
-            possible_moves.push_back(move);
+            possible_moves.moves[possible_moves.move_count++] = move;
         undo_move(&move);
     }
 }

@@ -9,10 +9,10 @@
 
 void calculate_best_move(Engine* engine, Position* position, int color_sign, int depth, Move& result) 
 {
-    move_found = false;
-    engine->best_move(position, color_sign, depth, result);
-    engine_is_searching = false;
-    move_found = true;
+    // move_found = false;
+    // engine->best_move(position, color_sign, depth, result);
+    // engine_is_searching = false;
+    // move_found = true;
 }
 
 int main()
@@ -63,7 +63,7 @@ int main()
     uint64_t reach_board = 0b0;
 
     std::vector<Move> possible_moves;
-    possible_moves = board->position->determine_moves(!is_white_turn);
+    // possible_moves = board->position->determine_moves(!is_white_turn);
 
     sf::Vector2f offset((SCREEN_WIDTH - 16*SCALE_FACTOR*8)/2, (SCREEN_HEIGHT - 16*SCALE_FACTOR*8)/2);
 
@@ -198,7 +198,7 @@ int main()
                 // Switch player to move.
                 is_white_turn = !is_white_turn;
                 // Determine moves for other player.
-                possible_moves = board->position->determine_moves(!is_white_turn);
+                // possible_moves = board->position->determine_moves(!is_white_turn);
                 // Engine is done searching.
                 engine_is_searching = false;
             }
@@ -238,11 +238,11 @@ int main()
                     {
                         board->position->do_move(&move);
                         is_white_turn = !is_white_turn;
-                        possible_moves = board->position->determine_moves(!is_white_turn);
-                        if(possible_moves.empty())
-                        {
-                            std::cout << "Player " << !is_white_turn << " wins! \n";
-                        }
+                        // possible_moves = board->position->determine_moves(!is_white_turn);
+                        // if(possible_moves.empty())
+                        // {
+                        //     std::cout << "Player " << !is_white_turn << " wins! \n";
+                        // }
                         break;
                     }
                 }
