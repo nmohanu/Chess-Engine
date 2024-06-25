@@ -34,14 +34,12 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
 
     for(Move& move : possible_moves)
     {
-        // Make copy of the board.
-        Position* new_position = new Position(*position);
         // Do move.
-        new_position->do_move(&move);
+        position->do_move(&move);
         // Recursive call.
-        nodes += perft_test(new_position, depth-1, !color_sign, captures, checks, check_mates);
+        nodes += perft_test(position, depth-1, !color_sign, captures, checks, check_mates);
         // Undo move.
-        delete new_position;
+        position->undo_move(&move);
     }
     // Return result.
     return nodes;

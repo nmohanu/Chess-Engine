@@ -18,6 +18,8 @@ Move::Move(Move* other)
     this->move_takes_an_passant = other->move_takes_an_passant;
     this->evaluation = other->evaluation;
     this->moving_piece = other->moving_piece;
+    this->captured_piece = other->captured_piece;
+    this->previous_en_passant = other->previous_en_passant;
 }
 
 // ==============================================================================================
@@ -140,6 +142,7 @@ bool Position::king_under_attack(bool is_black, uint64_t enemy_reach)
 // Execute a move.
 void Position::do_move(Move* move)
 {
+    move->previous_en_passant = en_passant;
     assert(move->moving_piece != INVALID);
     assert(move->moving_piece < 12);
     if(!move->move_takes_an_passant)
@@ -152,6 +155,104 @@ void Position::do_move(Move* move)
 
 // ============================================================================================== 
 
+// Handle the undo logic for a move.
+void Position::undo_move(Move* move)
+{
+    // place captured piece back on board.
+    if(!move->move_takes_an_passant)
+    {
+        uint64_t bit_mask = 1ULL << (63 - move->end_location);
+
+        // Undo capture.
+        if(move->captured_piece != INVALID)
+        {
+            bit_boards[move->captured_piece] |= bit_mask;
+            // Check if we need to toggle bit on color board. This is because the captured piece may have been black.
+            if(move->moving_piece <=5)
+                bit_boards[COLOR_BOARD] |= bit_mask;
+        }
+        // Check if moved piece was black.
+        else if(move->moving_piece > 5)
+        {
+            bit_boards[COLOR_BOARD] &= ~bit_mask;
+            bit_boards[TOTAL] &= ~bit_mask;
+        }
+        else
+            bit_boards[TOTAL] &= ~bit_mask;
+        
+        // Toggle the bit off for the piece that was moved.
+        bit_boards[move->moving_piece] &= ~bit_mask;
+
+        // Now handle the origin square.
+        bit_mask = 1ULL << (63 - move->start_location);
+
+        // Toggle bit on for origin square of moving piece.
+        bit_boards[move->moving_piece] |= bit_mask;
+        bit_boards[TOTAL] |= bit_mask;
+    }
+    else
+    {
+        // Restore en passant status.
+        this->en_passant = move->previous_en_passant;
+
+        // Toggle the bit off for the piece that was moved.
+        uint64_t bit_mask = 1ULL << (63 - move->end_location);
+        bit_boards[move->moving_piece] &= ~bit_mask;
+        bit_boards[TOTAL] &= ~bit_mask;
+
+        // Now handle the origin square.
+        bit_mask = 1ULL << (63 - move->start_location);
+        bit_boards[move->moving_piece] |= bit_mask;
+        bit_boards[TOTAL] |= bit_mask;
+
+        // Handle captured piece.
+        uint8_t capture_square = (move->moving_piece > 5) ? move->end_location-8 : move->end_location + 8;
+        bit_mask = 1ULL << (63 - capture_square);
+        bit_boards[W_PAWN + 6*(move->moving_piece > 5)] |= bit_mask;
+        // Check if we need to toggle bit on color board. This is because the captured piece may have been black.
+        if(move->moving_piece <=5)
+            bit_boards[COLOR_BOARD] |= bit_mask;
+    }
+    // Undo castling.
+    if(move->special_cases != 0 && move->special_cases != 5)
+    {
+        if (move->end_location == 2)
+        {   // Black queenside.
+            uint64_t bit_mask = 1ULL << (63-3);
+            bit_boards[B_ROOK] &= ~bit_mask;
+            bit_mask <<= 3;
+            bit_boards[B_ROOK] |= bit_mask;
+            casling_rights |= 0b00000001;
+        }
+        else if (move->end_location == 6)
+        {   // Black kingside.
+            uint64_t bit_mask = 1ULL << (63-5);
+            bit_boards[B_ROOK] &= ~bit_mask;
+            bit_mask >>= 2;
+            bit_boards[B_ROOK] |= bit_mask;
+            casling_rights |= 0b00000010;
+        }
+        if (move->end_location == 58)
+        {   // White queenside.
+            uint64_t bit_mask = 1ULL << (63-59);
+            bit_boards[W_ROOK] &= ~bit_mask;
+            bit_mask <<= 3;
+            bit_boards[W_ROOK] |= bit_mask;
+            casling_rights |= 0b00000100;
+        }
+        else 
+        {   // White kingside.
+            uint64_t bit_mask = 1ULL << 2;
+            bit_boards[W_ROOK] &= ~bit_mask;
+            bit_mask >>= 2;
+            bit_boards[W_ROOK] |= bit_mask;
+            casling_rights |= 0b00001000;
+        }
+    }
+}
+
+// ============================================================================================== 
+
 void Position::move_piece(Move* move)
 {
     // Double check. Should be in bounds, but this way we can catch bugs correlating to 
@@ -159,6 +260,9 @@ void Position::move_piece(Move* move)
     uint8_t start_square = move->start_location;
     uint8_t end_square = move->end_location;
     uint8_t captured_piece = get_piece(end_square);
+
+    // Store captured piece for undoing move.
+    move->captured_piece = captured_piece;
     assert(start_square >= 0 && start_square < 64 && end_square >= 0 && end_square < 64);
     
     // The piece we are moving.
@@ -269,7 +373,6 @@ void Position::handle_special_cases(Move* move)
 
 // ==============================================================================================
 
-// Handle castling move.
 void Position::handle_castling(Move* move)
 {
     bool is_black = move->moving_piece > 5;
@@ -281,18 +384,22 @@ void Position::handle_castling(Move* move)
         case 1: // White kingside
             rook_start = 63;
             rook_end = 61;
+            casling_rights &= 0b00000111;
             break;
         case 2: // White queenside
             rook_start = 56;
             rook_end = 59;
+            casling_rights &= 0b00001011;
             break;
         case 3: // Black kingside
             rook_start = 7;
             rook_end = 5;
+            casling_rights &= 0b00001101;
             break;
         case 4: // Black queenside
             rook_start = 0;
             rook_end = 2;
+            casling_rights &= 0b00001110;
             break;
         default:
             return;
@@ -418,17 +525,13 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
         move.moving_piece = piece_type;
 
         // Simulate the move.
-        Position* copy = new Position(*this);
         assert(move.moving_piece < 12);
-        copy->do_move(&move);
-
-        // TODO: MAKE SURE THIS IS NOT NECESSARY EVERY TIME WE CHECK!!!. <=============================================<
-        // enemy_reach = copy->color_reach_board(!is_black);
+        do_move(&move);
 
         // Check if king is not under attack after the move.
-        if (copy->king_look_around(is_black))
+        if (king_look_around(is_black))
         {
-            delete copy;
+            undo_move(&move);
             continue;
         }
         // Handle special case for pawn two-square move.
@@ -440,8 +543,7 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
         possible_moves.push_back(move);
 
         // Clean up.
-        delete copy;
-        
+        undo_move(&move);
     }
 }
 
@@ -589,20 +691,20 @@ void Position::generate_en_passant_move(bool is_black, std::vector<Move>& possib
         move.moving_piece = W_PAWN + 6*is_black;
         move.move_takes_an_passant = true;
         // Simulate the move.
-        Position* copy = new Position(*this);
         assert(move.moving_piece < 12);
-        copy->do_move(&move);
+        do_move(&move);
 
         // Check if king is not under attack after the move.
-        if (copy->king_look_around(is_black))
+        if (king_look_around(is_black))
         {
-            delete copy;
+            undo_move(&move);
             return;
         }
         assert(move.moving_piece < 12);
         assert(move.moving_piece != INVALID);
         if(move.move_bounds_valid())
             possible_moves.push_back(move);
+        undo_move(&move);
     }
 }
 
@@ -657,18 +759,17 @@ uint8_t Position::get_piece(uint8_t pos) const
 // Check if a position is in check after this move is done.
 bool Move::is_check(Position* position) const
 {
-    Position* copy = new Position(*position);
     Move copy_move(*this);
     assert(copy_move.moving_piece < 12);
     assert(copy_move.moving_piece != INVALID);
     assert(copy_move.move_bounds_valid());
-    copy->do_move(&copy_move);
+    position->do_move(&copy_move);
 
     bool move_player_black = (moving_piece > 5);
     
-    bool is_check = copy->king_under_attack( !move_player_black, copy->color_reach_board(move_player_black));
+    bool is_check = position->king_under_attack( !move_player_black, position->color_reach_board(move_player_black));
 
-    delete copy;
+    position->undo_move(&copy_move);
 
     return is_check;
 }

@@ -27,6 +27,7 @@ struct Position
 
     // Do a move.
     void do_move(Move* move);
+    void undo_move(Move* move);
 
     // Check if king is under attack.
     bool king_under_attack(bool color_sign, uint64_t enemy_reach);
@@ -118,11 +119,14 @@ struct Move
     uint8_t start_location;
     uint8_t end_location;
     uint8_t moving_piece = INVALID;
+    uint8_t captured_piece = INVALID;
+    uint8_t previous_en_passant;
 
     // Move might be a castling move or engine needs to check for en passant next move.
     // 1 = white kingside, 2 = white queenside, 3 = black kingside, 4 = black queenside, 5 = engine needs to check for an passant afterwards.
     uint8_t special_cases = 0b0;
 
+    // TODO: remove this, we save status as uint8.
     bool move_takes_an_passant = false;
 
     // For move sorting. Lower: more promising.
