@@ -18,7 +18,6 @@ Move::Move(Move* other)
     this->move_takes_an_passant = other->move_takes_an_passant;
     this->evaluation = other->evaluation;
     this->moving_piece = other->moving_piece;
-    this->captured_piece = other->captured_piece;
 }
 
 // ==============================================================================================
@@ -159,6 +158,7 @@ void Position::move_piece(Move* move)
     // memory corruption, for example.
     uint8_t start_square = move->start_location;
     uint8_t end_square = move->end_location;
+    uint8_t captured_piece = get_piece(end_square);
     assert(start_square >= 0 && start_square < 64 && end_square >= 0 && end_square < 64);
     
     // The piece we are moving.
@@ -182,7 +182,6 @@ void Position::move_piece(Move* move)
     }
 
     // Check if there was a piece captured.
-    uint8_t captured_piece = move->captured_piece;
     if(captured_piece < 12)
     {
         toggle_bit_off(bit_boards[captured_piece], end_square);
@@ -405,13 +404,9 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
     uint64_t bit_mask = 1ULL << 63;
     for (int i = 0; i < 64; i++)
     {
-        // Target square piece.
-        uint8_t piece_at_square = this->get_piece(i);
-
         // Check if move is possible.
         bool can_move = bit_mask&move_squares;
         bit_mask >>= 1;
-        bool can_attack = can_move && (piece_at_square != EMPTY) && (is_black != (piece_at_square > 5));
 
         if(!can_move)
             continue;
@@ -420,8 +415,6 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
         assert(move.move_bounds_valid());
         
         // Insert move data.
-        if(can_attack)
-            move.captured_piece = piece_at_square;
         move.moving_piece = piece_type;
 
         // Simulate the move.
