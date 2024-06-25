@@ -61,12 +61,6 @@ float get_piece_value(uint8_t piece)
     }
 }
 
-// Used for safety.
-bool square_in_bounds(uint8_t square)
-{   
-    return square >= 0 && square < 64;   
-}
-
 bool boards_intersect(uint64_t one, uint64_t two)
 {
     return (one & two) != 0;

@@ -159,7 +159,7 @@ void Position::move_piece(Move* move)
     // memory corruption, for example.
     uint8_t start_square = move->start_location;
     uint8_t end_square = move->end_location;
-    assert(square_in_bounds(start_square) && square_in_bounds(end_square));
+    assert(start_square >= 0 && start_square < 64 && end_square >= 0 && end_square < 64);
     
     // The piece we are moving.
     uint8_t moved_piece = move->moving_piece;
@@ -215,13 +215,10 @@ void Position::handle_en_passant_capture(Move* move)
     // Location of the pawn being captured en passant. One -1 row if black pawn captures or +1 if white pawn captures.
     uint8_t captured_pawn_square = ((end_location + 8) - 16*taking_pawn_black);
 
-    if(!square_in_bounds(captured_pawn_square))
-        std::cout << "error";
     // Check if valid.
-    assert(square_in_bounds(captured_pawn_square));
+    assert(captured_pawn_square >= 0 && captured_pawn_square < 64);
     assert(board_index < 12);
-    assert(square_in_bounds(end_location));
-    assert(square_in_bounds(start_location));
+    assert((start_location >= 0 && start_location < 64 && end_location >= 0 && end_location < 64));
     
     // Move pawn.
     toggle_bit_off(bit_boards[board_index], start_location);
@@ -305,8 +302,7 @@ void Position::handle_castling(Move* move)
     int board_index = W_ROOK + 6*is_black;
 
     assert(board_index < 12);
-    assert(square_in_bounds(rook_end));
-    assert(square_in_bounds(rook_start));
+    assert((rook_end >= 0 && rook_end < 64 && rook_start >= 0 && rook_start < 64));
 
     // Move rook and update bitboards.
     toggle_bit_off(bit_boards[board_index], rook_start);
@@ -593,12 +589,7 @@ void Position::generate_en_passant_move(bool is_black, std::vector<Move>& possib
         uint8_t start_square = from + start_row * 8;
         uint8_t end_square = to + end_row * 8;
 
-        assert(square_in_bounds(end_square));
-        if(!square_in_bounds(end_square))
-            return;
-        assert(square_in_bounds(start_square));
-        if(!square_in_bounds(start_square))
-            return;
+        assert((start_square >= 0 && start_square < 64 && end_square >= 0 && end_square < 64));
 
         // Make the move.
         Move move(start_square, end_square);
@@ -627,7 +618,7 @@ void Position::generate_en_passant_move(bool is_black, std::vector<Move>& possib
 // Function to check if the bounds of a move are valid.
 bool Move::move_bounds_valid()
 {
-    return  square_in_bounds(start_location) && square_in_bounds(end_location);
+    return  (start_location >= 0 && start_location < 64 && end_location >= 0 && end_location < 64);
 }
 
 // ==============================================================================================
@@ -636,7 +627,7 @@ bool Move::move_bounds_valid()
 uint8_t Position::get_piece(uint8_t pos) const
 {   
     uint64_t bit_mask = 1ULL << (63-pos);
-    if(!square_in_bounds(pos))
+    if(!(pos >= 0 && pos < 64))
         return INVALID;
     else if(!(bit_boards[TOTAL]&bit_mask))
         return EMPTY;

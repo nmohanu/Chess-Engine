@@ -37,9 +37,6 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
         // Make copy of the board.
         Position* new_position = new Position(*position);
         // Do move.
-        assert(square_in_bounds(move.start_location));
-        assert(square_in_bounds(move.end_location));
-        assert(move.moving_piece < 12);
         new_position->do_move(&move);
         // Recursive call.
         nodes += perft_test(new_position, depth-1, !color_sign, captures, checks, check_mates);

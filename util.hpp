@@ -154,6 +154,7 @@ void toggle_bit_off(uint64_t &num, uint64_t pos);
 // Get bit of an 8 bit number.
 bool get_bit(uint8_t num, uint8_t pos);
 
+// SLOW, DONT USE IF NOT NEEDED.
 // Check if a certain bit is on or off. (64bit)
 inline bool get_bit_64(uint64_t num, uint8_t pos) 
 {
@@ -165,9 +166,6 @@ void print_binary(uint64_t num);
 
 // Get value of a piece.
 float get_piece_value(uint8_t piece);
-
-// Check if square is on the board;
-bool square_in_bounds(uint8_t square);
 
 // Check if two bitboards intersect.
 bool boards_intersect(uint64_t one, uint64_t two);
