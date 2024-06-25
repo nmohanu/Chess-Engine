@@ -139,14 +139,12 @@ float Engine::search(int current_depth, int alpha, int beta, int& position_count
     
     for(Move& move : possible_moves)
     {
-        // Make copy of the board.
-        Position* new_position = new Position(*position);
         // Do move.
-        new_position->do_move(&move);
+        position->do_move(&move);
         // Evaluate.
-        float score = search(current_depth - 1, alpha, beta, position_count, new_position, best_move, false, !maximizing, zobrist_skips, depth_limit);
+        float score = search(current_depth - 1, alpha, beta, position_count, position, best_move, false, !maximizing, zobrist_skips, depth_limit);
         // Undo.
-        delete new_position;
+        position->undo_move(&move);
         // Check if time is up.
         if(score == -999999)
             return -999999;

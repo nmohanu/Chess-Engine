@@ -35,9 +35,9 @@ int main()
 
     bool is_white_turn = true;
 
-    bool do_perft_test = true;
+    bool do_perft_test = false;
 
-    bool engine_turned_on = false;
+    bool engine_turned_on = true;
 
     int perft_depth_limit = 5;
 

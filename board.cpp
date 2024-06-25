@@ -166,6 +166,7 @@ void Position::undo_move(Move* move)
         // Undo capture.
         if(move->captured_piece != INVALID)
         {
+            // Toggle bit back on for captured piece.
             bit_boards[move->captured_piece] |= bit_mask;
             // Check if we need to toggle bit on color board. This is because the captured piece may have been black.
             if(move->moving_piece <=5)
@@ -174,7 +175,10 @@ void Position::undo_move(Move* move)
         // Check if moved piece was black.
         else if(move->moving_piece > 5)
         {
+            // Restore color board.
             bit_boards[COLOR_BOARD] &= ~bit_mask;
+            bit_boards[COLOR_BOARD] |= (1ULL << 63-move->start_location);
+            // Restore total board.
             bit_boards[TOTAL] &= ~bit_mask;
         }
         else
