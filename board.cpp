@@ -158,64 +158,63 @@ void Position::do_move(Move* move)
 // Handle the undo logic for a move.
 void Position::undo_move(Move* move)
 {
+    uint8_t start_square = move->start_location;
+    uint8_t end_square = move->end_location;
+    uint8_t captured_piece = move->captured_piece;
+    uint8_t moved_piece = move->moving_piece;
+    
     // place captured piece back on board.
     if(!move->move_takes_an_passant)
     {
-        uint64_t bit_mask = 1ULL << (63 - move->end_location);
+        toggle_bit_off(bit_boards[moved_piece], end_square);
+        toggle_bit_on(bit_boards[moved_piece], start_square);
 
-        // Undo capture.
-        if(move->captured_piece != INVALID)
+        // Toggle bit in total board.
+        toggle_bit_off(bit_boards[TOTAL], end_square);
+        toggle_bit_on(bit_boards[TOTAL], start_square);
+
+        if(moved_piece > 5)
         {
-            // Toggle bit back on for captured piece.
-            bit_boards[move->captured_piece] |= bit_mask;
-            // Check if we need to toggle bit on color board. This is because the captured piece may have been black.
-            if(move->moving_piece <=5)
-                bit_boards[COLOR_BOARD] |= bit_mask;
+            toggle_bit_off(bit_boards[COLOR_BOARD], end_square);
+            toggle_bit_on(bit_boards[COLOR_BOARD], start_square);
         }
-        // Check if moved piece was black.
-        else if(move->moving_piece > 5)
+
+        if(captured_piece < 12)
         {
-            // Restore color board.
-            bit_boards[COLOR_BOARD] &= ~bit_mask;
-            bit_boards[COLOR_BOARD] |= (1ULL << 63-move->start_location);
-            // Restore total board.
-            bit_boards[TOTAL] &= ~bit_mask;
+            toggle_bit_on(bit_boards[captured_piece], end_square);
+
+            // Now check if we need to update color board because of capture.
+            if(captured_piece > 5)
+            {
+                toggle_bit_on(bit_boards[COLOR_BOARD], end_square);
+            }
+            toggle_bit_on(bit_boards[TOTAL], end_square);
         }
-        else
-            bit_boards[TOTAL] &= ~bit_mask;
-        
-        // Toggle the bit off for the piece that was moved.
-        bit_boards[move->moving_piece] &= ~bit_mask;
-
-        // Now handle the origin square.
-        bit_mask = 1ULL << (63 - move->start_location);
-
-        // Toggle bit on for origin square of moving piece.
-        bit_boards[move->moving_piece] |= bit_mask;
-        bit_boards[TOTAL] |= bit_mask;
     }
     else
     {
-        // Restore en passant status.
-        this->en_passant = move->previous_en_passant;
+        uint8_t capture_square = (moved_piece > 5) ? end_square - 8 : end_square + 8;
+        uint8_t capture_piece_index = W_PAWN + 6 * !(moved_piece > 5);
 
-        // Toggle the bit off for the piece that was moved.
-        uint64_t bit_mask = 1ULL << (63 - move->end_location);
-        bit_boards[move->moving_piece] &= ~bit_mask;
-        bit_boards[TOTAL] &= ~bit_mask;
+        // Toggle off moved piece from end square
+        toggle_bit_off(bit_boards[moved_piece], end_square);
+        toggle_bit_on(bit_boards[moved_piece], start_square);
 
-        // Now handle the origin square.
-        bit_mask = 1ULL << (63 - move->start_location);
-        bit_boards[move->moving_piece] |= bit_mask;
-        bit_boards[TOTAL] |= bit_mask;
+        toggle_bit_off(bit_boards[TOTAL], end_square);
+        toggle_bit_on(bit_boards[TOTAL], start_square);
 
-        // Handle captured piece.
-        uint8_t capture_square = (move->moving_piece > 5) ? move->end_location-8 : move->end_location + 8;
-        bit_mask = 1ULL << (63 - capture_square);
-        bit_boards[W_PAWN + 6*(move->moving_piece > 5)] |= bit_mask;
-        // Check if we need to toggle bit on color board. This is because the captured piece may have been black.
-        if(move->moving_piece <=5)
-            bit_boards[COLOR_BOARD] |= bit_mask;
+        // Restore captured pawn
+        toggle_bit_on(bit_boards[capture_piece_index], capture_square);
+        toggle_bit_on(bit_boards[TOTAL], capture_square);
+        if (moved_piece > 5)
+        {
+            toggle_bit_off(bit_boards[COLOR_BOARD], end_square);
+            toggle_bit_on(bit_boards[COLOR_BOARD], start_square);
+        }
+        else
+        {
+            toggle_bit_on(bit_boards[COLOR_BOARD], capture_square);
+        }
     }
     // Undo castling.
     if(move->special_cases != 0 && move->special_cases != 5)
@@ -253,14 +252,14 @@ void Position::undo_move(Move* move)
             casling_rights |= 0b00001000;
         }
     }
+    // Restore en passant status.
+    this->en_passant = move->previous_en_passant;
 }
 
 // ============================================================================================== 
 
 void Position::move_piece(Move* move)
 {
-    // Double check. Should be in bounds, but this way we can catch bugs correlating to 
-    // memory corruption, for example.
     uint8_t start_square = move->start_location;
     uint8_t end_square = move->end_location;
     uint8_t captured_piece = get_piece(end_square);

@@ -11,18 +11,18 @@ void Engine::do_perft_test(int depth)
     clock_t start = clock();
     int captures = 0;
     int checks = 0;
-    int check_mates = 0;
-    uint64_t nodes = perft_test(&position, depth, false, captures, checks, check_mates);
+    int en_passants = 0;
+    uint64_t nodes = perft_test(&position, depth, false, captures, checks, en_passants);
     clock_t end = clock();
     double time_cost = double(end - start) / CLOCKS_PER_SEC;
     std::cout << "Depth: " << depth+1 << '\n';
-    std::cout << "PERFT results: \nNodes evaluated: " << nodes << "\nCaptures: " << captures << "\nChecks: " << checks << "\nCheckmates: " << check_mates <<
+    std::cout << "PERFT results: \nNodes evaluated: " << nodes << "\nCaptures: " << captures << "\nChecks: " << checks << "\nEn passants: " << en_passants <<
         "\nTime cost: " << time_cost << '\n';
     std::cout << "Nodes per second " << (nodes / 1000) / time_cost << "Knps" << '\n';
     std::cout << "================================================================================ \n";
 }
 
-uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& check_mates)
+uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& en_passants)
 {
     // Determine possible moves.
     std::vector<Move> possible_moves = position->determine_moves(color_sign);
@@ -37,7 +37,7 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
         // Do move.
         position->do_move(&move);
         // Recursive call.
-        nodes += perft_test(position, depth-1, !color_sign, captures, checks, check_mates);
+        nodes += perft_test(position, depth-1, !color_sign, captures, checks, en_passants);
         // Undo move.
         position->undo_move(&move);
     }

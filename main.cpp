@@ -35,9 +35,9 @@ int main()
 
     bool is_white_turn = true;
 
-    bool do_perft_test = false;
+    bool do_perft_test = true;
 
-    bool engine_turned_on = true;
+    bool engine_turned_on = false;
 
     int perft_depth_limit = 5;
 
@@ -45,7 +45,7 @@ int main()
     Move engine_move_choice;
     Move engine_move_final;
     
-    const float seconds_for_engine = 7;
+    const float seconds_for_engine = 2;
     int current_depth = 1;
 
     Engine engine;
