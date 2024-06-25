@@ -17,50 +17,16 @@ uint64_t Position::get_pawn_move(uint8_t square, bool is_black)
         move_board |= (1ULL << ((63-square)+8) & ~bit_boards[TOTAL]);
         // Check if pawn can move 2 squares. Only if in initial position and target square is empty.
         move_board |= ((move_board << 8) & (0xFFULL << 24)) & ~bit_boards[TOTAL];
-
-        // Capture to the left
-        if (square_in_bounds(square - 9) && square % 8 != 0) 
-        {
-            uint8_t piece_left = get_piece(square - 9);
-            if (piece_left != EMPTY && piece_left != INVALID && piece_left > 5 != is_black) 
-            {
-                toggle_bit_on(move_board, square - 9);
-            }
-        }
-        // Capture to the right
-        if (square_in_bounds(square - 7) && square % 8 != 7) 
-        {
-            uint8_t piece_right = get_piece(square - 7);
-            if (piece_right != EMPTY && piece_right != INVALID && piece_right > 5 != is_black) 
-            {
-                toggle_bit_on(move_board, square - 7);
-            }
-        }
+        // Attacking squares.
+        move_board |= (1ULL << (63-square+9) | 1ULL << (63-square + 7)) & (0xFFULL << (64-(square - square%8)) & bit_boards[COLOR_BOARD]);
     } 
     else 
     {   // Black pawn
         move_board |= 1ULL << ((63-square)-8) & ~bit_boards[TOTAL];
         // Check if pawn can move 2 squares. Only if in initial position and target square is empty.
         move_board |= ((move_board >> 8) & (0xFFULL << 32)) & ~bit_boards[TOTAL];
-            
-        // Capture to the left
-        if (square_in_bounds(square + 7) && square % 8 != 0) 
-        {
-            uint8_t piece_left = get_piece(square + 7);
-            if (piece_left != EMPTY && piece_left != INVALID && piece_left > 5 != is_black) 
-            {
-                toggle_bit_on(move_board, square + 7);
-            }
-        }
-        // Capture to the right
-        if (square_in_bounds(square + 9) && square % 8 != 7) 
-        {
-            uint8_t piece_right = get_piece(square + 9);
-            if (piece_right != EMPTY && piece_right != INVALID && piece_right > 5 != is_black) 
-            {
-                toggle_bit_on(move_board, square + 9);
-            }
-        }
+        // Attacking squares.)
+        move_board |= (1ULL << (63-square-9) | 1ULL << (63-square-7)) & (0xFFULL << (64-(square - square%8) - 16) & ~(bit_boards[COLOR_BOARD]) & bit_boards[TOTAL]);
     }
     
     return move_board;
