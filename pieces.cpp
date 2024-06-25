@@ -25,7 +25,7 @@ uint64_t Position::get_pawn_move(uint8_t square, bool is_black)
         move_board |= 1ULL << ((63-square)-8) & ~bit_boards[TOTAL];
         // Check if pawn can move 2 squares. Only if in initial position and target square is empty.
         move_board |= ((move_board >> 8) & (0xFFULL << 32)) & ~bit_boards[TOTAL];
-        // Attacking squares.)
+        // Attacking squares.
         move_board |= (1ULL << (63-square-9) | 1ULL << (63-square-7)) & (0xFFULL << (64-(square - square%8) - 16) & ~(bit_boards[COLOR_BOARD]) & bit_boards[TOTAL]);
     }
     
@@ -40,29 +40,6 @@ uint64_t Position::get_king_move(uint8_t square, bool is_black)
 {
     // Initialize.
     uint64_t move_board = KING_MOVE_SQUARES[square];
-
-    // uint64_t move_board = 0b0;
-    // int directions[8][2] = 
-    // {
-    //     {-1, -1}, {-1, 0}, {-1, 1},
-    //     { 0, -1},          { 0, 1},
-    //     { 1, -1}, { 1, 0}, { 1, 1}
-    // };
-
-    // // Toggle all empty bits around the king
-    // for (uint8_t i = 0; i < 8; i++) 
-    // {
-    //     uint8_t new_square = square + directions[i][0] + 8*directions[i][1];
-
-    //     if(!square_in_bounds(new_square))
-    //         continue;
-    
-    //     // if (new_x >= 0 && new_x < 8 && new_y >= 0 && new_y < 8) {
-    //     toggle_bit_on(move_board, new_square);
-    // }
-
-    // Can't move to squares occupied by own color.
-
     if(is_black)
         move_board &= ~bit_boards[COLOR_BOARD];
     else
@@ -131,31 +108,6 @@ uint64_t Position::get_bishop_move(uint8_t square, bool is_black)
 uint64_t Position::get_knight_move(uint8_t square, bool is_black) 
 {
     uint64_t move_board = KNIGHT_MOVE_SQUARES[square];
-
-    // uint64_t move_board = 0b0;
-    // // Define directions.
-    // int directions[8][2] = 
-    // {
-    //     { 1,  2}, { 1, -2}, {-1,  2}, {-1, -2},
-    //     { 2,  1}, { 2, -1}, {-2,  1}, {-2, -1}
-    // };
-
-    // // Loop through candidate squares.
-    // for (int i = 0; i < 8; ++i) 
-    // {
-    //     int x = square % 8 + directions[i][0];
-    //     int y = square / 8 + directions[i][1];
-    //     // Square may be off board.
-    //     if(x < 0 || x >= 8 || y < 0 || y >= 8)
-    //         continue;;
-
-    //     // Calculate square to check.
-    //     uint8_t new_square = x + 8*y;
-
-    //     assert(square_in_bounds(new_square));
-    //     toggle_bit_on(move_board, new_square);
-    // }
-
     // Can't move to squares occupied by own color.
     if(is_black)
         move_board &= ~bit_boards[COLOR_BOARD];
