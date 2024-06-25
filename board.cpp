@@ -112,13 +112,13 @@ uint64_t Position::color_reach_board(bool is_black)
 
     for(uint8_t square = 0; square < 64; square++)
     {
-        bit_mask >>= 1;
         // Check if piece belongs to color we are checking. Also skip if square is empty.
-        if(is_black != ((bit_mask & bit_boards[COLOR_BOARD]) > 0) || !(bit_mask & bit_boards[TOTAL]))
+        if(!(bit_mask & bit_boards[TOTAL]) || (is_black != (bit_mask & bit_boards[COLOR_BOARD])))
             continue;
         
         // Add piece reach to total reach.
         attack_board |= make_reach_board(square, is_black, get_piece(square));
+        bit_mask >>= 1;
     }
     // print_binary(attack_board);
     return attack_board;
@@ -406,6 +406,7 @@ std::vector<Move> Position::determine_moves(bool is_black)
 // Generate regular moves.
 void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, std::vector<Move>& possible_moves, uint64_t enemy_reach)
 {
+    uint64_t bit_mask = 1ULL << 63;
     for (int i = 0; i < 64; i++)
     {
         // Target square piece.
@@ -413,6 +414,7 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
 
         // Check if move is possible.
         bool can_move = get_bit_64(move_squares, i);
+        bit_mask >>= 1;
         bool can_attack = can_move && (piece_at_square != EMPTY) && (is_black != (piece_at_square > 5));
 
         if(!can_move)
@@ -450,6 +452,7 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
 
         // Clean up.
         delete copy;
+        
     }
 }
 
@@ -632,33 +635,34 @@ bool Move::move_bounds_valid()
 // Get the piece on position x, y.
 uint8_t Position::get_piece(uint8_t pos) const
 {   
+    uint64_t bit_mask = 1ULL << (63-pos);
     if(!square_in_bounds(pos))
         return INVALID;
-    else if(!get_bit_64(bit_boards[TOTAL], pos))
+    else if(!(bit_boards[TOTAL]&bit_mask))
         return EMPTY;
-    else if (get_bit_64(bit_boards[B_PAWN], pos))
+    else if (bit_boards[B_PAWN]&bit_mask)
         return B_PAWN;      // Black pawn
-    else if (get_bit_64(bit_boards[W_PAWN], pos))
+    else if (bit_boards[W_PAWN]&bit_mask)
         return W_PAWN;      // White pawn
-    else if (get_bit_64(bit_boards[B_KNIGHT], pos))
+    else if (bit_boards[B_KNIGHT]&bit_mask)
         return B_KNIGHT;    // Black knight
-    else if (get_bit_64(bit_boards[W_KNIGHT], pos))
+    else if (bit_boards[W_KNIGHT]&bit_mask)
         return W_KNIGHT;    // White knight
-    else if (get_bit_64(bit_boards[B_BISHOP], pos))
+    else if (bit_boards[B_BISHOP]&bit_mask)
         return B_BISHOP;    // Black bishop
-    else if (get_bit_64(bit_boards[W_BISHOP], pos))
+    else if (bit_boards[W_BISHOP]&bit_mask)
         return W_BISHOP;    // White bishop
-    else if (get_bit_64(bit_boards[B_ROOK], pos))
+    else if (bit_boards[B_ROOK]&bit_mask)
         return B_ROOK;      // Black rook
-    else if (get_bit_64(bit_boards[W_ROOK], pos))
+    else if (bit_boards[W_ROOK]&bit_mask)
         return W_ROOK;      // White rook
-    else if (get_bit_64(bit_boards[B_QUEEN], pos))
+    else if (bit_boards[B_QUEEN]&bit_mask)
         return B_QUEEN;     // Black queen
-    else if (get_bit_64(bit_boards[W_QUEEN], pos))
+    else if (bit_boards[W_QUEEN]&bit_mask)
         return W_QUEEN;     // White queen
-    else if (get_bit_64(bit_boards[B_KING], pos))
+    else if (bit_boards[B_KING]&bit_mask)
         return B_KING;      // Black king
-    else if (get_bit_64(bit_boards[W_KING], pos))
+    else if (bit_boards[W_KING]&bit_mask)
         return W_KING;      // White king
      
     return INVALID;
