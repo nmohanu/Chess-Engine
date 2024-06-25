@@ -368,7 +368,8 @@ void Position::handle_special_cases(Move* move)
         handle_castling(move);
     }
     // Check if an passant is possible after this move.
-    else if(move->special_cases == 5)
+    else if(move->moving_piece == B_PAWN && (move->end_location - move->start_location) == 16 
+        || move->moving_piece == W_PAWN && (move->end_location - move->start_location) == 16)
     {
         check_en_passant_possibility(move);
     }
@@ -511,39 +512,24 @@ std::vector<Move> Position::determine_moves(bool is_black)
 // Generate regular moves.
 void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, std::vector<Move>& possible_moves, uint64_t enemy_reach)
 {
-    uint64_t bit_mask = 1ULL << 63;
+    // uint64_t bit_mask = 1ULL << 63;
     for (int i = 0; i < 64; i++)
     {
-        // Check if move is possible.
-        bool can_move = bit_mask&move_squares;
-        bit_mask >>= 1;
-
-        if(!can_move)
+        // Check if move to square i is possible. Is possible if i intersects with a moving square.
+        if(!((1ULL << (63-i))&move_squares))
+        {
+            // bit_mask >>= 1;
             continue;
-
+        }
+        // bit_mask >>= 1;
         Move move(pos, i);
-        assert(move.move_bounds_valid());
-        
         // Insert move data.
         move.moving_piece = piece_type;
-
         // Simulate the move.
-        assert(move.moving_piece < 12);
         do_move(&move);
-
-        // Check if king is not under attack after the move.
-        if (king_look_around(is_black))
-        {
-            undo_move(&move);
-            continue;
-        }
-        // Handle special case for pawn two-square move.
-        else if ((piece_type == B_PAWN && (i - pos) == 16 || piece_type == W_PAWN && (pos - i) == 16))
-        {
-            move.special_cases = 5;
-        }
-        // Insert into possible moves vector.
-        possible_moves.push_back(move);
+        // Check if king is not under attack after the move. If not, add move to possible moves.
+        if (!king_look_around(is_black))
+            possible_moves.push_back(move);
 
         // Clean up.
         undo_move(&move);

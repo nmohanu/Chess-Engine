@@ -136,4 +136,10 @@ struct Move
     float evaluation;
 };
 
+typedef struct 
+{
+    Move* moves[256];
+    int move_count;
+} moves;
+
 #endif

@@ -133,7 +133,7 @@ int main()
     {
         for(int depth = 1; depth <= perft_depth_limit; depth++)
             engine.do_perft_test(depth);
-        return 0;
+        // return 0;
     }
 
     sf::RenderWindow window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Chess Engine");
