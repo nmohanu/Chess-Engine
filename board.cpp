@@ -108,11 +108,13 @@ uint64_t Position::make_reach_board(uint8_t square, bool is_black, uint8_t piece
 uint64_t Position::color_reach_board(bool is_black)
 {
     uint64_t attack_board = 0;
+    uint64_t bit_mask = 1ULL << 63;
 
     for(uint8_t square = 0; square < 64; square++)
     {
+        bit_mask >>= 1;
         // Check if piece belongs to color we are checking. Also skip if square is empty.
-        if(is_black != get_bit_64(bit_boards[COLOR_BOARD], square) || !get_bit_64(bit_boards[TOTAL], square))
+        if(is_black != ((bit_mask & bit_boards[COLOR_BOARD]) > 0) || !(bit_mask & bit_boards[TOTAL]))
             continue;
         
         // Add piece reach to total reach.
