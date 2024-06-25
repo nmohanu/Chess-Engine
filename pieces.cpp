@@ -60,9 +60,11 @@ uint64_t Position::get_bishop_move(uint8_t square, bool is_black)
     uint8_t offset = 1;
     int square_copy = square;
     uint64_t bit_mask = 1ULL << (63-square);
-    // Continue until another piece is found.
+    // Continue until another piece is found. Repeat for each direction.
     while (true)
     {
+        if(square_copy < 0 || square_copy % 8 == 0)
+            break;
         bit_mask <<= 9;
         square_copy -= 9;
         move_board |= bit_mask;
@@ -74,33 +76,39 @@ uint64_t Position::get_bishop_move(uint8_t square, bool is_black)
     bit_mask = 1ULL << (63-square);
     while (true)
     {
+        if(square_copy < 0 || square_copy % 8 == 7)
+            break;
         bit_mask <<= 7;
         square_copy -= 7;
         move_board |= bit_mask;
         // If a piece is found, stop looking in this direction.
-        if(((bit_boards[TOTAL] & bit_mask) != 0) || square_copy < 0 || square_copy % 8 == 7)
+        if(((bit_boards[TOTAL] & bit_mask) != 0))
             break;
     }
     square_copy = square;
     bit_mask = 1ULL << (63-square);
     while (true)
     {
+        if(square_copy >= 64 || square_copy % 8 == 7)
+            break;
         bit_mask >>= 9;
         square_copy += 9;
         move_board |= bit_mask;
         // If a piece is found, stop looking in this direction.
-        if(((bit_boards[TOTAL] & bit_mask) != 0) || square_copy >= 64 || square_copy % 8 == 7)
+        if(((bit_boards[TOTAL] & bit_mask) != 0))
             break;
     }
     square_copy = square;
     bit_mask = 1ULL << (63-square);
     while (true)
     {
+        if(square_copy >= 64 || square_copy % 8 == 0)
+            break;
         bit_mask >>= 7;
         square_copy += 7;
         move_board |= bit_mask;
         // If a piece is found, stop looking in this direction.
-        if(((bit_boards[TOTAL] & bit_mask) != 0) || square_copy >= 64 || square_copy % 8 == 0)
+        if(((bit_boards[TOTAL] & bit_mask) != 0))
             break;
     }
     
