@@ -15,7 +15,7 @@ void Engine::do_perft_test(int depth)
     uint64_t nodes = perft_test(&position, depth, false, captures, checks, check_mates);
     clock_t end = clock();
     double time_cost = double(end - start) / CLOCKS_PER_SEC;
-    std::cout << "Depth: " << depth << '\n';
+    std::cout << "Depth: " << depth+1 << '\n';
     std::cout << "PERFT results: \nNodes evaluated: " << nodes << "\nCaptures: " << captures << "\nChecks: " << checks << "\nCheckmates: " << check_mates <<
         "\nTime cost: " << time_cost << '\n';
     std::cout << "Nodes per second " << (nodes / 1000) / time_cost << "Knps" << '\n';

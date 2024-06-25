@@ -409,7 +409,7 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
         uint8_t piece_at_square = this->get_piece(i);
 
         // Check if move is possible.
-        bool can_move = get_bit_64(move_squares, i);
+        bool can_move = bit_mask&move_squares;
         bit_mask >>= 1;
         bool can_attack = can_move && (piece_at_square != EMPTY) && (is_black != (piece_at_square > 5));
 

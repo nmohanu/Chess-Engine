@@ -39,7 +39,7 @@ int main()
 
     bool engine_turned_on = false;
 
-    int perft_depth_limit = 4;
+    int perft_depth_limit = 5;
 
     // We want to store the found move here.
     Move engine_move_choice;
