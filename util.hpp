@@ -154,8 +154,11 @@ void toggle_bit_off(uint64_t &num, uint64_t pos);
 // Get bit of an 8 bit number.
 bool get_bit(uint8_t num, uint8_t pos);
 
-// Get bit of a 64 bit number.
-bool get_bit_64(uint64_t num, uint8_t pos);
+// Check if a certain bit is on or off. (64bit)
+inline bool get_bit_64(uint64_t num, uint8_t pos) 
+{
+    return (num & (1ULL << (63 - pos))) != 0;
+}
 
 // Print a binary number (for debugging).
 void print_binary(uint64_t num);

@@ -28,12 +28,6 @@ bool get_bit(uint8_t num, uint8_t pos)
     return result;
 }
 
-// Check if a certain bit is on or off. (64bit)
-bool get_bit_64(uint64_t num, uint8_t pos)
-{
-    uint64_t mask = 1ULL << (63 - pos);
-    return (num & mask) != 0;
-}
 
 // Useful for debugging.
 void print_binary(uint64_t num)

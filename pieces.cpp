@@ -38,7 +38,7 @@ uint64_t Position::get_pawn_move(uint8_t square, bool is_black)
 // King moving.
 uint64_t Position::get_king_move(uint8_t square, bool is_black) 
 {
-    // Initialize.
+    // Get squares from memory.
     uint64_t move_board = KING_MOVE_SQUARES[square];
     if(is_black)
         move_board &= ~bit_boards[COLOR_BOARD];
@@ -57,41 +57,53 @@ uint64_t Position::get_bishop_move(uint8_t square, bool is_black)
 {
     uint64_t move_board = 0b0;
 
-    // Define the directions as square increments.
-    int directions[4][2] = 
+    uint8_t offset = 1;
+    int square_copy = square;
+    uint64_t bit_mask = 1ULL << (63-square);
+    // Continue until another piece is found.
+    while (true)
     {
-        {-1, -1},   {-1, 1},
-        { 1, -1},   { 1, 1}
-    };
-
-    // Loop over directions.
-    for (uint8_t dir = 0; dir < 4; dir++) 
-    {   
-        uint8_t offset = 1;
-        // Continue until another piece is found.
-        while (true)
-        {
-            int x = square % 8 + directions[dir][0]*offset;
-            int y = square / 8 + directions[dir][1]*offset;
-            // Square may be off board.
-            if(x < 0 || x >= 8 || y < 0 || y >= 8)
-                break;
-
-            // Calculate square to check.
-            uint8_t new_square = x + 8*y;
-
-            // Toggle bit on.
-            assert(square_in_bounds(new_square));
-            toggle_bit_on(move_board, new_square);
-
-            // If a piece is found, stop looking in this direction.
-            if(get_bit_64(bit_boards[TOTAL], new_square))
-                break;
-
-            // Look one square further.
-            offset++;
-        }
+        bit_mask <<= 9;
+        square_copy -= 9;
+        move_board |= bit_mask;
+        // If a piece is found, stop looking in this direction.
+        if(((bit_boards[TOTAL] & bit_mask) != 0) || square_copy < 0 || square_copy % 8 == 0)
+            break;
     }
+    square_copy = square;
+    bit_mask = 1ULL << (63-square);
+    while (true)
+    {
+        bit_mask <<= 7;
+        square_copy -= 7;
+        move_board |= bit_mask;
+        // If a piece is found, stop looking in this direction.
+        if(((bit_boards[TOTAL] & bit_mask) != 0) || square_copy < 0 || square_copy % 8 == 7)
+            break;
+    }
+    square_copy = square;
+    bit_mask = 1ULL << (63-square);
+    while (true)
+    {
+        bit_mask >>= 9;
+        square_copy += 9;
+        move_board |= bit_mask;
+        // If a piece is found, stop looking in this direction.
+        if(((bit_boards[TOTAL] & bit_mask) != 0) || square_copy >= 64 || square_copy % 8 == 7)
+            break;
+    }
+    square_copy = square;
+    bit_mask = 1ULL << (63-square);
+    while (true)
+    {
+        bit_mask >>= 7;
+        square_copy += 7;
+        move_board |= bit_mask;
+        // If a piece is found, stop looking in this direction.
+        if(((bit_boards[TOTAL] & bit_mask) != 0) || square_copy >= 64 || square_copy % 8 == 0)
+            break;
+    }
+    
     // Can't move to squares occupied by own color.
     if(is_black)
         move_board &= ~bit_boards[COLOR_BOARD];
@@ -107,8 +119,8 @@ uint64_t Position::get_bishop_move(uint8_t square, bool is_black)
 // Knight move logic.
 uint64_t Position::get_knight_move(uint8_t square, bool is_black) 
 {
+    // Get squares from memory.
     uint64_t move_board = KNIGHT_MOVE_SQUARES[square];
-    // Can't move to squares occupied by own color.
     if(is_black)
         move_board &= ~bit_boards[COLOR_BOARD];
     else
