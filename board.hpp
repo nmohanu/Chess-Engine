@@ -26,6 +26,7 @@ struct Move
     uint8_t moving_piece = INVALID;
     uint8_t captured_piece = INVALID;
     uint8_t previous_en_passant;
+    uint8_t previous_castling_rights;
 
     // Move might be a castling move or engine needs to check for en passant next move.
     // 1 = white kingside, 2 = white queenside, 3 = black kingside, 4 = black queenside, 5 = engine needs to check for an passant afterwards.

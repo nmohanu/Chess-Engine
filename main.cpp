@@ -35,7 +35,7 @@ int main()
 
     bool is_white_turn = true;
 
-    bool do_perft_test = true;
+    bool do_perft_test = false;
 
     bool engine_turned_on = false;
 
@@ -47,7 +47,7 @@ int main()
     
     const float seconds_for_engine = 2;
     int current_depth = 1;
-
+ 
     Engine engine;
 
     float SCALE_FACTOR = 8.f;

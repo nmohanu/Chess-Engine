@@ -261,6 +261,7 @@ void Position::undo_move(Move* move)
     }
     // Restore en passant status.
     this->en_passant = move->previous_en_passant;
+    this->casling_rights = move->previous_castling_rights;
 }
 
 // ============================================================================================== 
@@ -307,6 +308,30 @@ void Position::move_piece(Move* move)
         {
             bit_boards[COLOR_BOARD] &= ~end_square_mask;
         }
+    }
+
+    // Update castling rights if king was moved.
+    if(moved_piece == W_KING || moved_piece == B_KING)
+    {
+        uint8_t mask = 0b11;
+
+        if(start_square == 4)
+            casling_rights &= ~(mask);
+        else if(start_square == 60)
+            casling_rights &= ~(mask << 2);
+    }
+    // Update castling rights if a rook was moved or captured.
+    else if(moved_piece == W_ROOK || moved_piece == B_ROOK || captured_piece == W_ROOK || captured_piece == B_ROOK)
+    {
+        uint8_t mask = 1ULL;
+        if(start_square == 0)
+            casling_rights &= ~(mask);
+        else if(start_square == 7)
+            casling_rights &= ~(mask << 1);
+        else if(start_square == 56)
+            casling_rights &= ~(mask << 2);
+        else if(start_square == 63)
+            casling_rights &= ~(mask << 3);
     }
 }
 
@@ -398,22 +423,18 @@ void Position::handle_castling(Move* move)
         case 1: // White kingside
             rook_start = 63;
             rook_end = 61;
-            casling_rights &= 0b00000111;
             break;
         case 2: // White queenside
             rook_start = 56;
             rook_end = 59;
-            casling_rights &= 0b00001011;
             break;
         case 3: // Black kingside
             rook_start = 7;
             rook_end = 5;
-            casling_rights &= 0b00001101;
             break;
         case 4: // Black queenside
             rook_start = 0;
-            rook_end = 2;
-            casling_rights &= 0b00001110;
+            rook_end = 3;
             break;
         default:
             return;
@@ -430,10 +451,10 @@ void Position::handle_castling(Move* move)
     if(is_black)
     {
         toggle_bit_off(bit_boards[COLOR_BOARD], rook_start);
-        toggle_bit_off(bit_boards[COLOR_BOARD], rook_end);
+        toggle_bit_on(bit_boards[COLOR_BOARD], rook_end);
     }
     toggle_bit_off(bit_boards[TOTAL], rook_start);
-    toggle_bit_off(bit_boards[TOTAL], rook_end);
+    toggle_bit_on(bit_boards[TOTAL], rook_end);
 }
 
 // ==============================================================================================
@@ -534,6 +555,8 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
         move->move_takes_an_passant = false;
         move->start_location = pos;
         move->end_location = i;
+        move->special_cases = 0b0;
+        move->previous_castling_rights = casling_rights;
         
         // TEMP: copy state
         // Position copy(*this);
@@ -549,7 +572,6 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
 
 // ==============================================================================================
 
-// TODO: ignore pawn forward as check.
 // Check if king is under check if we don't have an enemy reach board.
 // We do this here by simulating different piece moves from the kings position.
 // If, from the result, we find that the king can reach that piece type of the enemy player,
@@ -607,7 +629,7 @@ void Position::generate_castling_moves(bool is_black, uint64_t enemy_reach)
             && !boards_intersect(check_test, enemy_reach) && !boards_intersect(check_test2, enemy_reach))
         {
             Move move(4, 6);
-            move.moving_piece = B_ROOK;
+            move.moving_piece = B_KING;
             move.special_cases = 3;
             assert(move.moving_piece < 12);
             if(move.move_bounds_valid())
@@ -623,7 +645,7 @@ void Position::generate_castling_moves(bool is_black, uint64_t enemy_reach)
             && !boards_intersect(check_test, enemy_reach) && !boards_intersect(check_test2, enemy_reach))
         {
             Move move(60, 62);
-            move.moving_piece = W_ROOK;
+            move.moving_piece = W_KING;
             move.special_cases = 1;
             assert(move.moving_piece < 12);
             if(move.move_bounds_valid())
@@ -640,7 +662,7 @@ void Position::generate_castling_moves(bool is_black, uint64_t enemy_reach)
             && !boards_intersect(check_test, enemy_reach) && !boards_intersect(check_test2, enemy_reach))
         {
             Move move(4, 2);
-            move.moving_piece = B_ROOK;
+            move.moving_piece = B_KING;
             move.special_cases = 4;
             assert(move.moving_piece < 12);
             if(move.move_bounds_valid())
@@ -656,7 +678,7 @@ void Position::generate_castling_moves(bool is_black, uint64_t enemy_reach)
             && !boards_intersect(check_test, enemy_reach) && !boards_intersect(check_test2, enemy_reach))
         {
             Move move(60, 58);
-            move.moving_piece = W_ROOK;
+            move.moving_piece = W_KING;
             move.special_cases = 2;
             assert(move.moving_piece < 12);
             if(move.move_bounds_valid())
@@ -699,6 +721,8 @@ void Position::generate_en_passant_move(bool is_black)
         Move move(start_square, end_square);
         move.moving_piece = W_PAWN + 6*is_black;
         move.move_takes_an_passant = true;
+        move.previous_castling_rights = casling_rights;
+        move.previous_en_passant = en_passant;
         // Simulate the move.
         assert(move.moving_piece < 12);
         do_move(&move);
