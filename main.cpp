@@ -35,7 +35,7 @@ int main()
 
     bool is_white_turn = true;
 
-    bool do_perft_test = false;
+    bool do_perft_test = true;
 
     bool engine_turned_on = false;
 

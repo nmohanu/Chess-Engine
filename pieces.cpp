@@ -45,7 +45,6 @@ uint64_t Position::get_king_move(uint8_t square, bool is_black)
     else
         move_board &= ~(~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
 
-
     // Remove occupied squares.
     return move_board;
 }

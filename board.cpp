@@ -342,6 +342,7 @@ void Position::handle_en_passant_capture(Move* move)
     toggle_bit_off(bit_boards[board_index], captured_pawn_square);
     // Total board taken piece.
     toggle_bit_off(bit_boards[TOTAL], captured_pawn_square);
+    toggle_bit_off(bit_boards[TOTAL], start_location);
     // Total board new position.
     toggle_bit_on(bit_boards[TOTAL], end_location);
     // Update color board.
@@ -533,6 +534,10 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
         move->move_takes_an_passant = false;
         move->start_location = pos;
         move->end_location = i;
+        
+        // TEMP: copy state
+        // Position copy(*this);
+
         // Simulate the move.
         do_move(move);
         // Check if king is not under attack after the move. If not, add move to possible moves.
@@ -568,7 +573,10 @@ bool Position::king_look_around(bool is_black)
     if(boards_intersect(bit_boards[W_KNIGHT + !is_black * 6], knight_check))
         check = true;
     // Check if a pawn is in range of king.
-    uint64_t pawn_check = get_pawn_move(king_position, is_black);
+    uint64_t pawn_check = 0b0;
+    // Get diagonal attack squares.
+    pawn_check |= is_black ? (1ULL << (63-king_position-9) | 1ULL << (63-king_position-7)) & (0xFFULL << (64-(king_position - king_position%8) - 16) & ~(bit_boards[COLOR_BOARD]) & bit_boards[TOTAL]) 
+        : (1ULL << (63-king_position+9) | 1ULL << (63-king_position + 7)) & (0xFFULL << (64-(king_position - king_position%8)) & bit_boards[COLOR_BOARD]);
     // make_reach_board(king_position, is_black, W_PAWN + 6*is_black);
     if(boards_intersect(bit_boards[W_PAWN + !is_black * 6], pawn_check))
         check = true;
@@ -577,8 +585,8 @@ bool Position::king_look_around(bool is_black)
     if(boards_intersect(bit_boards[W_KING + !is_black * 6], king_check))
         check = true;
 
-    if(check)
-        std::cout << "CHECK" << '\n';
+    // if(check)
+    //     std::cout << "CHECK" << '\n';
 
     return check;
 }

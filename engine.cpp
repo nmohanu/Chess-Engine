@@ -7,6 +7,7 @@ Engine::Engine()
 
 void Engine::do_perft_test(int depth)
 {
+    transposition_table.clear_table();
     Position position;
     clock_t start = clock();
     int captures = 0;
@@ -32,19 +33,22 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
     if(depth == 0)
         return possible_moves.move_count;
 
-    // Make hash entries of position.
-    uint64_t key = hasher.calculate_zobrist_key(position, color_sign);
-    int entry_node_count = transposition_table.get_entry_nodes(depth, key);
+    // // Make hash entries of position.
+    // uint64_t key = hasher.calculate_zobrist_key(position, color_sign);
+    // int entry_node_count = transposition_table.get_entry_nodes(depth, key);
 
-    // Read hash entry.
-    if(entry_node_count != no_hash_entry)
-    {
-        // Position wes already evaluated in a different order.
-        return entry_node_count;
-    }
+    // // Read hash entry.
+    // if(entry_node_count != no_hash_entry)
+    // {
+    //     // Position wes already evaluated in a different order.
+    //     return entry_node_count;
+    // }
 
     for(int i = 0; i < possible_moves.move_count; i++)
     {
+        // TEMP:
+        // Position copy(*position);
+
         // Do move.
         position->do_move(&possible_moves.moves[i]);
         // Recursive call.
@@ -52,7 +56,7 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
         // Undo move.
         position->undo_move(&possible_moves.moves[i]);
 
-        transposition_table.insert_hash(depth, 0, 0, key, nodes);
+        // transposition_table.insert_hash(depth, 0, 0, key, nodes);
     }
     // Return result.
     return nodes;
