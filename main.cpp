@@ -35,11 +35,11 @@ int main()
 
     bool is_white_turn = true;
 
-    bool do_perft_test = true;
+    bool do_perft_test = false;
 
     bool engine_turned_on = false;
 
-    int perft_depth_limit = 5;
+    int perft_depth_limit = 8;
 
     // We want to store the found move here.
     Move engine_move_choice;
@@ -60,9 +60,10 @@ int main()
     std::pair<int,int> last_clicked_square;
 
     uint64_t move_board = 0b0;
-    uint64_t reach_board = 0b0;
+    int64_t black_reach_board = board->position->color_reach_board(1);
+    uint64_t white_reach_board = board->position->color_reach_board(0);
 
-    std::vector<Move> possible_moves;
+    moves possible_moves = board->position->determine_moves(0);
     // possible_moves = board->position->determine_moves(!is_white_turn);
 
     sf::Vector2f offset((SCREEN_WIDTH - 16*SCALE_FACTOR*8)/2, (SCREEN_HEIGHT - 16*SCALE_FACTOR*8)/2);
@@ -127,7 +128,21 @@ int main()
     selection_square.setTextureRect(sf::IntRect(224, 0, 16, 16));
     selection_square.setScale(SCALE_FACTOR, SCALE_FACTOR);
 
-    
+    sf::Sprite total_square(texture);
+    total_square.setTextureRect(sf::IntRect(224 + 32, 0, 16, 16));
+    total_square.setScale(SCALE_FACTOR, SCALE_FACTOR);
+
+    sf::Sprite color_square(texture);
+    color_square.setTextureRect(sf::IntRect(224 + 16, 0, 16, 16));
+    color_square.setScale(SCALE_FACTOR, SCALE_FACTOR);
+
+    sf::Sprite white_reach_sprite(texture);
+    white_reach_sprite.setTextureRect(sf::IntRect(224 + 32 + 16, 0, 16, 16));
+    white_reach_sprite.setScale(SCALE_FACTOR, SCALE_FACTOR);
+
+    sf::Sprite black_reach_sprite(texture);
+    black_reach_sprite.setTextureRect(sf::IntRect(224 + 32 + 32, 0, 16, 16));
+    black_reach_sprite.setScale(SCALE_FACTOR, SCALE_FACTOR);
 
     if(do_perft_test)
     {
@@ -224,25 +239,27 @@ int main()
             {
                 selected_piece = board->position->get_piece(square_on_board);
 
-                reach_board = board->position->make_reach_board(square_on_board, !is_white_turn, selected_piece);
+                move_board = board->position->make_reach_board(square_on_board, !is_white_turn, selected_piece);
 
                 if(selected_piece == EMPTY)
                 {
                     move_board = 0b0;
-                    reach_board = 0b0;
                 }
                 
-                for (Move move : possible_moves)
+                for (int i = 0; i < possible_moves.move_count; i++)
                 {
-                    if(move.start_location == last_square_on_board && move.end_location == square_on_board)
+                    Move* move = &possible_moves.moves[i];
+                    if(move->start_location == last_square_on_board && move->end_location == square_on_board)
                     {
-                        board->position->do_move(&move);
+                        board->position->do_move(move);
                         is_white_turn = !is_white_turn;
-                        // possible_moves = board->position->determine_moves(!is_white_turn);
-                        // if(possible_moves.empty())
-                        // {
-                        //     std::cout << "Player " << !is_white_turn << " wins! \n";
-                        // }
+                        possible_moves = board->position->determine_moves(!is_white_turn);
+                        white_reach_board = board->position->color_reach_board(0);
+                        black_reach_board = board->position->color_reach_board(1);
+                        if(possible_moves.move_count == 0)
+                        {
+                            std::cout << "Player " << !is_white_turn << " wins! \n";
+                        }
                         break;
                     }
                 }
@@ -344,8 +361,32 @@ int main()
                     window.draw(selection_square);
                 }
 
+                if(1ULL << (63-pos)&board->position->bit_boards[TOTAL])
+                {
+                    total_square.setPosition(sf::Vector2f(print_position));
+                    window.draw(total_square);
+                }
+
+                if(1ULL << (63-pos)&board->position->bit_boards[COLOR_BOARD])
+                {
+                    color_square.setPosition(sf::Vector2f(print_position));
+                    window.draw(color_square);
+                }
+
+                if((1ULL << (63-pos))&black_reach_board)
+                {
+                    black_reach_sprite.setPosition(sf::Vector2f(print_position));
+                    window.draw(black_reach_sprite);
+                }
+
+                if((1ULL << (63-pos))&white_reach_board)
+                {
+                    white_reach_sprite.setPosition(sf::Vector2f(print_position));
+                    window.draw(white_reach_sprite);
+                }
+
                 uint8_t piece_at_pos = board->position->get_piece(pos);
-                if(get_bit_64(reach_board, pos) && selected_piece > 5 == !is_white_turn)
+                if(get_bit_64(move_board, pos) && selected_piece > 5 == !is_white_turn)
                 {
                     selection_square.setPosition(sf::Vector2f(print_position));
                     window.draw(selection_square);

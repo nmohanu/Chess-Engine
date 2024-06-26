@@ -113,9 +113,13 @@ uint64_t Position::color_reach_board(bool is_black)
 
     for(uint8_t square = 0; square < 64; square++)
     {
+        bool piece_at_square_black = (bit_mask & bit_boards[COLOR_BOARD]);
         // Check if piece belongs to color we are checking. Also skip if square is empty.
-        if(!(bit_mask & bit_boards[TOTAL]) || (is_black != (bit_mask & bit_boards[COLOR_BOARD])))
+        if(!(bit_mask & bit_boards[TOTAL]) || (is_black != piece_at_square_black))
+        {
+            bit_mask >>= 1;
             continue;
+        }
         
         // Add piece reach to total reach.
         attack_board |= make_reach_board(square, is_black, get_piece(square));
@@ -162,33 +166,35 @@ void Position::undo_move(Move* move)
     uint8_t end_square = move->end_location;
     uint8_t captured_piece = move->captured_piece;
     uint8_t moved_piece = move->moving_piece;
+    uint64_t end_square_mask = ~(1ULL << (63-end_square));
+    uint64_t start_square_mask = 1ULL << (63-start_square);
     
     // place captured piece back on board.
     if(!move->move_takes_an_passant)
     {
-        toggle_bit_off(bit_boards[moved_piece], end_square);
-        toggle_bit_on(bit_boards[moved_piece], start_square);
+        bit_boards[moved_piece] &= end_square_mask;
+        bit_boards[moved_piece] |= start_square_mask;
 
         // Toggle bit in total board.
-        toggle_bit_off(bit_boards[TOTAL], end_square);
-        toggle_bit_on(bit_boards[TOTAL], start_square);
+        bit_boards[TOTAL] &= end_square_mask;
+        bit_boards[TOTAL] |= start_square_mask;
 
         if(moved_piece > 5)
         {
-            toggle_bit_off(bit_boards[COLOR_BOARD], end_square);
-            toggle_bit_on(bit_boards[COLOR_BOARD], start_square);
+            bit_boards[COLOR_BOARD] &= end_square_mask;
+            bit_boards[COLOR_BOARD] |= start_square_mask;
         }
 
         if(captured_piece < 12)
         {
-            toggle_bit_on(bit_boards[captured_piece], end_square);
+            bit_boards[captured_piece] |= ~end_square_mask;
 
             // Now check if we need to update color board because of capture.
             if(captured_piece > 5)
             {
-                toggle_bit_on(bit_boards[COLOR_BOARD], end_square);
+                bit_boards[COLOR_BOARD] |= ~end_square_mask;
             }
-            toggle_bit_on(bit_boards[TOTAL], end_square);
+            bit_boards[TOTAL] |= ~end_square_mask;
         }
     }
     else
@@ -197,23 +203,24 @@ void Position::undo_move(Move* move)
         uint8_t capture_piece_index = W_PAWN + 6 * !(moved_piece > 5);
 
         // Toggle off moved piece from end square
-        toggle_bit_off(bit_boards[moved_piece], end_square);
-        toggle_bit_on(bit_boards[moved_piece], start_square);
+        bit_boards[moved_piece] &= end_square_mask;
+        bit_boards[moved_piece] |= start_square_mask;
 
-        toggle_bit_off(bit_boards[TOTAL], end_square);
-        toggle_bit_on(bit_boards[TOTAL], start_square);
+        bit_boards[TOTAL] &= end_square_mask;
+        bit_boards[TOTAL] |= start_square_mask;
 
         // Restore captured pawn
-        toggle_bit_on(bit_boards[capture_piece_index], capture_square);
-        toggle_bit_on(bit_boards[TOTAL], capture_square);
+        uint64_t capture_square_mask = 1ULL << (63-capture_square);
+        bit_boards[capture_piece_index] |= capture_square_mask;
+        bit_boards[TOTAL] |= capture_square_mask;
         if (moved_piece > 5)
         {
-            toggle_bit_off(bit_boards[COLOR_BOARD], end_square);
-            toggle_bit_on(bit_boards[COLOR_BOARD], start_square);
+            bit_boards[COLOR_BOARD] &= end_square_mask;
+            bit_boards[COLOR_BOARD] |= start_square_mask;
         }
         else
         {
-            toggle_bit_on(bit_boards[COLOR_BOARD], capture_square);
+            bit_boards[COLOR_BOARD] |= capture_square_mask;
         }
     }
     // Undo castling.
@@ -263,6 +270,8 @@ void Position::move_piece(Move* move)
     uint8_t start_square = move->start_location;
     uint8_t end_square = move->end_location;
     uint8_t captured_piece = get_piece(end_square);
+    uint64_t start_square_mask = ~(1ULL << (63-start_square));
+    uint64_t end_square_mask = 1ULL << (63-end_square);
 
     // Store captured piece for undoing move.
     move->captured_piece = captured_piece;
@@ -274,29 +283,29 @@ void Position::move_piece(Move* move)
     assert(moved_piece < 12);
     
     // Toggle bit in piece board.
-    toggle_bit_on(bit_boards[moved_piece], end_square);
-    toggle_bit_off(bit_boards[moved_piece], start_square);
+    bit_boards[moved_piece] |= end_square_mask;
+    bit_boards[moved_piece] &= start_square_mask;
 
     // Toggle bit in total board.
-    toggle_bit_on(bit_boards[TOTAL], end_square);
-    toggle_bit_off(bit_boards[TOTAL], start_square);
+    bit_boards[TOTAL] |= end_square_mask;
+    bit_boards[TOTAL] &= start_square_mask;
 
     // If necessary, toggle bit in color board.
     if(moved_piece > 5)
     {
-        toggle_bit_on(bit_boards[COLOR_BOARD], end_square);
-        toggle_bit_off(bit_boards[COLOR_BOARD], start_square);
+        bit_boards[COLOR_BOARD] |= end_square_mask;
+        bit_boards[COLOR_BOARD] &= start_square_mask;
     }
 
     // Check if there was a piece captured.
     if(captured_piece < 12)
     {
-        toggle_bit_off(bit_boards[captured_piece], end_square);
+        bit_boards[captured_piece] &= ~end_square_mask;
 
         // Now check if we need to update color board because of capture.
         if(captured_piece > 5)
         {
-            toggle_bit_off(bit_boards[COLOR_BOARD], end_square);
+            bit_boards[COLOR_BOARD] &= ~end_square_mask;
         }
     }
 }
@@ -369,7 +378,7 @@ void Position::handle_special_cases(Move* move)
     }
     // Check if an passant is possible after this move.
     else if(move->moving_piece == B_PAWN && (move->end_location - move->start_location) == 16 
-        || move->moving_piece == W_PAWN && (move->end_location - move->start_location) == 16)
+        || move->moving_piece == W_PAWN && (move->start_location - move->end_location) == 16)
     {
         check_en_passant_possibility(move);
     }
@@ -517,22 +526,19 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
     {
         // Check if move to square i is possible. Is possible if i intersects with a moving square.
         if(!((1ULL << (63-i))&move_squares))
-        {
-            // bit_mask >>= 1;
             continue;
-        }
-        // bit_mask >>= 1;
-        Move move(pos, i);
+        Move* move = &possible_moves.moves[possible_moves.move_count];
         // Insert move data.
-        move.moving_piece = piece_type;
+        move->moving_piece = piece_type;
+        move->move_takes_an_passant = false;
+        move->start_location = pos;
+        move->end_location = i;
         // Simulate the move.
-        do_move(&move);
+        do_move(move);
         // Check if king is not under attack after the move. If not, add move to possible moves.
-        if (!king_look_around(is_black))
-            possible_moves.moves[possible_moves.move_count++] = move;
-
+        possible_moves.move_count += !king_look_around(is_black);
         // Clean up.
-        undo_move(&move);
+        undo_move(move);
     }
 }
 
@@ -547,28 +553,34 @@ bool Position::king_look_around(bool is_black)
 {   
     uint8_t king_position = find_bit_position(bit_boards[W_KING + 6*is_black]);
     uint64_t king_board = bit_boards[W_KING + 6*is_black];
+    bool check = false;
 
     // Check bishop checks, and diagonal queen checks.
     uint64_t bishop_check = get_bishop_move(king_position, is_black);
     if(boards_intersect(bit_boards[W_BISHOP + !is_black * 6], bishop_check) || boards_intersect(bit_boards[W_QUEEN + !is_black * 6], bishop_check))
-        return true;
+        check = true;
     // Check rook checks. And horizontal queen checks.
     uint64_t rook_check = get_rook_move(king_position, is_black);
     if(boards_intersect(bit_boards[W_ROOK + !is_black * 6], rook_check) || boards_intersect(bit_boards[W_QUEEN + !is_black * 6], rook_check))
-        return true;
+        check = true;
     // Check knight checks.
     uint64_t knight_check = get_knight_move(king_position, is_black);
     if(boards_intersect(bit_boards[W_KNIGHT + !is_black * 6], knight_check))
-        return true;
+        check = true;
     // Check if a pawn is in range of king.
     uint64_t pawn_check = get_pawn_move(king_position, is_black);
     // make_reach_board(king_position, is_black, W_PAWN + 6*is_black);
     if(boards_intersect(bit_boards[W_PAWN + !is_black * 6], pawn_check))
-        return true;
+        check = true;
     // Finally check king intersect.
     uint64_t king_check = get_king_move(king_position, is_black);
+    if(boards_intersect(bit_boards[W_KING + !is_black * 6], king_check))
+        check = true;
 
-    return boards_intersect(bit_boards[W_KING + !is_black * 6], king_check);
+    if(check)
+        std::cout << "CHECK" << '\n';
+
+    return check;
 }
 
 // ==============================================================================================

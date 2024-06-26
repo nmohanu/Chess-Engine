@@ -16,9 +16,9 @@ void Engine::do_perft_test(int depth)
     clock_t end = clock();
     double time_cost = double(end - start) / CLOCKS_PER_SEC;
     std::cout << "Depth: " << depth+1 << '\n';
-    std::cout << "PERFT results: \nNodes evaluated: " << nodes << "\nCaptures: " << captures << "\nChecks: " << checks << "\nEn passants: " << en_passants <<
+    std::cout << "PERFT results: \nNodes evaluated: " << nodes <<
         "\nTime cost: " << time_cost << '\n';
-    std::cout << "Nodes per second " << (nodes / 1000) / time_cost << "Knps" << '\n';
+    std::cout << "Nodes per second " << (nodes / 1000000) / time_cost << " Million nodes per second" << '\n';
     std::cout << "================================================================================ \n";
 }
 
@@ -32,6 +32,17 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
     if(depth == 0)
         return possible_moves.move_count;
 
+    // Make hash entries of position.
+    uint64_t key = hasher.calculate_zobrist_key(position, color_sign);
+    int entry_node_count = transposition_table.get_entry_nodes(depth, key);
+
+    // Read hash entry.
+    if(entry_node_count != no_hash_entry)
+    {
+        // Position wes already evaluated in a different order.
+        return entry_node_count;
+    }
+
     for(int i = 0; i < possible_moves.move_count; i++)
     {
         // Do move.
@@ -40,6 +51,8 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
         nodes += perft_test(position, depth-1, !color_sign, captures, checks, en_passants);
         // Undo move.
         position->undo_move(&possible_moves.moves[i]);
+
+        transposition_table.insert_hash(depth, 0, 0, key, nodes);
     }
     // Return result.
     return nodes;

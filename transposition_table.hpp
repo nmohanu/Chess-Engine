@@ -14,6 +14,7 @@ typedef struct
     int depth;
     int flags;
     int score;
+    int sub_nodes;
 } tt;
 
 struct TranspositionTable
@@ -51,8 +52,22 @@ struct TranspositionTable
         return no_hash_entry;
     }
 
+    int get_entry_nodes(int depth, uint64_t key)
+    {
+        tt* hash_entry = &transposition_table[key % hash_table_size];
+
+        // Check if position is correct.
+        if(hash_entry->key != no_hash_entry && hash_entry->key == key && hash_entry->depth >= depth)
+        {
+            return hash_entry->sub_nodes;
+        }
+        
+        // Does not exist.
+        return no_hash_entry;
+    }
+
     // Store hash entry in the table.
-    void insert_hash(int depth, int score, int hash_flag, uint64_t key)
+    void insert_hash(int depth, int score, int hash_flag, uint64_t key, int nodes)
     {
         tt* hash_entry = &transposition_table[key % hash_table_size];
 
@@ -60,6 +75,7 @@ struct TranspositionTable
         hash_entry->flags = hash_flag;
         hash_entry->score = score;
         hash_entry->key = key;
+        hash_entry->sub_nodes = nodes;
     }
 
     // clear table.
