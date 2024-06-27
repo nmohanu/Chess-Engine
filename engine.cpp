@@ -66,6 +66,7 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
             std::cout << move_string << ": " << nodes_found << '\n';
         }
 
+        // Insert hash key.
         if((currently_evaluating_perft_depth - depth) <= MAX_HASH_DEPTH && (currently_evaluating_perft_depth - depth) >= MIN_HASH_DEPTH)
             transposition_table.insert_hash(depth, 0, 0, key, nodes);
     }

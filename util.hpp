@@ -227,16 +227,7 @@ inline bool boards_intersect(uint64_t one, uint64_t two)
 
 inline uint8_t find_bit_position(uint64_t num)
 {
-    uint64_t mask = 1ULL << 63;
-    for(int i = 0; i < 64; i++)
-    {   
-        if((mask & num) != 0)
-        {
-            return i;
-        }
-        mask >>= 1;
-    }
-    return 64;
+    return 63-__builtin_ctzll(num);
 }
 
 inline std::string make_chess_notation(int index) 
@@ -246,4 +237,32 @@ inline std::string make_chess_notation(int index)
     // Convert row index (0-7) to number (1-8)
     char row = '8' - (index / 8);
     return std::string(1, column) + std::string(1, row);
+}
+
+inline int chess_notation_to_index(const std::string& notation)
+{
+    if (notation.length() != 2)
+    {
+        throw std::invalid_argument("Invalid chess notation");
+    }
+
+    char column = notation[0];
+    char row = notation[1];
+
+    // Convert column letter (a-h) to index (0-7)
+    int column_index = column - 'a';
+    if (column_index < 0 || column_index > 7)
+    {
+        throw std::invalid_argument("Invalid column in chess notation");
+    }
+
+    // Convert row number (1-8) to index (0-7)
+    int row_index = '8' - row;
+    if (row_index < 0 || row_index > 7)
+    {
+        throw std::invalid_argument("Invalid row in chess notation");
+    }
+
+    // Calculate the 0-based index
+    return row_index * 8 + column_index;
 }
