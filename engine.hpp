@@ -96,6 +96,7 @@ private:
     int perft_queen_b = 0;
     int perft_rook_w = 0;
     int perft_rook_b = 0;
+    int currently_evaluating_perft_depth;
 };
 
 #endif

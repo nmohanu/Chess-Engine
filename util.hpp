@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <atomic>
 #include <assert.h>
+#include <bitset>
 #include "magic_arrays.hpp"
 
 // Define a number for each piece.
@@ -35,7 +36,7 @@
 #define hashfBETA   2
 
 // Table size.
-#define hash_table_size 0x4000000
+#define hash_table_size 0x2000000
 
 // No entry found.
 #define no_hash_entry 999999999
@@ -60,7 +61,11 @@ const float KNIGHT_VALUE = 3.f;
 const float BISHOP_VALUE = 3.f;
 const float PAWN_VALUE = 1.f;
 
-const int PERFT_DEPTH = 7;
+const int PERFT_DEPTH = 8;
+
+// Avoid collissions by only hashing and checking at nodes that are worth hashing.
+const int MAX_HASH_DEPTH = 4;
+const int MIN_HASH_DEPTH = 2;
 
 const int shift_correction[4] = {0, 16, 32, 48};
 
@@ -148,14 +153,6 @@ const float KING_BONUS_ENDGAME[64] =
     -5.0f, -3.0f, -3.0f, -3.0f, -3.0f, -3.0f, -3.0f, -5.0f
 };
 
-// Toggle a bit on (but not off).
-void toggle_bit_on(uint64_t &num, uint64_t pos);
-// Toggle a bit off (but not on).
-void toggle_bit_off(uint64_t &num, uint64_t pos);
-
-// Get bit of an 8 bit number.
-bool get_bit(uint8_t num, uint8_t pos);
-
 // SLOW, DONT USE IF NOT NEEDED.
 // Check if a certain bit is on or off. (64bit)
 inline bool get_bit_64(uint64_t num, uint8_t pos) 
@@ -163,15 +160,90 @@ inline bool get_bit_64(uint64_t num, uint8_t pos)
     return (num & (1ULL << (63 - pos))) != 0;
 }
 
-// Print a binary number (for debugging).
-void print_binary(uint64_t num);
+// Toggle bit on.
+inline void toggle_bit_on(uint64_t &num, uint64_t pos)
+{
+    assert(pos < 64);
+    uint64_t mask = 1ULL << (63 - pos);
+    num |= mask;
+}
 
-// Get value of a piece.
-float get_piece_value(uint8_t piece);
+// Toggle bit off.
+inline void toggle_bit_off(uint64_t &num, uint64_t pos)
+{
+    if(pos >= 64)
+        std::cout << "ehhmhmm";
+    assert(pos < 64);
+    uint64_t mask = 1ULL << (63 - pos);
+    mask = ~mask;
+    num &= mask;
+}
 
-// Check if two bitboards intersect.
-bool boards_intersect(uint64_t one, uint64_t two);
+// Check if a certain bit is on or off.
+inline bool get_bit(uint8_t num, uint8_t pos)
+{
+    uint8_t mask = 1ULL << (7 - pos);
+    uint8_t result = (num & mask);
+    return result;
+}
 
-uint8_t find_bit_position(uint64_t num);
 
-std::string make_chess_notation(int index);
+// Useful for debugging.
+inline void print_binary(uint64_t num)
+{
+    std::cout << "Binary representation: ";
+    std::cout << std::bitset<sizeof(num) * 8>(num) << std::endl;
+}
+
+// Get the value of a piece.
+inline float get_piece_value(uint8_t piece)
+{
+
+    switch (piece) {
+        case W_PAWN:
+        case B_PAWN:
+            return PAWN_VALUE;
+        case W_KNIGHT:
+        case B_KNIGHT:
+            return KNIGHT_VALUE;
+        case W_BISHOP:
+        case B_BISHOP:
+            return BISHOP_VALUE;
+        case W_ROOK:
+        case B_ROOK:
+            return ROOK_VALUE;
+        case W_QUEEN:
+        case B_QUEEN:
+            return QUEEN_VALUE;
+        default:
+            return 0.0;
+    }
+}
+
+inline bool boards_intersect(uint64_t one, uint64_t two)
+{
+    return (one & two) != 0;
+}
+
+inline uint8_t find_bit_position(uint64_t num)
+{
+    uint64_t mask = 1ULL << 63;
+    for(int i = 0; i < 64; i++)
+    {   
+        if((mask & num) != 0)
+        {
+            return i;
+        }
+        mask >>= 1;
+    }
+    return 64;
+}
+
+inline std::string make_chess_notation(int index) 
+{
+    // Convert column index (0-7) to letter (a-h)
+    char column = 'a' + (index % 8);
+    // Convert row index (0-7) to number (1-8)
+    char row = '8' - (index / 8);
+    return std::string(1, column) + std::string(1, row);
+}

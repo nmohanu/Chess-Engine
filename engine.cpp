@@ -13,67 +13,7 @@ void Engine::do_perft_test(int depth, Position* position)
     int checks = 0;
     int en_passants = 0;
     bool white_move = true;
-
-    // // Debugging moves.
-    // // a2a4
-    // Move move1(48, 32);
-    // move1.moving_piece = W_PAWN;
-    // move1.move_takes_an_passant = false;
-    // move1.previous_castling_rights = position->casling_rights;
-    // move1.previous_en_passant = position->en_passant;
-    // position->do_move(&move1);
-
-    // white_move = !white_move;
-
-    // // g7g6
-    // Move move2(14, 22);
-    // move2.moving_piece = B_PAWN;
-    // move2.move_takes_an_passant = false;
-    // move2.previous_castling_rights = position->casling_rights;
-    // move2.previous_en_passant = position->en_passant;
-    // position->do_move(&move2);
-
-    // white_move = !white_move;
-
-    // // g2g4
-    // Move move3(62-8, 62-8-16);
-    // move3.moving_piece = W_PAWN;
-    // move3.move_takes_an_passant = false;
-    // move3.previous_castling_rights = position->casling_rights;
-    // move3.previous_en_passant = position->en_passant;
-    // position->do_move(&move3);
-
-    // white_move = !white_move;
-
-    // // a7a5
-    // Move move4(8, 8+16);
-    // move4.moving_piece = B_PAWN;
-    // move4.move_takes_an_passant = false;
-    // move4.previous_castling_rights = position->casling_rights;
-    // move4.previous_en_passant = position->en_passant;
-    // position->do_move(&move4);
-
-    // white_move = !white_move;
-
-    // // g4g5
-    // Move move5(62-8-16, 62-8-16-8);
-    // move5.moving_piece = W_PAWN;
-    // move5.move_takes_an_passant = false;
-    // move5.previous_castling_rights = position->casling_rights;
-    // move5.previous_en_passant = position->en_passant;
-    // position->do_move(&move5);
-
-    // white_move = !white_move;
-
-    // // h7h5
-    // Move move6(7+8, 7+8+16);
-    // move6.moving_piece = B_PAWN;
-    // move6.move_takes_an_passant = false;
-    // move6.previous_castling_rights = position->casling_rights;
-    // move6.previous_en_passant = position->en_passant;
-    // position->do_move(&move6);
-
-    // white_move = !white_move;
+    currently_evaluating_perft_depth = depth;
 
     uint64_t nodes = perft_test(position, depth-1, !white_move, captures, checks, en_passants);
     clock_t end = clock();
@@ -91,47 +31,43 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
     moves possible_moves = position->determine_moves(color_sign);
     uint64_t nodes = 0;
 
-    // Move count at depth 1.
-    // for(int i = 0; i < possible_moves.move_count; i++)
-    // {
-
-    //         std::string move_string = possible_moves.moves[i].to_string();
-    //         std::cout << move_string << ": " << 1 << '\n';
-    // }
-
     // Base case.
     if(depth == 0)
         return possible_moves.move_count;
 
-    // // Make hash entries of position.
-    // uint64_t key = hasher.calculate_zobrist_key(position, color_sign);
-    // int entry_node_count = transposition_table.get_entry_nodes(depth, key);
-
-    // // Read hash entry.
-    // if(entry_node_count != no_hash_entry)
-    // {
-    //     // Position wes already evaluated in a different order.
-    //     return entry_node_count;
-    // }
+    uint64_t key;
+    // Make hash entries of position.
+    if((currently_evaluating_perft_depth - depth) <= MAX_HASH_DEPTH)
+    {
+        key = hasher.calculate_zobrist_key(position, color_sign);
+        uint64_t entry_node_count = transposition_table.get_entry_nodes(depth, key);
+        // Read hash entry.
+        if(entry_node_count != no_hash_entry)
+        {
+            // Position wes already evaluated in a different order.
+            return entry_node_count;
+        }
+    }
 
     for(int i = 0; i < possible_moves.move_count; i++)
     {
         // Do move.
         position->do_move(&possible_moves.moves[i]);
         // Recursive call.
-        int nodes_found = perft_test(position, depth-1, !color_sign, captures, checks, en_passants);
+        uint64_t nodes_found = perft_test(position, depth-1, !color_sign, captures, checks, en_passants);
         nodes += nodes_found;
         // Undo move.
         position->undo_move(&possible_moves.moves[i]);
 
         // Move count for debugging.
-        // if(depth == PERFT_DEPTH-1)
-        // {
-        //     std::string move_string = possible_moves.moves[i].to_string();
-        //     std::cout << move_string << ": " << nodes_found << '\n';
-        // }
+        if(depth == currently_evaluating_perft_depth-1)
+        {
+            std::string move_string = possible_moves.moves[i].to_string();
+            std::cout << move_string << ": " << nodes_found << '\n';
+        }
 
-        // transposition_table.insert_hash(depth, 0, 0, key, nodes);
+        if((currently_evaluating_perft_depth - depth) <= MAX_HASH_DEPTH && (currently_evaluating_perft_depth - depth) >= MIN_HASH_DEPTH)
+            transposition_table.insert_hash(depth, 0, 0, key, nodes);
     }
     // Return result.
     return nodes;
