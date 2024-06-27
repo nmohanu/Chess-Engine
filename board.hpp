@@ -8,6 +8,8 @@
 
 struct Position;
 
+
+
 struct Move
 {   
     Move();
@@ -19,6 +21,7 @@ struct Move
     bool is_capture(Position* position) const;
     float capture_value(Position* position) const;
     bool move_bounds_valid();
+    std::string to_string();
 
     // Move data.
     uint8_t start_location;

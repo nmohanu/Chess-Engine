@@ -16,7 +16,7 @@ public:
     // Call recursive functions to determine best move.
     void best_move(Position* position, bool color_sign, int depth,  Move& best_move);
 
-    void do_perft_test(int depth);
+    void do_perft_test(int depth, Position* position);
 
     uint64_t perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& check_mates);
 
@@ -25,7 +25,6 @@ public:
     Engine();
 
 private:
-
     // Working but can be improved later:
 
     float search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips, int depth_limit);

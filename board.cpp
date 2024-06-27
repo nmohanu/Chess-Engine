@@ -479,7 +479,7 @@ void Position::check_en_passant_possibility(Move* move)
     bool right_is_black = piece_on_right > 5;
 
     // Now check if an passant is possible.
-    if(left_is_pawn && left_is_black != moving_piece_black)
+    if(left_is_pawn && left_is_black != moving_piece_black && move->end_location%8 != 0)
     {
         // An passant is possible for pawn on file -1.
         // Left most bit signals that the taking piece is on the left.
@@ -490,7 +490,7 @@ void Position::check_en_passant_possibility(Move* move)
         if(moving_piece_black)
             en_passant |= 0b01000000;
     }
-    if(right_is_pawn && right_is_black != moving_piece_black)
+    if(right_is_pawn && right_is_black != moving_piece_black && move->end_location%8 != 7)
     {
         // An passant is possible for pawn on +1.
         // An passant is possible for pawn on file -1.
@@ -837,4 +837,11 @@ bool Move::is_capture(Position* position) const
 float Move::capture_value(Position* position) const
 {
     return get_piece_value(position->get_piece(this->end_location));
+}
+
+std::string Move::to_string()
+{
+    std::string start_notation = make_chess_notation(this->start_location);
+    std::string destination_notation = make_chess_notation(this->end_location);
+    return start_notation + destination_notation;
 }

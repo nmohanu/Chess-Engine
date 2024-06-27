@@ -60,6 +60,8 @@ const float KNIGHT_VALUE = 3.f;
 const float BISHOP_VALUE = 3.f;
 const float PAWN_VALUE = 1.f;
 
+const int PERFT_DEPTH = 7;
+
 const int shift_correction[4] = {0, 16, 32, 48};
 
 const float PAWN_BONUS[64] = 
@@ -171,3 +173,5 @@ float get_piece_value(uint8_t piece);
 bool boards_intersect(uint64_t one, uint64_t two);
 
 uint8_t find_bit_position(uint64_t num);
+
+std::string make_chess_notation(int index);

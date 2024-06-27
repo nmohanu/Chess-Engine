@@ -79,3 +79,12 @@ uint8_t find_bit_position(uint64_t num)
     }
     return 64;
 }
+
+std::string make_chess_notation(int index) 
+{
+    // Convert column index (0-7) to letter (a-h)
+    char column = 'a' + (index % 8);
+    // Convert row index (0-7) to number (1-8)
+    char row = '8' - (index / 8);
+    return std::string(1, column) + std::string(1, row);
+}
