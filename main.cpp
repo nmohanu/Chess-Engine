@@ -15,15 +15,91 @@ void calculate_best_move(Engine* engine, Position* position, int color_sign, int
     // move_found = true;
 }
 
+uint64_t set_occupancy(int index, int bits_in_mask, uint64_t attack_mask)
+{
+    uint64_t occupancy = 0ULL;
+
+    for(int count = 0; count < bits_in_mask; count++)
+    {
+        int square = find_bit_position(attack_mask);
+
+        toggle_bit_off(attack_mask, square);
+
+        if(index & (1 << count))
+            occupancy |= (1ULL << square);
+    }
+
+    return occupancy;
+}   
+
+uint64_t mask_bishop_attacks(uint8_t square)
+{
+    uint64_t attacks = 0ULL;
+
+    int file, rank;
+
+    int target_rank = square / 8;
+    int target_file = square % 8;
+
+    for(int rank = target_rank+1, file = target_file+1; rank <= 6 && file <= 6; rank++, file++) attacks |= (1ULL << (rank * 8 + file));
+    for(int rank = target_rank+1, file = target_file-1; rank >= 1 && file >= 1; rank--, file--) attacks |= (1ULL << (rank * 8 + file));
+    for(int rank = target_rank-1, file = target_file+1; rank >= 1 && file <= 6; rank--, file++) attacks |= (1ULL << (rank * 8 + file));
+    for(int rank = target_rank-1, file = target_file-1; rank <= 6 && file >= 1; rank++, file--) attacks |= (1ULL << (rank * 8 + file));
+
+    return attacks;
+}
+
+uint64_t mask_rook_attacks(uint8_t square)
+{
+    uint64_t attacks = 0ULL;
+
+    int file, rank;
+
+    int target_rank = square / 8;
+    int target_file = square % 8;
+
+    for(rank = target_rank+1; rank <= 6; rank++) attacks |= (1ULL << (rank * 8 + target_file));
+    for(rank = target_rank-1; rank >= 1; rank--) attacks |= (1ULL << (rank * 8 + target_file));
+    for(file = target_file+1; file <= 1; file++) attacks |= (1ULL << (rank * 8 + target_file));
+    for(file = target_file-1; file >= 1; file--) attacks |= (1ULL << (rank * 8 + target_file));
+
+    return attacks;
+}
+
+uint64_t find_magic_number(int square, int relevant_bits, bool bishop)
+{
+    uint64_t occupancies[4096];
+
+    uint64_t attacks[4096];
+
+    uint64_t used_attacks[4096];
+
+    uint64_t attack_mask = bishop ? mask_bishop_attacks(square) : mask_rook_attacks(square);
+
+    int occupancy_index = 1 << relevant_bits;
+
+    for(int index = 0; index < occupancy_index; index++)
+    {
+        // occupancies[index] = 
+    }
+}
+
 int main()
 {
+
+    // Magic bitboard creation.
+    for(int i = 0; i < 64; i++)
+        mask_bishop_attacks(i);
+    for(int i = 0; i < 64; i++)
+        mask_rook_attacks(i);
+
     Board* board = new Board();
     
     sf::Texture texture;
     if (!texture.loadFromFile("../../assets/sheet.png"))
     {
         return 1;
-    }
+    } 
 
     clock_t start;
 

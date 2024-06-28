@@ -266,3 +266,4 @@ inline int chess_notation_to_index(const std::string& notation)
     // Calculate the 0-based index
     return row_index * 8 + column_index;
 }
+

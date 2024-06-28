@@ -509,24 +509,28 @@ void Position::check_en_passant_possibility(Move* move)
 // Generate all possible moves for a color and return them in a vector.
 moves Position::determine_moves(bool is_black)
 {
+    uint64_t total_board = bit_boards[TOTAL];
+    
+    if(is_black)
+        total_board &= bit_boards[COLOR_BOARD];
+    else
+        total_board &= ~bit_boards[COLOR_BOARD];
+
     uint64_t enemy_reach = color_reach_board(!is_black);
     possible_moves.move_count = 0;
 
-    // Loop through board to find player's pieces.
-    for (uint8_t square = 0; square < 64; square++)
+    while(__builtin_popcountll(total_board) >= 1)
     {
+        uint8_t square = __builtin_clzll(total_board);
         // get piece type.
         uint8_t piece_type = get_piece(square);
-
-        // Empty square or wrong color.
-        if (piece_type >= 12 || is_black != (piece_type > 5))
-            continue;
     
         uint64_t move_squares = make_reach_board(square, is_black, piece_type);
 
         // Generate moves for the piece.
-        if(move_squares != 0)
-            generate_piece_moves(square, piece_type, move_squares, is_black, enemy_reach);
+        generate_piece_moves(square, piece_type, move_squares, is_black, enemy_reach);
+
+        total_board &= ~(1ULL << (63 - square));
     }
 
     // Check castling rights.
@@ -544,15 +548,12 @@ moves Position::determine_moves(bool is_black)
 // Generate regular moves.
 void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, uint64_t enemy_reach)
 {
-    int right_bound = find_bit_position(move_squares);
-    int left_bound = __builtin_clzll(move_squares);
-    
-    // uint64_t bit_mask = 1ULL << 63;
-    for (int i = left_bound; i <= right_bound; i++)
+
+    while(__builtin_popcountll(move_squares) >= 1)
     {
-        // Check if move to square i is possible. Is possible if i intersects with a moving square.
-        if(!((1ULL << (63-i))&move_squares))
-            continue;
+        uint8_t i = __builtin_clzll(move_squares);
+        // uint8_t end_loc = 63-i;
+
         Move* move = &possible_moves.moves[possible_moves.move_count];
         // Insert move data.
         move->moving_piece = piece_type;
@@ -561,9 +562,6 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
         move->end_location = i;
         move->special_cases = 0b0;
         move->previous_castling_rights = casling_rights;
-        
-        // TEMP: copy state
-        // Position copy(*this);
 
         // Simulate the move.
         do_move(move);
@@ -571,6 +569,7 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
         possible_moves.move_count += !king_look_around(is_black);
         // Clean up.
         undo_move(move);
+        move_squares &= ~(1ULL << (63 - i));
     }
 }
 
