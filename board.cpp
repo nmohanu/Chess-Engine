@@ -521,11 +521,12 @@ moves Position::determine_moves(bool is_black)
         // Empty square or wrong color.
         if (piece_type >= 12 || is_black != (piece_type > 5))
             continue;
-
+    
         uint64_t move_squares = make_reach_board(square, is_black, piece_type);
 
         // Generate moves for the piece.
-        generate_piece_moves(square, piece_type, move_squares, is_black, enemy_reach);
+        if(move_squares != 0)
+            generate_piece_moves(square, piece_type, move_squares, is_black, enemy_reach);
     }
 
     // Check castling rights.
@@ -543,8 +544,11 @@ moves Position::determine_moves(bool is_black)
 // Generate regular moves.
 void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, uint64_t enemy_reach)
 {
+    int right_bound = find_bit_position(move_squares);
+    int left_bound = __builtin_clzll(move_squares);
+    
     // uint64_t bit_mask = 1ULL << 63;
-    for (int i = 0; i < 64; i++)
+    for (int i = left_bound; i <= right_bound; i++)
     {
         // Check if move to square i is possible. Is possible if i intersects with a moving square.
         if(!((1ULL << (63-i))&move_squares))
