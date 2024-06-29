@@ -90,6 +90,11 @@ struct Position
     uint64_t get_rook_move(uint8_t square, bool is_black);
     uint64_t get_queen_move(uint8_t square, bool is_black);
 
+    uint64_t bishop_attacks[64][512];
+    uint64_t rook_attacks[64][4096];
+    uint64_t bishop_masks[64];
+    uint64_t rook_masks[64];
+
     // Internal functions.
     void check_en_passant_possibility(Move* move);
     void handle_castling(Move* move);
@@ -100,6 +105,9 @@ struct Position
     void generate_en_passant_move(bool is_black);
     void generate_castling_moves(bool is_black, uint64_t enemy_reach);
     void generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, uint64_t enemy_reach);
+    void init_sliders_attacks(int bishop);
+    uint64_t mask_rook_attacks(uint8_t square);
+    uint64_t mask_bishop_attacks(uint8_t square);
 
     // Represent the board as bits.
     // Index is equal to the piece number defenition. 

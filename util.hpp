@@ -153,7 +153,30 @@ const float KING_BONUS_ENDGAME[64] =
     -5.0f, -3.0f, -3.0f, -3.0f, -3.0f, -3.0f, -3.0f, -5.0f
 };
 
-// SLOW, DONT USE IF NOT NEEDED.
+// bishop relevant occupancy bit count for every square on board
+const int bishop_relevant_bits[64] = {
+    6, 5, 5, 5, 5, 5, 5, 6, 
+    5, 5, 5, 5, 5, 5, 5, 5, 
+    5, 5, 7, 7, 7, 7, 5, 5, 
+    5, 5, 7, 9, 9, 7, 5, 5, 
+    5, 5, 7, 9, 9, 7, 5, 5, 
+    5, 5, 7, 7, 7, 7, 5, 5, 
+    5, 5, 5, 5, 5, 5, 5, 5, 
+    6, 5, 5, 5, 5, 5, 5, 6
+};
+
+// rook relevant occupancy bit count for every square on board
+const int rook_relevant_bits[64] = {
+    12, 11, 11, 11, 11, 11, 11, 12, 
+    11, 10, 10, 10, 10, 10, 10, 11, 
+    11, 10, 10, 10, 10, 10, 10, 11, 
+    11, 10, 10, 10, 10, 10, 10, 11, 
+    11, 10, 10, 10, 10, 10, 10, 11, 
+    11, 10, 10, 10, 10, 10, 10, 11, 
+    11, 10, 10, 10, 10, 10, 10, 11, 
+    12, 11, 11, 11, 11, 11, 11, 12
+};
+
 // Check if a certain bit is on or off. (64bit)
 inline bool get_bit_64(uint64_t num, uint8_t pos) 
 {
@@ -267,3 +290,9 @@ inline int chess_notation_to_index(const std::string& notation)
     return row_index * 8 + column_index;
 }
 
+uint64_t make_bishop_mask(uint8_t square, uint64_t occupation);
+uint64_t make_rook_mask(uint8_t square, uint64_t occupation);
+uint64_t set_occupancy(int index, int bits_in_mask, uint64_t attack_mask);
+
+// print bitboard
+void print_bitboard(uint64_t bitboard);

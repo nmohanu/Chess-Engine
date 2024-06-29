@@ -15,23 +15,6 @@ void calculate_best_move(Engine* engine, Position* position, int color_sign, int
     // move_found = true;
 }
 
-uint64_t set_occupancy(int index, int bits_in_mask, uint64_t attack_mask)
-{
-    uint64_t occupancy = 0ULL;
-
-    for(int count = 0; count < bits_in_mask; count++)
-    {
-        int square = find_bit_position(attack_mask);
-
-        toggle_bit_off(attack_mask, square);
-
-        if(index & (1 << count))
-            occupancy |= (1ULL << square);
-    }
-
-    return occupancy;
-}   
-
 uint64_t mask_bishop_attacks(uint8_t square)
 {
     uint64_t attacks = 0ULL;
@@ -66,34 +49,86 @@ uint64_t mask_rook_attacks(uint8_t square)
     return attacks;
 }
 
-uint64_t find_magic_number(int square, int relevant_bits, bool bishop)
-{
-    uint64_t occupancies[4096];
+// uint64_t find_magic_number(int square, int relevant_bits, bool bishop)
+// {
+//     std::random_device rd;
+//     std::mt19937_64 gen(rd());
+//     std::uniform_int_distribution<uint64_t> dis;
 
-    uint64_t attacks[4096];
+//     uint64_t occupancies[4096];
 
-    uint64_t used_attacks[4096];
+//     uint64_t attacks[4096];
 
-    uint64_t attack_mask = bishop ? mask_bishop_attacks(square) : mask_rook_attacks(square);
+//     uint64_t used_attacks[4096];
 
-    int occupancy_index = 1 << relevant_bits;
+//     uint64_t attack_mask = bishop ? mask_bishop_attacks(square) : mask_rook_attacks(square);
 
-    for(int index = 0; index < occupancy_index; index++)
-    {
-        // occupancies[index] = 
-    }
-}
+//     int occupancy_index = 1 << relevant_bits;
+
+//     for(int index = 0; index < occupancy_index; index++)
+//     {
+//         occupancies[index] = set_occupancy(index, relevant_bits, attack_mask);
+
+//         attacks[index] = bishop ? bishop_move_on_the_fly(square, occupancies[index])
+//                                 : rook_move_on_the_fly(square, occupancies[index]);
+//     }
+
+//     for(int rand_cnt = 0; rand_cnt < 999999999; rand_cnt++)
+//     {
+//         uint64_t magic_number = dis(gen);
+//         if(__builtin_popcountll((magic_number * attack_mask) & 0xFF00000000000000) < 6) continue;
+
+//         for(uint64_t& num : used_attacks) num = 0ULL;
+
+//         int index, fail;
+
+//          for (index = 0, fail = 0; !fail && index < occupancy_index; index++)
+//         {
+//             // init magic index
+//             int magic_index = (int)((occupancies[index] * magic_number) >> (64 - relevant_bits));
+            
+//             // if magic index works
+//             if (used_attacks[magic_index] == 0ULL)
+//                 // init used attacks
+//                 used_attacks[magic_index] = attacks[index];
+            
+//             // otherwise
+//             else if (used_attacks[magic_index] != attacks[index])
+//                 // magic index doesn't work
+//                 fail = 1;
+//         }
+
+//         if(!fail)
+//             return magic_number;
+//     }
+//     std::cout << "whomp whomp \n";
+//     return 0ULL;
+// }
+
+// void init_magic_numbers()
+// {
+//     for(int square = 0; square < 64; square++)
+//     {
+//         std::cout << find_magic_number(square, bishop_relevant_bits[square], 1) << '\n';
+//     }
+// }
+
+
 
 int main()
 {
 
+    
+
     // Magic bitboard creation.
-    for(int i = 0; i < 64; i++)
-        mask_bishop_attacks(i);
-    for(int i = 0; i < 64; i++)
-        mask_rook_attacks(i);
+    // for(int i = 0; i < 64; i++)
+    //     std::cout << mask_rook_attacks(i) << "ULL," << '\n';
+    // for(int i = 0; i < 64; i++)
+    //     mask_rook_attacks(i);
 
     Board* board = new Board();
+
+    // init_magic_numbers();
     
     sf::Texture texture;
     if (!texture.loadFromFile("../../assets/sheet.png"))

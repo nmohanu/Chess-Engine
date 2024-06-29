@@ -55,6 +55,13 @@ uint64_t Position::get_king_move(uint8_t square, bool is_black)
 // Bishop moving logic.
 uint64_t Position::get_bishop_move(uint8_t square, bool is_black) 
 {
+
+    // uint64_t mask = bishop_masks[square];
+    // uint64_t occupancy = bit_boards[TOTAL] & mask;
+    // occupancy *= bishop_magic_numbers[square];
+    // occupancy >>= 64 - __builtin_popcountll(mask);
+    // uint64_t move_board = bishop_attacks[square][occupancy];
+
     uint64_t move_board = 0b0;
 
     int square_copy = square;

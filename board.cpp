@@ -26,7 +26,43 @@ Move::Move(Move* other)
 
 // Position constructors.
 Position::Position() 
-{
+{   
+    // Initialize rook and bishop masks.
+    for(int square = 0; square < 64; square++)
+    {
+        // Make ranges for all squares with no occupancies. 
+        bishop_masks[square] = make_bishop_mask(square, 0ULL);
+        rook_masks[square] = make_rook_mask(square, 0ULL);
+    }
+
+    for(int square = 0; square < 64; square++)
+    {
+        // Get attack range of bishop for this square.
+        uint64_t attack_mask = bishop_masks[square];
+    }
+    // uint64_t mask_test = bishop_masks[1];
+
+    // Make lookup tables.
+    // for (int square = 0; square < 64; square++) 
+    // {
+    //     uint64_t rook_mask = make_rook_mask(square, 0);
+    //     uint64_t rook_relevant_bits = __builtin_popcountll(rook_mask);
+
+    //     for (int i = 0; i < (1 << rook_relevant_bits); i++) {
+    //         uint64_t occupancy = set_occupancy(i, rook_relevant_bits, rook_mask);
+    //         int index = (occupancy * rook_magic_numbers[square]) >> (64 - rook_relevant_bits);
+    //         rook_attacks[square][index] = make_rook_mask(square, occupancy);
+    //     }
+
+    //     uint64_t bishop_mask = make_bishop_mask(square, 0);
+    //     int bishop_relevant_bits = __builtin_popcountll(bishop_mask);
+
+    //     for (int i = 0; i < (1 << bishop_relevant_bits); i++) {
+    //         uint64_t occupancy = set_occupancy(i, bishop_relevant_bits, bishop_mask);
+    //         int index = (occupancy * bishop_magic_numbers[square]) >> (64 - bishop_relevant_bits);
+    //         bishop_attacks[square][index] = make_bishop_mask(square, occupancy);
+    //     }
+    // }
 }
 
 Position::Position(const Position& other) 
@@ -37,10 +73,7 @@ Position::Position(const Position& other)
     this->white_to_turn = other.white_to_turn;
 
     // Copy bitboards.
-    for(uint8_t piece = W_KING; piece < 14; piece++)
-    {
-        this->bit_boards[piece] = other.bit_boards[piece];
-    }
+    for(uint8_t piece = W_KING; piece < 14; piece++) this->bit_boards[piece] = other.bit_boards[piece];
 }
 
 // Destructor.
@@ -108,24 +141,21 @@ uint64_t Position::make_reach_board(uint8_t square, bool is_black, uint8_t piece
 // Create the attack board for all pieces of a player.
 uint64_t Position::color_reach_board(bool is_black)
 {
-    uint64_t attack_board = 0;
-    uint64_t bit_mask = 1ULL << 63;
+    uint64_t attack_board = 0ULL;
+    // uint64_t bit_mask = 1ULL << 63;
 
-    for(uint8_t square = 0; square < 64; square++)
+    uint64_t total_board = bit_boards[TOTAL];
+    uint64_t mask = -(int64_t)is_black;
+    total_board &= (bit_boards[COLOR_BOARD] & mask) | (~bit_boards[COLOR_BOARD] & ~mask);
+
+    while(__builtin_popcountll(total_board) >= 1)
     {
-        bool piece_at_square_black = (bit_mask & bit_boards[COLOR_BOARD]);
-        // Check if piece belongs to color we are checking. Also skip if square is empty.
-        if(!(bit_mask & bit_boards[TOTAL]) || (is_black != piece_at_square_black))
-        {
-            bit_mask >>= 1;
-            continue;
-        }
-        
+        uint8_t pos = __builtin_clzll(total_board);
         // Add piece reach to total reach.
-        attack_board |= make_reach_board(square, is_black, get_piece(square));
-        bit_mask >>= 1;
+        attack_board |= make_reach_board(pos, is_black, get_piece(pos));
+        total_board &= total_board-1;
     }
-    // print_binary(attack_board);
+    
     return attack_board;
 }
 
@@ -510,11 +540,8 @@ void Position::check_en_passant_possibility(Move* move)
 moves Position::determine_moves(bool is_black)
 {
     uint64_t total_board = bit_boards[TOTAL];
-    
-    if(is_black)
-        total_board &= bit_boards[COLOR_BOARD];
-    else
-        total_board &= ~bit_boards[COLOR_BOARD];
+    uint64_t mask = -(int64_t)is_black;
+    total_board &= (bit_boards[COLOR_BOARD] & mask) | (~bit_boards[COLOR_BOARD] & ~mask);
 
     uint64_t enemy_reach = color_reach_board(!is_black);
     possible_moves.move_count = 0;
@@ -754,35 +781,21 @@ bool Move::move_bounds_valid()
 // Get the piece on position x, y.
 uint8_t Position::get_piece(uint8_t pos) const
 {   
+    
     uint64_t bit_mask = 1ULL << (63-pos);
-    if(!(pos >= 0 && pos < 64))
-        return INVALID;
-    else if(!(bit_boards[TOTAL]&bit_mask))
+
+    if(!(bit_boards[TOTAL]&bit_mask))
         return EMPTY;
-    else if (bit_boards[B_PAWN]&bit_mask)
-        return B_PAWN;      // Black pawn
-    else if (bit_boards[W_PAWN]&bit_mask)
-        return W_PAWN;      // White pawn
-    else if (bit_boards[B_KNIGHT]&bit_mask)
-        return B_KNIGHT;    // Black knight
-    else if (bit_boards[W_KNIGHT]&bit_mask)
-        return W_KNIGHT;    // White knight
-    else if (bit_boards[B_BISHOP]&bit_mask)
-        return B_BISHOP;    // Black bishop
-    else if (bit_boards[W_BISHOP]&bit_mask)
-        return W_BISHOP;    // White bishop
-    else if (bit_boards[B_ROOK]&bit_mask)
-        return B_ROOK;      // Black rook
-    else if (bit_boards[W_ROOK]&bit_mask)
-        return W_ROOK;      // White rook
-    else if (bit_boards[B_QUEEN]&bit_mask)
-        return B_QUEEN;     // Black queen
-    else if (bit_boards[W_QUEEN]&bit_mask)
-        return W_QUEEN;     // White queen
-    else if (bit_boards[B_KING]&bit_mask)
-        return B_KING;      // Black king
-    else if (bit_boards[W_KING]&bit_mask)
-        return W_KING;      // White king
+
+    uint64_t result = 0;
+    uint8_t index = 0;
+
+    while(result == 0 && index < 12)
+    {
+        result |= bit_boards[index]&bit_mask;
+        index++;
+    }
+    return index-1;
      
     return INVALID;
 }
@@ -845,3 +858,4 @@ std::string Move::to_string()
     std::string destination_notation = make_chess_notation(this->end_location);
     return start_notation + destination_notation;
 }
+
