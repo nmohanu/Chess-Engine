@@ -285,7 +285,8 @@ std::vector<uint64_t> create_all_blocker_boards(uint64_t movement_mask)
             blocker_boards[perm_index] |= (uint64_t) bit << move_indices[bit_index];
             
         }
-        print_bitboard(blocker_boards[perm_index]);
+        // Debug if needed.
+        // print_bitboard(blocker_boards[perm_index]);
     }
 
     return blocker_boards;
