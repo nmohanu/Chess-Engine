@@ -290,9 +290,12 @@ inline int chess_notation_to_index(const std::string& notation)
     return row_index * 8 + column_index;
 }
 
-uint64_t make_bishop_mask(uint8_t square, uint64_t occupation);
-uint64_t make_rook_mask(uint8_t square, uint64_t occupation);
-uint64_t set_occupancy(int index, int bits_in_mask, uint64_t attack_mask);
+uint64_t bishop_attack_on_fly(uint8_t square, uint64_t occupation);
+uint64_t rook_attack_on_fly(uint8_t square, uint64_t occupation);
+uint64_t make_bishop_mask(uint8_t square);
+uint64_t make_rook_mask(uint8_t square);
+
+std::vector<uint64_t> create_all_blocker_boards(uint64_t movement_mask);
 
 // print bitboard
 void print_bitboard(uint64_t bitboard);

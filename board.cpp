@@ -30,17 +30,12 @@ Position::Position()
     // Initialize rook and bishop masks.
     for(int square = 0; square < 64; square++)
     {
-        // Make ranges for all squares with no occupancies. 
-        bishop_masks[square] = make_bishop_mask(square, 0ULL);
-        rook_masks[square] = make_rook_mask(square, 0ULL);
+        // Make masks for all squares. 
+        bishop_masks[square] = make_bishop_mask(square);
+        rook_masks[square] = make_rook_mask(square);
     }
 
-    for(int square = 0; square < 64; square++)
-    {
-        // Get attack range of bishop for this square.
-        uint64_t attack_mask = bishop_masks[square];
-    }
-    // uint64_t mask_test = bishop_masks[1];
+    create_all_blocker_boards(rook_masks[6]);
 
     // Make lookup tables.
     // for (int square = 0; square < 64; square++) 
@@ -781,7 +776,6 @@ bool Move::move_bounds_valid()
 // Get the piece on position x, y.
 uint8_t Position::get_piece(uint8_t pos) const
 {   
-    
     uint64_t bit_mask = 1ULL << (63-pos);
 
     if(!(bit_boards[TOTAL]&bit_mask))
@@ -796,8 +790,6 @@ uint8_t Position::get_piece(uint8_t pos) const
         index++;
     }
     return index-1;
-     
-    return INVALID;
 }
 
 // ==============================================================================================
