@@ -35,29 +35,41 @@ Position::Position()
         rook_masks[square] = make_rook_mask(square);
     }
 
-    create_all_blocker_boards(rook_masks[6]);
+    // Debug if needed.
+    // create_all_blocker_boards(bishop_masks[6]);
+    print_bitboard(make_bishop_mask(60));
+    // print_bitboard(make_bishop_mask(33));
 
     // Make lookup tables.
-    // for (int square = 0; square < 64; square++) 
-    // {
-    //     uint64_t rook_mask = make_rook_mask(square, 0);
-    //     uint64_t rook_relevant_bits = __builtin_popcountll(rook_mask);
+    for (int square = 0; square < 64; square++) 
+    {
+        uint64_t rook_mask = rook_masks[square];
+        uint64_t rook_relevant_bits = __builtin_popcountll(rook_mask);
+        std::vector<uint64_t> rook_blocker_boards = create_all_blocker_boards(rook_mask);
 
-    //     for (int i = 0; i < (1 << rook_relevant_bits); i++) {
-    //         uint64_t occupancy = set_occupancy(i, rook_relevant_bits, rook_mask);
-    //         int index = (occupancy * rook_magic_numbers[square]) >> (64 - rook_relevant_bits);
-    //         rook_attacks[square][index] = make_rook_mask(square, occupancy);
-    //     }
+        uint64_t bishop_mask = bishop_masks[square];
+        uint64_t bishop_relevant_bits = __builtin_popcountll(bishop_mask);
+        std::vector<uint64_t> bishop_blocker_boards = create_all_blocker_boards(bishop_mask);
 
-    //     uint64_t bishop_mask = make_bishop_mask(square, 0);
-    //     int bishop_relevant_bits = __builtin_popcountll(bishop_mask);
+        
 
-    //     for (int i = 0; i < (1 << bishop_relevant_bits); i++) {
-    //         uint64_t occupancy = set_occupancy(i, bishop_relevant_bits, bishop_mask);
-    //         int index = (occupancy * bishop_magic_numbers[square]) >> (64 - bishop_relevant_bits);
-    //         bishop_attacks[square][index] = make_bishop_mask(square, occupancy);
-    //     }
-    // }
+        // Fill lookup table for rook.
+        for(int board = 0; board < rook_blocker_boards.size(); board++)
+        {
+            uint64_t blocker_board = rook_blocker_boards[board];
+            int index = (blocker_board * rook_magic_numbers[63-square]) >> (64 - rook_relevant_bits);
+            rook_attacks[square][index] = rook_attack_on_fly(square, blocker_board);
+            // print_bitboard(rook_attacks[square][index]);
+        }
+        //Fill lookup table for bishop.
+        for(int board = 0; board < bishop_blocker_boards.size(); board++)
+        {
+            uint64_t blocker_board = bishop_blocker_boards[board];
+            int index = (blocker_board * bishop_magic_numbers[63-square]) >> (64 - bishop_relevant_bits);
+            bishop_attacks[square][index] = bishop_attack_on_fly(square, blocker_board);
+            // print_bitboard(bishop_attacks[square][index]);
+        }
+    }
 }
 
 Position::Position(const Position& other) 

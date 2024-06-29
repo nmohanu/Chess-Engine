@@ -56,66 +56,12 @@ uint64_t Position::get_king_move(uint8_t square, bool is_black)
 uint64_t Position::get_bishop_move(uint8_t square, bool is_black) 
 {
 
-    // uint64_t mask = bishop_masks[square];
-    // uint64_t occupancy = bit_boards[TOTAL] & mask;
-    // occupancy *= bishop_magic_numbers[square];
-    // occupancy >>= 64 - __builtin_popcountll(mask);
-    // uint64_t move_board = bishop_attacks[square][occupancy];
+    uint64_t mask = bishop_masks[square];
+    uint64_t occupancy = bit_boards[TOTAL] & mask;
+    occupancy *= bishop_magic_numbers[63 - square];
+    occupancy >>= (64 - __builtin_popcountll(mask));
+    uint64_t move_board = bishop_attacks[square][occupancy];
 
-    uint64_t move_board = 0b0;
-
-    int square_copy = square;
-    uint64_t bit_mask = 1ULL << (63-square);
-    // Continue until another piece is found. Repeat for each direction.
-    // Up left.
-    while (square_copy >= 0 && square_copy % 8 != 0)
-    {
-        bit_mask <<= 9;
-        square_copy -= 9;
-        move_board |= bit_mask;
-        if (bit_boards[TOTAL] & bit_mask)
-            break;  // Stop if a piece is found
-    }
-
-    square_copy = square;
-    bit_mask = 1ULL << (63 - square);
-
-    // Move up-right direction
-    while (square_copy >= 0 && square_copy % 8 != 7)
-    {
-        bit_mask <<= 7;
-        square_copy -= 7;
-        move_board |= bit_mask;
-        if (bit_boards[TOTAL] & bit_mask)
-            break;  // Stop if a piece is found
-    }
-
-    square_copy = square;
-    bit_mask = 1ULL << (63 - square);
-
-    // Move down-right direction
-    while (square_copy < 64 && square_copy % 8 != 7)
-    {
-        bit_mask >>= 9;
-        square_copy += 9;
-        move_board |= bit_mask;
-        if (bit_boards[TOTAL] & bit_mask)
-            break;  // Stop if a piece is found
-    }
-
-    square_copy = square;
-    bit_mask = 1ULL << (63 - square);
-
-    // Move down-left direction
-    while (square_copy < 64 && square_copy % 8 != 0)
-    {
-        bit_mask >>= 7;
-        square_copy += 7;
-        move_board |= bit_mask;
-        if (bit_boards[TOTAL] & bit_mask)
-            break;  // Stop if a piece is found
-    }
-    
     // Can't move to squares occupied by own color.
     if(is_black)
         move_board &= ~bit_boards[COLOR_BOARD];
@@ -146,58 +92,12 @@ uint64_t Position::get_knight_move(uint8_t square, bool is_black)
 // Rook move logic.
 uint64_t Position::get_rook_move(uint8_t square, bool is_black) 
 {
-    uint64_t move_board = 0b0;
-    int square_copy = square;
-    uint64_t bit_mask = 1ULL << (63-square);
-    // Continue until another piece is found. Repeat for each direction.
-    // left.
-    while (square_copy >= 0 && square_copy % 8 != 0)
-    {
-        bit_mask <<= 1;
-        square_copy--;
-        move_board |= bit_mask;
-        if (bit_boards[TOTAL] & bit_mask)
-            break;  // Stop if a piece is found
-    }
+    uint64_t mask = rook_masks[square];
+    uint64_t occupancy = bit_boards[TOTAL] & mask;
+    occupancy *= rook_magic_numbers[63 - square];
+    occupancy >>= (64 - __builtin_popcountll(mask));
+    uint64_t move_board = rook_attacks[square][occupancy];
 
-    square_copy = square;
-    bit_mask = 1ULL << (63 - square);
-
-    // Move up.
-    while (square_copy >= 0)
-    {
-        bit_mask <<= 8;
-        square_copy -= 8;
-        move_board |= bit_mask;
-        if (bit_boards[TOTAL] & bit_mask)
-            break;  // Stop if a piece is found
-    }
-
-    square_copy = square;
-    bit_mask = 1ULL << (63 - square);
-
-    // Move right.
-    while (square_copy < 64 && square_copy % 8 != 7)
-    {
-        bit_mask >>= 1;
-        square_copy ++;
-        move_board |= bit_mask;
-        if (bit_boards[TOTAL] & bit_mask)
-            break;  // Stop if a piece is found
-    }
-
-    square_copy = square;
-    bit_mask = 1ULL << (63 - square);
-
-    // Move down.
-    while (square_copy < 64)
-    {
-        bit_mask >>= 8;
-        square_copy += 8;
-        move_board |= bit_mask;
-        if (bit_boards[TOTAL] & bit_mask)
-            break;  // Stop if a piece is found
-    }
     // Can't move to squares occupied by own color.
     if(is_black)
         move_board &= ~bit_boards[COLOR_BOARD];

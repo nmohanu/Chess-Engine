@@ -62,53 +62,25 @@ uint64_t bishop_attack_on_fly(uint8_t square, uint64_t occupation)
 
 uint64_t make_bishop_mask(uint8_t square)
 {
-    uint64_t move_board = 0b0;
-
-    int square_copy = square;
-    uint64_t bit_mask = 1ULL << (63-square);
-    // Continue until another piece is found. Repeat for each direction.
-    // Up left.
-    while (square_copy >= 16 && square_copy % 8 != 1)
-    {
-        bit_mask <<= 9;
-        square_copy -= 9;
-        move_board |= bit_mask;
-    }
-
-    square_copy = square;
-    bit_mask = 1ULL << (63 - square);
-
-    // Move up-right direction
-    while (square_copy >= 16 && square_copy % 8 != 6)
-    {
-        bit_mask <<= 7;
-        square_copy -= 7;
-        move_board |= bit_mask;
-    }
-
-    square_copy = square;
-    bit_mask = 1ULL << (63 - square);
-
-    // Move down-right direction
-    while (square_copy < 48 && square_copy % 8 != 6)
-    {
-        bit_mask >>= 9;
-        square_copy += 9;
-        move_board |= bit_mask;
-    }
-
-    square_copy = square;
-    bit_mask = 1ULL << (63 - square);
-
-    // Move down-left direction
-    while (square_copy < 48 && square_copy % 8 != 1)
-    {
-        bit_mask >>= 7;
-        square_copy += 7;
-        move_board |= bit_mask;
-    }
-
-    return move_board;
+    square = 63-square;
+    // result attacks bitboard
+    uint64_t attacks = 0ULL;
+    
+    // init ranks & files
+    int r, f;
+    
+    // init target rank & files
+    int tr = square / 8;
+    int tf = square % 8;
+    
+    // mask relevant bishop occupancy bits
+    for (r = tr + 1, f = tf + 1; r <= 6 && f <= 6; r++, f++) attacks |= (1ULL << (r * 8 + f));
+    for (r = tr - 1, f = tf + 1; r >= 1 && f <= 6; r--, f++) attacks |= (1ULL << (r * 8 + f));
+    for (r = tr + 1, f = tf - 1; r <= 6 && f >= 1; r++, f--) attacks |= (1ULL << (r * 8 + f));
+    for (r = tr - 1, f = tf - 1; r >= 1 && f >= 1; r--, f--) attacks |= (1ULL << (r * 8 + f));
+    
+    // return attack map
+    return attacks;
 }
 
 // Rook move logic.
@@ -172,52 +144,25 @@ uint64_t rook_attack_on_fly(uint8_t square, uint64_t occupation)
 
 uint64_t make_rook_mask(uint8_t square)
 {
-    uint64_t move_board = 0b0;
-    int square_copy = square;
-    uint64_t bit_mask = 1ULL << (63-square);
-    // Continue until another piece is found. Repeat for each direction.
-    // left.
-    while (square_copy >= 0 && square_copy % 8 != 1)
-    {
-        bit_mask <<= 1;
-        square_copy--;
-        move_board |= bit_mask;
-    }
-
-    square_copy = square;
-    bit_mask = 1ULL << (63 - square);
-
-    // Move up.
-    while (square_copy >= 16)
-    {
-        bit_mask <<= 8;
-        square_copy -= 8;
-        move_board |= bit_mask;
-    }
-
-    square_copy = square;
-    bit_mask = 1ULL << (63 - square);
-
-    // Move right.
-    while (square_copy < 63 && square_copy % 8 != 6)
-    {
-        bit_mask >>= 1;
-        square_copy ++;
-        move_board |= bit_mask;
-    }
-
-    square_copy = square;
-    bit_mask = 1ULL << (63 - square);
-
-    // Move down.
-    while (square_copy < 48)
-    {
-        bit_mask >>= 8;
-        square_copy += 8;
-        move_board |= bit_mask;
-    }
-
-    return move_board;
+    square = 63-square;
+    // result attacks bitboard
+    uint64_t attacks = 0ULL;
+    
+    // init ranks & files
+    int r, f;
+    
+    // init target rank & files
+    int tr = square / 8;
+    int tf = square % 8;
+    
+    // mask relevant rook occupancy bits
+    for (r = tr + 1; r <= 6; r++) attacks |= (1ULL << (r * 8 + tf));
+    for (r = tr - 1; r >= 1; r--) attacks |= (1ULL << (r * 8 + tf));
+    for (f = tf + 1; f <= 6; f++) attacks |= (1ULL << (tr * 8 + f));
+    for (f = tf - 1; f >= 1; f--) attacks |= (1ULL << (tr * 8 + f));
+    
+    // return attack map
+    return attacks;
 }
 
 static inline uint8_t get_ls1b_index(uint64_t bitboard)
