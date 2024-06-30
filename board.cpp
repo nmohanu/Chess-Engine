@@ -28,48 +28,30 @@ Move::Move(Move* other)
 Position::Position() 
 {   
     // Initialize rook and bishop masks.
-    for(int square = 0; square < 64; square++)
-    {
-        // Make masks for all squares. 
-        bishop_masks[square] = make_bishop_mask(square);
-        rook_masks[square] = make_rook_mask(square);
-    }
-
-    // Debug if needed.
-    // create_all_blocker_boards(bishop_masks[6]);
-    print_bitboard(make_bishop_mask(60));
-    // print_bitboard(make_bishop_mask(33));
+    // for(int square = 0; square < 64; square++)
+    // {
+    //     // Make masks for all squares. 
+    //     // bishop_masks[square] = make_bishop_mask(square);
+    //     // rook_masks[square] = make_rook_mask(square);
+    // }
 
     // Make lookup tables.
-    for (int square = 0; square < 64; square++) 
-    {
-        uint64_t rook_mask = rook_masks[square];
-        uint64_t rook_relevant_bits = __builtin_popcountll(rook_mask);
-        std::vector<uint64_t> rook_blocker_boards = create_all_blocker_boards(rook_mask);
-
-        uint64_t bishop_mask = bishop_masks[square];
-        uint64_t bishop_relevant_bits = __builtin_popcountll(bishop_mask);
-        std::vector<uint64_t> bishop_blocker_boards = create_all_blocker_boards(bishop_mask);
+    // for (int square = 0; square < 64; square++) 
+    // {
+    //     uint64_t bishop_mask = bishop_masks[square];
+    //     uint64_t bishop_relevant_bits = __builtin_popcountll(bishop_mask);
+    //     std::vector<uint64_t> bishop_blocker_boards = create_all_blocker_boards(bishop_mask);
 
         
-
-        // Fill lookup table for rook.
-        for(int board = 0; board < rook_blocker_boards.size(); board++)
-        {
-            uint64_t blocker_board = rook_blocker_boards[board];
-            int index = (blocker_board * rook_magic_numbers[63-square]) >> (64 - rook_relevant_bits);
-            rook_attacks[square][index] = rook_attack_on_fly(square, blocker_board);
-            // print_bitboard(rook_attacks[square][index]);
-        }
-        //Fill lookup table for bishop.
-        for(int board = 0; board < bishop_blocker_boards.size(); board++)
-        {
-            uint64_t blocker_board = bishop_blocker_boards[board];
-            int index = (blocker_board * bishop_magic_numbers[63-square]) >> (64 - bishop_relevant_bits);
-            bishop_attacks[square][index] = bishop_attack_on_fly(square, blocker_board);
-            // print_bitboard(bishop_attacks[square][index]);
-        }
-    }
+    //     //Fill lookup table for bishop.
+    //     for(int board = 0; board < bishop_blocker_boards.size(); board++)
+    //     {
+    //         uint64_t blocker_board = bishop_blocker_boards[board];
+    //         int index = (blocker_board * bishop_magic_numbers[63-square]) >> (64 - bishop_relevant_bits);
+    //         bishop_attacks[square][index] = bishop_attack_on_fly(square, blocker_board);
+    //         // print_bitboard(bishop_attacks[square][index]);
+    //     }
+    // }
 }
 
 Position::Position(const Position& other) 
@@ -117,28 +99,30 @@ uint64_t Position::make_reach_board(uint8_t square, bool is_black, uint8_t piece
             break;
         case B_KING:
         case W_KING:
-            attack_board = get_king_move(square, is_black);
+            attack_board = get_king_move(square, is_black, bit_boards[TOTAL]);
             break;
         case B_BISHOP:
         case W_BISHOP:
-            attack_board = get_bishop_move(square, is_black);
+            attack_board = get_bishop_move(square, is_black, bit_boards[TOTAL]);
             break;
         case B_KNIGHT:
         case W_KNIGHT:
-            attack_board = get_knight_move(square, is_black);
+            attack_board = get_knight_move(square, is_black, bit_boards[TOTAL]);
             break;
         case B_ROOK:
         case W_ROOK:
-            attack_board = get_rook_move(square, is_black);
+            attack_board = get_rook_move(square, is_black, bit_boards[TOTAL]);
             break;
         case B_QUEEN:
         case W_QUEEN:
-            attack_board = get_queen_move(square, is_black);
+            attack_board = get_queen_move(square, is_black, bit_boards[TOTAL]);
             break;
         default:
             attack_board = 0b0;
             break;
     }
+    uint64_t own_pieces = is_black ? bit_boards[COLOR_BOARD] : (~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
+    attack_board &= ~own_pieces;
 
     return attack_board;
 }
@@ -160,6 +144,10 @@ uint64_t Position::color_reach_board(bool is_black)
         uint8_t pos = __builtin_clzll(total_board);
         // Add piece reach to total reach.
         attack_board |= make_reach_board(pos, is_black, get_piece(pos));
+
+        uint64_t own_pieces = is_black ? bit_boards[COLOR_BOARD] : (~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
+        attack_board &= ~own_pieces;
+
         total_board &= total_board-1;
     }
     
@@ -616,35 +604,13 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
 bool Position::king_look_around(bool is_black)
 {   
     uint8_t king_position = find_bit_position(bit_boards[W_KING + 6*is_black]);
-    uint64_t king_board = bit_boards[W_KING + 6*is_black];
+    uint64_t pawn_squares = get_pawn_attack(is_black, king_position, bit_boards[COLOR_BOARD], bit_boards[TOTAL]);
 
-    // Check bishop checks, and diagonal queen checks.
-    uint64_t bishop_check = get_bishop_move(king_position, is_black);
-    if(boards_intersect(bit_boards[W_BISHOP + !is_black * 6], bishop_check) || boards_intersect(bit_boards[W_QUEEN + !is_black * 6], bishop_check))
-        return true;
-    // Check rook checks. And horizontal queen checks.
-    uint64_t rook_check = get_rook_move(king_position, is_black);
-    if(boards_intersect(bit_boards[W_ROOK + !is_black * 6], rook_check) || boards_intersect(bit_boards[W_QUEEN + !is_black * 6], rook_check))
-        return true;
-    // Check knight checks.
-    uint64_t knight_check = get_knight_move(king_position, is_black);
-    if(boards_intersect(bit_boards[W_KNIGHT + !is_black * 6], knight_check))
-        return true;
-    // Check if a pawn is in range of king.
-    uint64_t pawn_check = 0b0;
-    // Get diagonal attack squares.
-    pawn_check |= is_black ? (1ULL << (63-king_position-9) | 1ULL << (63-king_position-7)) & (0xFFULL << (64-(king_position - king_position%8) - 16) & ~(bit_boards[COLOR_BOARD]) & bit_boards[TOTAL]) 
-        : (1ULL << (63-king_position+9) | 1ULL << (63-king_position + 7)) & (0xFFULL << (64-(king_position - king_position%8)) & bit_boards[COLOR_BOARD]);
-    // make_reach_board(king_position, is_black, W_PAWN + 6*is_black);
-    if(boards_intersect(bit_boards[W_PAWN + !is_black * 6], pawn_check))
-        return true;
-    // Finally check king intersect.
-    uint64_t king_check = get_king_move(king_position, is_black);
-
-    // if(check)
-    //     std::cout << "CHECK" << '\n';
-
-    return boards_intersect(bit_boards[W_KING + !is_black * 6], king_check);
+    return          (pawn_squares                                                           &       bit_boards[W_PAWN + !is_black * 6])
+            ||      (get_knight_move(king_position, is_black, bit_boards[TOTAL])            &       bit_boards[W_KNIGHT + !is_black * 6])
+            ||      (get_rook_move(king_position, is_black, bit_boards[TOTAL])              &       (bit_boards[W_ROOK + !is_black * 6]     |   bit_boards[W_QUEEN + !is_black * 6]))
+            ||      (get_bishop_move(king_position, is_black, bit_boards[TOTAL])            &       (bit_boards[W_BISHOP + !is_black * 6]   |   bit_boards[W_QUEEN + !is_black * 6]))
+            ||      (get_king_move(king_position, is_black, bit_boards[TOTAL])              &       bit_boards[W_KING + !is_black * 6]);
 }
 
 // ==============================================================================================

@@ -82,18 +82,15 @@ struct Position
     // Create attack board for a player.
     uint64_t color_reach_board(bool color_sign);
 
-    // Functions for the pieces' moving logic.
-    uint64_t get_pawn_move(uint8_t square, bool is_black);
-    uint64_t get_king_move(uint8_t square, bool is_black);
-    uint64_t get_bishop_move(uint8_t square, bool is_black);
-    uint64_t get_knight_move(uint8_t square, bool is_black);
-    uint64_t get_rook_move(uint8_t square, bool is_black);
-    uint64_t get_queen_move(uint8_t square, bool is_black);
-
+    // Lookup tables for bishop and rook attacks.
     uint64_t bishop_attacks[64][512];
     uint64_t rook_attacks[64][4096];
-    uint64_t bishop_masks[64];
-    uint64_t rook_masks[64];
+
+    uint64_t get_pawn_move(uint8_t square, bool is_black);
+
+    // Moving masks.
+    // uint64_t bishop_masks[64];
+    // uint64_t rook_masks[64];
 
     // Internal functions.
     void check_en_passant_possibility(Move* move);
@@ -143,6 +140,7 @@ struct Position
     uint8_t en_passant = 0b11111111;
 
     moves possible_moves;
+    
 };
 
 struct Board 
