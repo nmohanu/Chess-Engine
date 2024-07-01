@@ -74,7 +74,8 @@ struct Position
 
     // Check if king is under attack.
     bool king_under_attack(bool color_sign, uint64_t enemy_reach);
-    bool king_look_around(bool is_black);
+    bool king_look_around(bool is_black, uint8_t square);
+    bool move_legal(Move* move, uint64_t move_squares, bool is_black, uint64_t enemy_reach);
 
     // Create attack board for specific piece.
     uint64_t make_reach_board(uint8_t square, bool is_black, uint8_t piece_type);

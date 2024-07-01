@@ -121,8 +121,6 @@ uint64_t Position::make_reach_board(uint8_t square, bool is_black, uint8_t piece
             attack_board = 0b0;
             break;
     }
-    uint64_t own_pieces = is_black ? bit_boards[COLOR_BOARD] : (~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
-    attack_board &= ~own_pieces;
 
     return attack_board;
 }
@@ -136,20 +134,34 @@ uint64_t Position::color_reach_board(bool is_black)
     // uint64_t bit_mask = 1ULL << 63;
 
     uint64_t total_board = bit_boards[TOTAL];
-    uint64_t mask = -(int64_t)is_black;
-    total_board &= (bit_boards[COLOR_BOARD] & mask) | (~bit_boards[COLOR_BOARD] & ~mask);
 
-    while(__builtin_popcountll(total_board) >= 1)
+    if(is_black)
+        total_board &= bit_boards[COLOR_BOARD];
+    else
+        total_board &= ~bit_boards[COLOR_BOARD];
+
+    // uint64_t mask = -(int64_t)is_black;
+    // total_board &= (bit_boards[COLOR_BOARD] & mask) | (~bit_boards[COLOR_BOARD] & ~mask);
+
+    for(int i = 0; i < 64; i++)
     {
-        uint8_t pos = __builtin_clzll(total_board);
-        // Add piece reach to total reach.
-        attack_board |= make_reach_board(pos, is_black, get_piece(pos));
-
-        uint64_t own_pieces = is_black ? bit_boards[COLOR_BOARD] : (~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
-        attack_board &= ~own_pieces;
-
-        total_board &= total_board-1;
+        uint8_t pos = 63-i;
+        uint64_t mask = 1ULL << (i);
+        
+        if(boards_intersect(mask, total_board))
+        {
+            attack_board |= make_reach_board(pos, is_black, get_piece(pos));
+        }
     }
+
+    // while(__builtin_popcountll(total_board) >= 1)
+    // {
+    //     uint8_t pos = __builtin_clzll(total_board);
+    //     // Add piece reach to total reach.
+    //     attack_board |= make_reach_board(pos, is_black, get_piece(pos));
+
+    //     total_board &= total_board-1;
+    // }
     
     return attack_board;
 }
@@ -548,6 +560,8 @@ moves Position::determine_moves(bool is_black)
         uint8_t piece_type = get_piece(square);
     
         uint64_t move_squares = make_reach_board(square, is_black, piece_type);
+        uint64_t own_pieces = is_black ? bit_boards[COLOR_BOARD] : (~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
+        move_squares &= ~own_pieces;
 
         // Generate moves for the piece.
         generate_piece_moves(square, piece_type, move_squares, is_black, enemy_reach);
@@ -585,32 +599,64 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
         move->special_cases = 0b0;
         move->previous_castling_rights = casling_rights;
 
-        // Simulate the move.
-        do_move(move);
         // Check if king is not under attack after the move. If not, add move to possible moves.
-        possible_moves.move_count += !king_look_around(is_black);
-        // Clean up.
-        undo_move(move);
+        possible_moves.move_count += move_legal(move, move_squares, is_black, enemy_reach);
         move_squares &= ~(1ULL << (63 - i));
     }
 }
 
 // ==============================================================================================
 
+// Check if a move is legal.
+bool Position::move_legal(Move* move, uint64_t move_squares, bool is_black, uint64_t enemy_reach)
+{
+    uint64_t start_board = 1ULL << (63-move->start_location);
+    uint64_t end_board = 1ULL << (63-move->end_location);
+    
+    
+    if(move->moving_piece == (W_KING + 6*is_black))
+    {   // Check if destination is under attack.
+        // We can simply check that the end square does not intersect with enemy reach. However, this only works
+        // if start square is not on enemy reach either. 
+        // if(!boards_intersect(enemy_reach, start_board) && !boards_intersect(enemy_reach, end_board))
+        // //     return true;
+        // else  
+        {
+            do_move(move);
+            bool check = king_look_around(is_black, find_bit_position(bit_boards[W_KING + 6*is_black]));
+            undo_move(move);
+            return !check;
+        }
+    }
+    // If moving piece is not  the king, we need to check if the moving piece is not pinned.
+    // First, check if maybe the piece is not under attack.
+    else if(!boards_intersect(start_board, enemy_reach) && !boards_intersect(bit_boards[W_KING + 6*is_black], enemy_reach))
+    {
+        return true;
+    }
+    // Piece is attaacked, now we need to check if it's pinned.
+    else
+    {
+        do_move(move);
+        bool check = king_look_around(is_black, find_bit_position(bit_boards[W_KING + 6*is_black]));
+        undo_move(move);
+        return !check;
+    }
+}
+
 // Check if king is under check if we don't have an enemy reach board.
 // We do this here by simulating different piece moves from the kings position.
 // If, from the result, we find that the king can reach that piece type of the enemy player,
 // we know it's check.
-bool Position::king_look_around(bool is_black)
+bool Position::king_look_around(bool is_black, uint8_t square)
 {   
-    uint8_t king_position = find_bit_position(bit_boards[W_KING + 6*is_black]);
-    uint64_t pawn_squares = get_pawn_attack(is_black, king_position, bit_boards[COLOR_BOARD], bit_boards[TOTAL]);
+    uint64_t pawn_squares = get_pawn_attack(is_black, square, bit_boards[COLOR_BOARD], bit_boards[TOTAL]);
 
     return          (pawn_squares                                                           &       bit_boards[W_PAWN + !is_black * 6])
-            ||      (get_knight_move(king_position, is_black, bit_boards[TOTAL])            &       bit_boards[W_KNIGHT + !is_black * 6])
-            ||      (get_rook_move(king_position, is_black, bit_boards[TOTAL])              &       (bit_boards[W_ROOK + !is_black * 6]     |   bit_boards[W_QUEEN + !is_black * 6]))
-            ||      (get_bishop_move(king_position, is_black, bit_boards[TOTAL])            &       (bit_boards[W_BISHOP + !is_black * 6]   |   bit_boards[W_QUEEN + !is_black * 6]))
-            ||      (get_king_move(king_position, is_black, bit_boards[TOTAL])              &       bit_boards[W_KING + !is_black * 6]);
+            ||      (get_knight_move(square, is_black, bit_boards[TOTAL])            &       bit_boards[W_KNIGHT + !is_black * 6])
+            ||      (get_rook_move(square, is_black, bit_boards[TOTAL])              &       (bit_boards[W_ROOK + !is_black * 6]     |   bit_boards[W_QUEEN + !is_black * 6]))
+            ||      (get_bishop_move(square, is_black, bit_boards[TOTAL])            &       (bit_boards[W_BISHOP + !is_black * 6]   |   bit_boards[W_QUEEN + !is_black * 6]))
+            ||      (get_king_move(square, is_black, bit_boards[TOTAL])              &       bit_boards[W_KING + !is_black * 6]);
 }
 
 // ==============================================================================================
@@ -728,7 +774,7 @@ void Position::generate_en_passant_move(bool is_black)
         do_move(&move);
 
         // Check if king is not under attack after the move.
-        if (king_look_around(is_black))
+        if (king_look_around(is_black, find_bit_position(bit_boards[W_KING + 6*is_black])))
         {
             undo_move(&move);
             return;
