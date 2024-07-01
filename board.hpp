@@ -87,8 +87,6 @@ struct Position
     uint64_t bishop_attacks[64][512];
     uint64_t rook_attacks[64][4096];
 
-    uint64_t get_pawn_move(uint8_t square, bool is_black);
-
     // Moving masks.
     // uint64_t bishop_masks[64];
     // uint64_t rook_masks[64];

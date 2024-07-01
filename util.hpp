@@ -578,3 +578,29 @@ static inline uint64_t get_queen_move(uint8_t square, bool is_black, uint64_t oc
 {   
     return get_bishop_move(square, is_black, occupancies) | get_rook_move(square, is_black, occupancies);   
 }
+
+// Pawn moving.
+static inline uint64_t get_pawn_move(uint8_t square, bool is_black, uint64_t occupancies, uint64_t black_pieces) 
+{
+    uint64_t move_board = 0b0;
+    
+    // Check if the pawn is white or black.
+    if (!is_black) 
+    {   // White pawn
+        move_board |= (1ULL << ((63-square)+8) & ~occupancies);
+        // Check if pawn can move 2 squares. Only if in initial position and target square is empty.
+        move_board |= ((move_board << 8) & (0xFFULL << 24)) & ~occupancies;
+        // Attacking squares.
+        move_board |= (1ULL << (63-square+9) | 1ULL << (63-square + 7)) & (0xFFULL << (64-(square - square%8)) & black_pieces);
+    } 
+    else 
+    {   // Black pawn
+        move_board |= 1ULL << ((63-square)-8) & ~occupancies;
+        // Check if pawn can move 2 squares. Only if in initial position and target square is empty.
+        move_board |= ((move_board >> 8) & (0xFFULL << 32)) & ~occupancies;
+        // Attacking squares.
+        move_board |= (1ULL << (63-square-9) | 1ULL << (63-square-7)) & (0xFFULL << (64-(square - square%8) - 16) & ~(black_pieces) & occupancies);
+    }
+    
+    return move_board;
+}

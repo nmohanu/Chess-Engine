@@ -95,7 +95,7 @@ uint64_t Position::make_reach_board(uint8_t square, bool is_black, uint8_t piece
     switch (piece_type) {
         case B_PAWN:
         case W_PAWN:
-            attack_board = get_pawn_move(square, is_black);
+            attack_board = get_pawn_move(square, is_black, bit_boards[TOTAL], bit_boards[COLOR_BOARD]);
             break;
         case B_KING:
         case W_KING:
