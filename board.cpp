@@ -803,15 +803,11 @@ uint8_t Position::get_piece(uint8_t pos) const
     if(!(bit_boards[TOTAL]&bit_mask))
         return EMPTY;
 
-    uint64_t result = 0;
-    uint8_t index = 0;
+    uint8_t piece = 0;
 
-    while(result == 0 && index < 12)
-    {
-        result |= bit_boards[index]&bit_mask;
-        index++;
-    }
-    return index-1;
+    for(int i = 0; i < 12; i++) piece += !(bit_boards[i] & bit_mask) && (i == piece);
+    
+    return piece;
 }
 
 // ==============================================================================================

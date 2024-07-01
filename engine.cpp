@@ -42,19 +42,20 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
         return move_count;
     }
 
-    // uint64_t key;
-    // // Make hash entries of position.
-    // if((currently_evaluating_perft_depth - depth) <= MAX_HASH_DEPTH)
-    // {
-    //     key = hasher.calculate_zobrist_key(position, color_sign);
-    //     uint64_t entry_node_count = transposition_table.get_entry_nodes(depth, key);
-    //     // Read hash entry.
-    //     if(entry_node_count != no_hash_entry)
-    //     {
-    //         // Position wes already evaluated in a different order.
-    //         return entry_node_count;
-    //     }
-    // }
+    uint64_t key;
+    // Make hash entries of position.
+    if((currently_evaluating_perft_depth - depth) <= MAX_HASH_DEPTH)
+    {
+        key = hasher.calculate_zobrist_key(position, color_sign);
+        uint64_t entry_node_count = transposition_table.get_entry_nodes(depth, key);
+        // Read hash entry.
+        if(entry_node_count != no_hash_entry)
+        {
+            // Position wes already evaluated in a different order.
+            possible_moves.move_count -= move_count;
+            return entry_node_count;
+        }
+    }
 
     for(int i = last_possible_count; i < possible_moves.move_count; i++)
     {
@@ -75,8 +76,8 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
         }
 
         // Insert hash key.
-        // if((currently_evaluating_perft_depth - depth) <= MAX_HASH_DEPTH && (currently_evaluating_perft_depth - depth) >= MIN_HASH_DEPTH)
-        //     transposition_table.insert_hash(depth, 0, 0, key, nodes);
+        if((currently_evaluating_perft_depth - depth) <= MAX_HASH_DEPTH && (currently_evaluating_perft_depth - depth) >= MIN_HASH_DEPTH)
+            transposition_table.insert_hash(depth, 0, 0, key, nodes);
     }
     // Return result.
     possible_moves.move_count -= move_count;
