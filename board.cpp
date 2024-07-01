@@ -552,22 +552,6 @@ void Position::determine_moves(bool is_black, moves& possible_moves)
         }
     }
 
-    // while(__builtin_popcountll(total_board) >= 1)
-    // {
-    //     uint8_t square = __builtin_clzll(total_board);
-    //     // get piece type.
-    //     uint8_t piece_type = get_piece(square);
-    
-    //     uint64_t move_squares = make_reach_board(square, is_black, piece_type);
-    //     uint64_t own_pieces = is_black ? bit_boards[COLOR_BOARD] : (~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
-    //     move_squares &= ~own_pieces;
-
-    //     // Generate moves for the piece.
-    //     generate_piece_moves(square, piece_type, move_squares, is_black, enemy_reach, possible_moves);
-
-    //     total_board &= ~(1ULL << (63 - square));
-    // }
-
     // Check castling rights.
     generate_castling_moves(is_black, enemy_reach, possible_moves);
 
