@@ -83,6 +83,16 @@ struct Position
     // Create attack board for a player.
     uint64_t color_reach_board(bool color_sign);
 
+    generator_function generators[12] = 
+    {
+        get_king_move,
+        get_queen_move,
+        get_rook_move,
+        get_bishop_move,
+        get_knight_move,
+        get_pawn_move
+    };
+
     // Lookup tables for bishop and rook attacks.
     uint64_t bishop_attacks[64][512];
     uint64_t rook_attacks[64][4096];

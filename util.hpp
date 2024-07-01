@@ -9,6 +9,8 @@
 #include <chrono>
 #include "magic_arrays.hpp"
 
+typedef uint64_t (*generator_function) (uint8_t, bool, uint64_t, uint64_t);
+
 // Define a number for each piece.
 #define W_KING      0
 #define W_QUEEN     1
@@ -530,7 +532,7 @@ constexpr static std::array<std::array<uint64_t, 512>, 64> bishop_attacks = []()
 }();
 
 // King moving.
-static inline uint64_t get_king_move(uint8_t square, bool is_black, uint64_t occupancies) 
+static inline uint64_t get_king_move(uint8_t square, bool is_black, uint64_t occupancies, uint64_t black_pieces) 
 {
     // Get squares from memory.
     return KING_MOVE_SQUARES[square];;
@@ -539,7 +541,7 @@ static inline uint64_t get_king_move(uint8_t square, bool is_black, uint64_t occ
 // ==============================================================================================
 
 // Bishop moving logic.
-static inline uint64_t get_bishop_move(uint8_t square, bool is_black, uint64_t occupancies) 
+static inline uint64_t get_bishop_move(uint8_t square, bool is_black, uint64_t occupancies, uint64_t black_pieces) 
 {
     uint64_t mask = bishop_masks[square];
     uint64_t occupancy = occupancies & mask;
@@ -552,7 +554,7 @@ static inline uint64_t get_bishop_move(uint8_t square, bool is_black, uint64_t o
 // ==============================================================================================
 
 // Knight move logic.
-static inline uint64_t get_knight_move(uint8_t square, bool is_black, uint64_t occupancies) 
+static inline uint64_t get_knight_move(uint8_t square, bool is_black, uint64_t occupancies, uint64_t black_pieces) 
 {
     // Get squares from memory.
     uint64_t move_board = KNIGHT_MOVE_SQUARES[square];
@@ -562,7 +564,7 @@ static inline uint64_t get_knight_move(uint8_t square, bool is_black, uint64_t o
 // ==============================================================================================
 
 // Rook move logic.
-static inline uint64_t get_rook_move(uint8_t square, bool is_black, uint64_t occupancies) 
+static inline uint64_t get_rook_move(uint8_t square, bool is_black, uint64_t occupancies, uint64_t black_pieces) 
 {
     uint64_t mask = rook_masks[square];
     uint64_t occupancy = occupancies & mask;
@@ -574,9 +576,9 @@ static inline uint64_t get_rook_move(uint8_t square, bool is_black, uint64_t occ
 // ==============================================================================================
 
 // Queen move logic.
-static inline uint64_t get_queen_move(uint8_t square, bool is_black, uint64_t occupancies) 
+static inline uint64_t get_queen_move(uint8_t square, bool is_black, uint64_t occupancies, uint64_t black_pieces) 
 {   
-    return get_bishop_move(square, is_black, occupancies) | get_rook_move(square, is_black, occupancies);   
+    return get_bishop_move(square, is_black, occupancies, black_pieces) | get_rook_move(square, is_black, occupancies, black_pieces);   
 }
 
 // Pawn moving.

@@ -92,35 +92,7 @@ uint64_t Position::make_reach_board(uint8_t square, bool is_black, uint8_t piece
 {
     uint64_t attack_board = 0b0;
 
-    switch (piece_type) {
-        case B_PAWN:
-        case W_PAWN:
-            attack_board = get_pawn_move(square, is_black, bit_boards[TOTAL], bit_boards[COLOR_BOARD]);
-            break;
-        case B_KING:
-        case W_KING:
-            attack_board = get_king_move(square, is_black, bit_boards[TOTAL]);
-            break;
-        case B_BISHOP:
-        case W_BISHOP:
-            attack_board = get_bishop_move(square, is_black, bit_boards[TOTAL]);
-            break;
-        case B_KNIGHT:
-        case W_KNIGHT:
-            attack_board = get_knight_move(square, is_black, bit_boards[TOTAL]);
-            break;
-        case B_ROOK:
-        case W_ROOK:
-            attack_board = get_rook_move(square, is_black, bit_boards[TOTAL]);
-            break;
-        case B_QUEEN:
-        case W_QUEEN:
-            attack_board = get_queen_move(square, is_black, bit_boards[TOTAL]);
-            break;
-        default:
-            attack_board = 0b0;
-            break;
-    }
+    attack_board |= generators[piece_type - 6*is_black](square, is_black, bit_boards[TOTAL], bit_boards[COLOR_BOARD]);
 
     return attack_board;
 }
@@ -650,11 +622,11 @@ bool Position::king_look_around(bool is_black, uint8_t square)
 {   
     uint64_t pawn_squares = get_pawn_attack(is_black, square, bit_boards[COLOR_BOARD], bit_boards[TOTAL]);
 
-    return          (pawn_squares                                                           &       bit_boards[W_PAWN + !is_black * 6])
-            ||      (get_knight_move(square, is_black, bit_boards[TOTAL])            &       bit_boards[W_KNIGHT + !is_black * 6])
-            ||      (get_rook_move(square, is_black, bit_boards[TOTAL])              &       (bit_boards[W_ROOK + !is_black * 6]     |   bit_boards[W_QUEEN + !is_black * 6]))
-            ||      (get_bishop_move(square, is_black, bit_boards[TOTAL])            &       (bit_boards[W_BISHOP + !is_black * 6]   |   bit_boards[W_QUEEN + !is_black * 6]))
-            ||      (get_king_move(square, is_black, bit_boards[TOTAL])              &       bit_boards[W_KING + !is_black * 6]);
+    return          (pawn_squares                                                       &       bit_boards[W_PAWN + !is_black * 6])
+            ||      (get_knight_move(square, is_black, bit_boards[TOTAL], 0)            &       bit_boards[W_KNIGHT + !is_black * 6])
+            ||      (get_rook_move(square, is_black, bit_boards[TOTAL], 0)              &       (bit_boards[W_ROOK + !is_black * 6]     |   bit_boards[W_QUEEN + !is_black * 6]))
+            ||      (get_bishop_move(square, is_black, bit_boards[TOTAL], 0)            &       (bit_boards[W_BISHOP + !is_black * 6]   |   bit_boards[W_QUEEN + !is_black * 6]))
+            ||      (get_king_move(square, is_black, bit_boards[TOTAL], 0)              &       bit_boards[W_KING + !is_black * 6]);
 }
 
 // ==============================================================================================
