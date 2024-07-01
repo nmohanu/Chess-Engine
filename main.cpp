@@ -63,7 +63,8 @@ int main()
     int64_t black_reach_board = board->position->color_reach_board(1);
     uint64_t white_reach_board = board->position->color_reach_board(0);
 
-    moves possible_moves = board->position->determine_moves(0);
+    moves possible_moves;
+    board->position->determine_moves(0, possible_moves);
     // possible_moves = board->position->determine_moves(!is_white_turn);
 
     sf::Vector2f offset((SCREEN_WIDTH - 16*SCALE_FACTOR*8)/2, (SCREEN_HEIGHT - 16*SCALE_FACTOR*8)/2);
@@ -253,7 +254,7 @@ int main()
                     {
                         board->position->do_move(move);
                         is_white_turn = !is_white_turn;
-                        possible_moves = board->position->determine_moves(!is_white_turn);
+                        board->position->determine_moves(!is_white_turn, possible_moves);
                         white_reach_board = board->position->color_reach_board(0);
                         black_reach_board = board->position->color_reach_board(1);
                         if(possible_moves.move_count == 0)

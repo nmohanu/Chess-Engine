@@ -14,8 +14,10 @@ void Engine::do_perft_test(int depth, Position* position)
     int en_passants = 0;
     bool white_move = true;
     currently_evaluating_perft_depth = depth;
+    moves possible_moves;
+    possible_moves.move_count = 0;
 
-    uint64_t nodes = perft_test(position, depth-1, !white_move, captures, checks, en_passants);
+    uint64_t nodes = perft_test(position, depth-1, !white_move, captures, checks, en_passants, possible_moves);
     clock_t end = clock();
     double time_cost = double(end - start) / CLOCKS_PER_SEC;
     std::cout << "Depth: " << depth << '\n';
@@ -25,52 +27,59 @@ void Engine::do_perft_test(int depth, Position* position)
     std::cout << "================================================================================ \n";
 }
 
-uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& en_passants)
+uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& en_passants, moves& possible_moves)
 {
     // Determine possible moves.
-    moves possible_moves = position->determine_moves(color_sign);
+    int last_possible_count = possible_moves.move_count;
+    position->determine_moves(color_sign, possible_moves);
+    int move_count = possible_moves.move_count - last_possible_count;
     uint64_t nodes = 0;
 
     // Base case.
     if(depth == 0)
-        return possible_moves.move_count;
-
-    uint64_t key;
-    // Make hash entries of position.
-    if((currently_evaluating_perft_depth - depth) <= MAX_HASH_DEPTH)
     {
-        key = hasher.calculate_zobrist_key(position, color_sign);
-        uint64_t entry_node_count = transposition_table.get_entry_nodes(depth, key);
-        // Read hash entry.
-        if(entry_node_count != no_hash_entry)
-        {
-            // Position wes already evaluated in a different order.
-            return entry_node_count;
-        }
+        possible_moves.move_count -= move_count;
+        return move_count;
     }
 
-    for(int i = 0; i < possible_moves.move_count; i++)
+    // uint64_t key;
+    // // Make hash entries of position.
+    // if((currently_evaluating_perft_depth - depth) <= MAX_HASH_DEPTH)
+    // {
+    //     key = hasher.calculate_zobrist_key(position, color_sign);
+    //     uint64_t entry_node_count = transposition_table.get_entry_nodes(depth, key);
+    //     // Read hash entry.
+    //     if(entry_node_count != no_hash_entry)
+    //     {
+    //         // Position wes already evaluated in a different order.
+    //         return entry_node_count;
+    //     }
+    // }
+
+    for(int i = last_possible_count; i < possible_moves.move_count; i++)
     {
         // Do move.
-        position->do_move(&possible_moves.moves[i]);
+        int move_index = i;
+        position->do_move(&possible_moves.moves[move_index]);
         // Recursive call.
-        uint64_t nodes_found = perft_test(position, depth-1, !color_sign, captures, checks, en_passants);
+        uint64_t nodes_found = perft_test(position, depth-1, !color_sign, captures, checks, en_passants, possible_moves);
         nodes += nodes_found;
         // Undo move.
-        position->undo_move(&possible_moves.moves[i]);
+        position->undo_move(&possible_moves.moves[move_index]);
 
         // Move count for debugging.
         if(depth == currently_evaluating_perft_depth-1)
         {
-            std::string move_string = possible_moves.moves[i].to_string();
+            std::string move_string = possible_moves.moves[move_index].to_string();
             std::cout << move_string << ": " << nodes_found << '\n';
         }
 
         // Insert hash key.
-        if((currently_evaluating_perft_depth - depth) <= MAX_HASH_DEPTH && (currently_evaluating_perft_depth - depth) >= MIN_HASH_DEPTH)
-            transposition_table.insert_hash(depth, 0, 0, key, nodes);
+        // if((currently_evaluating_perft_depth - depth) <= MAX_HASH_DEPTH && (currently_evaluating_perft_depth - depth) >= MIN_HASH_DEPTH)
+        //     transposition_table.insert_hash(depth, 0, 0, key, nodes);
     }
     // Return result.
+    possible_moves.move_count -= move_count;
     return nodes;
 }
 

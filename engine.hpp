@@ -18,7 +18,7 @@ public:
 
     void do_perft_test(int depth, Position* position);
 
-    uint64_t perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& check_mates);
+    uint64_t perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& check_mates, moves& possible_moves);
 
     bool time_up = false;
 

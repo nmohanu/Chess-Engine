@@ -47,7 +47,7 @@ struct Move
 
 typedef struct 
 {
-    Move moves[256];
+    Move moves[1024];
     int move_count;
 } moves;
 
@@ -63,7 +63,7 @@ struct Position
     Position(const Position& other);
 
     // Determine possible moves.
-    moves determine_moves(bool color_sign);
+    void determine_moves(bool color_sign, moves& moves);
 
     // Get piece in position x y.
     uint8_t get_piece(uint8_t pos) const;
@@ -100,9 +100,9 @@ struct Position
     void reset_en_passant_status();
     void handle_en_passant_capture(Move* move);
     void move_piece(Move* move);
-    void generate_en_passant_move(bool is_black);
-    void generate_castling_moves(bool is_black, uint64_t enemy_reach);
-    void generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, uint64_t enemy_reach);
+    void generate_en_passant_move(bool is_black, moves& moves);
+    void generate_castling_moves(bool is_black, uint64_t enemy_reach, moves& moves);
+    void generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, uint64_t enemy_reach, moves& moves);
     void init_sliders_attacks(int bishop);
     uint64_t mask_rook_attacks(uint8_t square);
     uint64_t mask_bishop_attacks(uint8_t square);
@@ -139,8 +139,6 @@ struct Position
     // Second bit is the color sign of the pawn that can be captured.
     // Furthermore, the right most bits indicate the file on which an passant is captured.
     uint8_t en_passant = 0b11111111;
-
-    moves possible_moves;
     
 };
 

@@ -553,14 +553,13 @@ void Position::check_en_passant_possibility(Move* move)
 // ==============================================================================================
 
 // Generate all possible moves for a color and return them in a vector.
-moves Position::determine_moves(bool is_black)
+void Position::determine_moves(bool is_black, moves& possible_moves)
 {
     uint64_t total_board = bit_boards[TOTAL];
     uint64_t mask = -(int64_t)is_black;
     total_board &= (bit_boards[COLOR_BOARD] & mask) | (~bit_boards[COLOR_BOARD] & ~mask);
 
     uint64_t enemy_reach = color_reach_board(!is_black);
-    possible_moves.move_count = 0;
 
     while(__builtin_popcountll(total_board) >= 1)
     {
@@ -573,25 +572,22 @@ moves Position::determine_moves(bool is_black)
         move_squares &= ~own_pieces;
 
         // Generate moves for the piece.
-        generate_piece_moves(square, piece_type, move_squares, is_black, enemy_reach);
+        generate_piece_moves(square, piece_type, move_squares, is_black, enemy_reach, possible_moves);
 
         total_board &= ~(1ULL << (63 - square));
     }
 
     // Check castling rights.
-    generate_castling_moves(is_black, enemy_reach);
+    generate_castling_moves(is_black, enemy_reach, possible_moves);
 
     // Check en passant.
-    generate_en_passant_move(is_black);
-
-    // Return the found moves.
-    return possible_moves;
+    generate_en_passant_move(is_black, possible_moves);
 }
 
 // ==============================================================================================
 
 // Generate regular moves.
-void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, uint64_t enemy_reach)
+void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, uint64_t enemy_reach, moves& possible_moves)
 {
 
     while(__builtin_popcountll(move_squares) >= 1)
@@ -664,7 +660,7 @@ bool Position::king_look_around(bool is_black, uint8_t square)
 // ==============================================================================================
 
 // Generate all possible castling moves. 
-void Position::generate_castling_moves(bool is_black, uint64_t enemy_reach)
+void Position::generate_castling_moves(bool is_black, uint64_t enemy_reach, moves& possible_moves)
 {
     if(king_under_attack(is_black, enemy_reach) || casling_rights == 0)
         return;
@@ -738,7 +734,7 @@ void Position::generate_castling_moves(bool is_black, uint64_t enemy_reach)
 // ==============================================================================================
 
 // Generate en passant moves.
-void Position::generate_en_passant_move(bool is_black)
+void Position::generate_en_passant_move(bool is_black, moves& possible_moves)
 {
     // Check en passant status, 11111111 means no en passant is possible in this position.
     if (en_passant != 0b11111111)
