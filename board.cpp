@@ -143,16 +143,25 @@ uint64_t Position::color_reach_board(bool is_black)
     // uint64_t mask = -(int64_t)is_black;
     // total_board &= (bit_boards[COLOR_BOARD] & mask) | (~bit_boards[COLOR_BOARD] & ~mask);
 
-    for(int i = 0; i < 64; i++)
+    while(__builtin_popcountll(total_board) >= 1)
     {
-        uint8_t pos = 63-i;
-        uint64_t mask = 1ULL << (i);
-        
-        if(boards_intersect(mask, total_board))
-        {
-            attack_board |= make_reach_board(pos, is_black, get_piece(pos));
-        }
+        uint8_t pos = __builtin_clzll(total_board);
+        // Add piece reach to total reach.
+        attack_board |= make_reach_board(pos, is_black, get_piece(pos));
+
+        total_board &= ~(1ULL << (63 - pos));
     }
+
+    // for(int i = 0; i < 64; i++)
+    // {
+    //     uint8_t pos = 63-i;
+    //     uint64_t mask = 1ULL << (i);
+        
+    //     if(boards_intersect(mask, total_board))
+    //     {
+    //         attack_board |= make_reach_board(pos, is_black, get_piece(pos));
+    //     }
+    // }
 
     // while(__builtin_popcountll(total_board) >= 1)
     // {
@@ -615,26 +624,19 @@ bool Position::move_legal(Move* move, uint64_t move_squares, bool is_black, uint
     
     
     if(move->moving_piece == (W_KING + 6*is_black))
-    {   // Check if destination is under attack.
-        // We can simply check that the end square does not intersect with enemy reach. However, this only works
-        // if start square is not on enemy reach either. 
-        // if(!boards_intersect(enemy_reach, start_board) && !boards_intersect(enemy_reach, end_board))
-        // //     return true;
-        // else  
-        {
-            do_move(move);
-            bool check = king_look_around(is_black, find_bit_position(bit_boards[W_KING + 6*is_black]));
-            undo_move(move);
-            return !check;
-        }
+    {   // Simulate move.
+        do_move(move);
+        bool check = king_look_around(is_black, find_bit_position(bit_boards[W_KING + 6*is_black]));
+        undo_move(move);
+        return !check;
     }
     // If moving piece is not  the king, we need to check if the moving piece is not pinned.
-    // First, check if maybe the piece is not under attack.
+    // First, if moving piece and king both are not attacks, move is legal.
     else if(!boards_intersect(start_board, enemy_reach) && !boards_intersect(bit_boards[W_KING + 6*is_black], enemy_reach))
     {
         return true;
     }
-    // Piece is attaacked, now we need to check if it's pinned.
+    // Piece is attaacked, now we need to check if it's pinned. Simulate move.
     else
     {
         do_move(move);
