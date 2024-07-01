@@ -527,27 +527,46 @@ void Position::check_en_passant_possibility(Move* move)
 // Generate all possible moves for a color and return them in a vector.
 void Position::determine_moves(bool is_black, moves& possible_moves)
 {
-    uint64_t total_board = bit_boards[TOTAL];
+    
     uint64_t mask = -(int64_t)is_black;
-    total_board &= (bit_boards[COLOR_BOARD] & mask) | (~bit_boards[COLOR_BOARD] & ~mask);
 
     uint64_t enemy_reach = color_reach_board(!is_black);
 
-    while(__builtin_popcountll(total_board) >= 1)
+    for(int i = 0 + 6*is_black; i < 12 - 6*!is_black; i++)
     {
-        uint8_t square = __builtin_clzll(total_board);
-        // get piece type.
-        uint8_t piece_type = get_piece(square);
-    
-        uint64_t move_squares = make_reach_board(square, is_black, piece_type);
-        uint64_t own_pieces = is_black ? bit_boards[COLOR_BOARD] : (~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
-        move_squares &= ~own_pieces;
+        uint8_t piece_type = i;
+        uint64_t board = bit_boards[i];
+        
+        while(__builtin_popcountll(board) >= 1)
+        {
+            uint8_t square = __builtin_clzll(board);
+        
+            uint64_t move_squares = generators[piece_type - 6*is_black](square, is_black, bit_boards[TOTAL], bit_boards[COLOR_BOARD]);
+            uint64_t own_pieces = is_black ? bit_boards[COLOR_BOARD] : (~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
+            move_squares &= ~own_pieces;
 
-        // Generate moves for the piece.
-        generate_piece_moves(square, piece_type, move_squares, is_black, enemy_reach, possible_moves);
+            // Generate moves for the piece.
+            generate_piece_moves(square, piece_type, move_squares, is_black, enemy_reach, possible_moves);
 
-        total_board &= ~(1ULL << (63 - square));
+            board &= ~(1ULL << (63 - square));
+        }
     }
+
+    // while(__builtin_popcountll(total_board) >= 1)
+    // {
+    //     uint8_t square = __builtin_clzll(total_board);
+    //     // get piece type.
+    //     uint8_t piece_type = get_piece(square);
+    
+    //     uint64_t move_squares = make_reach_board(square, is_black, piece_type);
+    //     uint64_t own_pieces = is_black ? bit_boards[COLOR_BOARD] : (~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
+    //     move_squares &= ~own_pieces;
+
+    //     // Generate moves for the piece.
+    //     generate_piece_moves(square, piece_type, move_squares, is_black, enemy_reach, possible_moves);
+
+    //     total_board &= ~(1ULL << (63 - square));
+    // }
 
     // Check castling rights.
     generate_castling_moves(is_black, enemy_reach, possible_moves);
