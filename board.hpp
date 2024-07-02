@@ -83,7 +83,7 @@ struct Position
     // Create attack board for a player.
     uint64_t color_reach_board(bool color_sign);
 
-    generator_function generators[12] = 
+    generator_function generators[6] = 
     {
         get_king_move,
         get_queen_move,

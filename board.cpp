@@ -26,33 +26,7 @@ Move::Move(Move* other)
 
 // Position constructors.
 Position::Position() 
-{   
-    // Initialize rook and bishop masks.
-    // for(int square = 0; square < 64; square++)
-    // {
-    //     // Make masks for all squares. 
-    //     // bishop_masks[square] = make_bishop_mask(square);
-    //     // rook_masks[square] = make_rook_mask(square);
-    // }
-
-    // Make lookup tables.
-    // for (int square = 0; square < 64; square++) 
-    // {
-    //     uint64_t bishop_mask = bishop_masks[square];
-    //     uint64_t bishop_relevant_bits = __builtin_popcountll(bishop_mask);
-    //     std::vector<uint64_t> bishop_blocker_boards = create_all_blocker_boards(bishop_mask);
-
-        
-    //     //Fill lookup table for bishop.
-    //     for(int board = 0; board < bishop_blocker_boards.size(); board++)
-    //     {
-    //         uint64_t blocker_board = bishop_blocker_boards[board];
-    //         int index = (blocker_board * bishop_magic_numbers[63-square]) >> (64 - bishop_relevant_bits);
-    //         bishop_attacks[square][index] = bishop_attack_on_fly(square, blocker_board);
-    //         // print_bitboard(bishop_attacks[square][index]);
-    //     }
-    // }
-}
+{}
 
 Position::Position(const Position& other) 
 {
@@ -67,8 +41,7 @@ Position::Position(const Position& other)
 
 // Destructor.
 Position::~Position() 
-{   
-}
+{}
 
 // ==============================================================================================
 
@@ -527,22 +500,20 @@ void Position::check_en_passant_possibility(Move* move)
 // Generate all possible moves for a color and return them in a vector.
 void Position::determine_moves(bool is_black, moves& possible_moves)
 {
-    
-    uint64_t mask = -(int64_t)is_black;
+    uint64_t enemy_reach = color_reach_board(!is_black);            
+    uint64_t own_pieces = is_black ? bit_boards[COLOR_BOARD] : (~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
 
-    uint64_t enemy_reach = color_reach_board(!is_black);
-
-    for(int i = 0 + 6*is_black; i < 12 - 6*!is_black; i++)
+    for(int i = (0 + 6*is_black); i < (12 - 6*!is_black); i++)
     {
+        // TODO: find out why we need to & own pieces.
+        uint64_t board = bit_boards[i] & own_pieces;
         uint8_t piece_type = i;
-        uint64_t board = bit_boards[i];
         
         while(__builtin_popcountll(board) >= 1)
         {
             uint8_t square = __builtin_clzll(board);
         
-            uint64_t move_squares = generators[piece_type - 6*is_black](square, is_black, bit_boards[TOTAL], bit_boards[COLOR_BOARD]);
-            uint64_t own_pieces = is_black ? bit_boards[COLOR_BOARD] : (~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
+            uint64_t move_squares = make_reach_board(square, is_black, piece_type);
             move_squares &= ~own_pieces;
 
             // Generate moves for the piece.
@@ -625,11 +596,11 @@ bool Position::king_look_around(bool is_black, uint8_t square)
 {   
     uint64_t pawn_squares = get_pawn_attack(is_black, square, bit_boards[COLOR_BOARD], bit_boards[TOTAL]);
 
-    return          (pawn_squares                                                       &       bit_boards[W_PAWN + !is_black * 6])
-            ||      (get_knight_move(square, is_black, bit_boards[TOTAL], 0)            &       bit_boards[W_KNIGHT + !is_black * 6])
-            ||      (get_rook_move(square, is_black, bit_boards[TOTAL], 0)              &       (bit_boards[W_ROOK + !is_black * 6]     |   bit_boards[W_QUEEN + !is_black * 6]))
-            ||      (get_bishop_move(square, is_black, bit_boards[TOTAL], 0)            &       (bit_boards[W_BISHOP + !is_black * 6]   |   bit_boards[W_QUEEN + !is_black * 6]))
-            ||      (get_king_move(square, is_black, bit_boards[TOTAL], 0)              &       bit_boards[W_KING + !is_black * 6]);
+    return              (pawn_squares                                                       &           bit_boards[W_PAWN + !is_black * 6])
+                ||      (get_knight_move(square, is_black, bit_boards[TOTAL], 0)            &           bit_boards[W_KNIGHT + !is_black * 6])
+                ||      (get_rook_move(square, is_black, bit_boards[TOTAL], 0)              &           (bit_boards[W_ROOK + !is_black * 6]         |       bit_boards[W_QUEEN + !is_black * 6]))
+                ||      (get_bishop_move(square, is_black, bit_boards[TOTAL], 0)            &           (bit_boards[W_BISHOP + !is_black * 6]       |       bit_boards[W_QUEEN + !is_black * 6]))
+                ||      (get_king_move(square, is_black, bit_boards[TOTAL], 0)              &           bit_boards[W_KING + !is_black * 6]);
 }
 
 // ==============================================================================================
