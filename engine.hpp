@@ -16,12 +16,15 @@ public:
     // Call recursive functions to determine best move.
     void best_move(Position* position, bool color_sign, int depth,  Move& best_move);
 
+    void do_perft_test(int depth, Position* position);
+
+    uint64_t perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& check_mates, moves& possible_moves);
+
     bool time_up = false;
 
     Engine();
 
 private:
-
     // Working but can be improved later:
 
     float search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips, int depth_limit);
@@ -82,6 +85,18 @@ private:
     ZobristHash hasher;
 
     int previous_score = 0;
+
+    int perft_pawns_w = 0;
+    int perft_pawns_b = 0;
+    int perft_knight_w = 0;
+    int perft_knight_b = 0;
+    int perft_king_w = 0;
+    int perft_king_b = 0;
+    int perft_queen_w = 0;
+    int perft_queen_b = 0;
+    int perft_rook_w = 0;
+    int perft_rook_b = 0;
+    int currently_evaluating_perft_depth;
 };
 
 #endif
