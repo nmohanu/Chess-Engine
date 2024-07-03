@@ -70,7 +70,12 @@ struct Position
 
     // Do a move.
     void do_move(Move* move);
+
     void undo_move(Move* move);
+    void undo_piece_move(Move* move);
+    void undo_en_passant_capture(Move* move);
+    void restore_special_cases(Move* move);
+    void restore_en_passant_and_castling(Move* move);
 
     // Check if king is under attack.
     bool king_under_attack(bool color_sign, uint64_t enemy_reach);

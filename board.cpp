@@ -9,6 +9,9 @@
 // Move constructors.
 Move::Move() {}
 
+// ==============================================================================================
+
+// Copy constructor.
 Move::Move(Move* other)
 {
     // Copy contents.
@@ -24,10 +27,12 @@ Move::Move(Move* other)
 
 // ==============================================================================================
 
-// Position constructors.
-Position::Position() 
-{}
+// Position constructor.
+Position::Position() {}
 
+// ==============================================================================================
+
+// Copy constructor.
 Position::Position(const Position& other) 
 {
     // Copy contents of position.
@@ -39,9 +44,10 @@ Position::Position(const Position& other)
     for(uint8_t piece = W_KING; piece < 14; piece++) this->bit_boards[piece] = other.bit_boards[piece];
 }
 
+// ==============================================================================================
+
 // Destructor.
-Position::~Position() 
-{}
+Position::~Position() {}
 
 // ==============================================================================================
 
@@ -51,6 +57,9 @@ Board::Board()
     position = new Position();
 }
 
+// ==============================================================================================
+
+// Destructor.
 Board::~Board()
 {
     // Delete the position.
@@ -76,7 +85,6 @@ uint64_t Position::make_reach_board(uint8_t square, bool is_black, uint8_t piece
 uint64_t Position::color_reach_board(bool is_black)
 {
     uint64_t attack_board = 0ULL;
-    // uint64_t bit_mask = 1ULL << 63;
 
     uint64_t total_board = bit_boards[TOTAL];
 
@@ -84,9 +92,6 @@ uint64_t Position::color_reach_board(bool is_black)
         total_board &= bit_boards[COLOR_BOARD];
     else
         total_board &= ~bit_boards[COLOR_BOARD];
-
-    // uint64_t mask = -(int64_t)is_black;
-    // total_board &= (bit_boards[COLOR_BOARD] & mask) | (~bit_boards[COLOR_BOARD] & ~mask);
 
     while(__builtin_popcountll(total_board) >= 1)
     {
@@ -96,26 +101,6 @@ uint64_t Position::color_reach_board(bool is_black)
 
         total_board &= ~(1ULL << (63 - pos));
     }
-
-    // for(int i = 0; i < 64; i++)
-    // {
-    //     uint8_t pos = 63-i;
-    //     uint64_t mask = 1ULL << (i);
-        
-    //     if(boards_intersect(mask, total_board))
-    //     {
-    //         attack_board |= make_reach_board(pos, is_black, get_piece(pos));
-    //     }
-    // }
-
-    // while(__builtin_popcountll(total_board) >= 1)
-    // {
-    //     uint8_t pos = __builtin_clzll(total_board);
-    //     // Add piece reach to total reach.
-    //     attack_board |= make_reach_board(pos, is_black, get_piece(pos));
-
-    //     total_board &= total_board-1;
-    // }
     
     return attack_board;
 }
@@ -152,6 +137,21 @@ void Position::do_move(Move* move)
 
 // Handle the undo logic for a move.
 void Position::undo_move(Move* move)
+{ 
+    // place captured piece back on board.
+    if(!move->move_takes_an_passant)
+        undo_piece_move(move);
+    else
+        undo_en_passant_capture(move);
+    
+    restore_special_cases(move);
+    restore_en_passant_and_castling(move);
+}
+
+// ============================================================================================== 
+
+// Undo normal move.
+void Position::undo_piece_move(Move* move)
 {
     uint8_t start_square = move->start_location;
     uint8_t end_square = move->end_location;
@@ -159,61 +159,75 @@ void Position::undo_move(Move* move)
     uint8_t moved_piece = move->moving_piece;
     uint64_t end_square_mask = ~(1ULL << (63-end_square));
     uint64_t start_square_mask = 1ULL << (63-start_square);
-    
-    // place captured piece back on board.
-    if(!move->move_takes_an_passant)
+
+    bit_boards[moved_piece] &= end_square_mask;
+    bit_boards[moved_piece] |= start_square_mask;
+
+    // Toggle bit in total board.
+    bit_boards[TOTAL] &= end_square_mask;
+    bit_boards[TOTAL] |= start_square_mask;
+
+    if(moved_piece > 5)
     {
-        bit_boards[moved_piece] &= end_square_mask;
-        bit_boards[moved_piece] |= start_square_mask;
+        bit_boards[COLOR_BOARD] &= end_square_mask;
+        bit_boards[COLOR_BOARD] |= start_square_mask;
+    }
 
-        // Toggle bit in total board.
-        bit_boards[TOTAL] &= end_square_mask;
-        bit_boards[TOTAL] |= start_square_mask;
+    if(captured_piece < 12)
+    {
+        bit_boards[captured_piece] |= ~end_square_mask;
 
-        if(moved_piece > 5)
+        // Now check if we need to update color board because of capture.
+        if(captured_piece > 5)
         {
-            bit_boards[COLOR_BOARD] &= end_square_mask;
-            bit_boards[COLOR_BOARD] |= start_square_mask;
+            bit_boards[COLOR_BOARD] |= ~end_square_mask;
         }
+        bit_boards[TOTAL] |= ~end_square_mask;
+    }
+}
 
-        if(captured_piece < 12)
-        {
-            bit_boards[captured_piece] |= ~end_square_mask;
+// ============================================================================================== 
 
-            // Now check if we need to update color board because of capture.
-            if(captured_piece > 5)
-            {
-                bit_boards[COLOR_BOARD] |= ~end_square_mask;
-            }
-            bit_boards[TOTAL] |= ~end_square_mask;
-        }
+// Undo en passant move.
+void Position::undo_en_passant_capture(Move* move)
+{
+    uint8_t start_square = move->start_location;
+    uint8_t end_square = move->end_location;
+    uint8_t captured_piece = move->captured_piece;
+    uint8_t moved_piece = move->moving_piece;
+    uint64_t end_square_mask = ~(1ULL << (63-end_square));
+    uint64_t start_square_mask = 1ULL << (63-start_square);
+
+    uint8_t capture_square = (moved_piece > 5) ? end_square - 8 : end_square + 8;
+    uint8_t capture_piece_index = W_PAWN + 6 * !(moved_piece > 5);
+
+    // Toggle off moved piece from end square
+    bit_boards[moved_piece] &= end_square_mask;
+    bit_boards[moved_piece] |= start_square_mask;
+
+    bit_boards[TOTAL] &= end_square_mask;
+    bit_boards[TOTAL] |= start_square_mask;
+
+    // Restore captured pawn
+    uint64_t capture_square_mask = 1ULL << (63-capture_square);
+    bit_boards[capture_piece_index] |= capture_square_mask;
+    bit_boards[TOTAL] |= capture_square_mask;
+    if (moved_piece > 5)
+    {
+        bit_boards[COLOR_BOARD] &= end_square_mask;
+        bit_boards[COLOR_BOARD] |= start_square_mask;
     }
     else
     {
-        uint8_t capture_square = (moved_piece > 5) ? end_square - 8 : end_square + 8;
-        uint8_t capture_piece_index = W_PAWN + 6 * !(moved_piece > 5);
-
-        // Toggle off moved piece from end square
-        bit_boards[moved_piece] &= end_square_mask;
-        bit_boards[moved_piece] |= start_square_mask;
-
-        bit_boards[TOTAL] &= end_square_mask;
-        bit_boards[TOTAL] |= start_square_mask;
-
-        // Restore captured pawn
-        uint64_t capture_square_mask = 1ULL << (63-capture_square);
-        bit_boards[capture_piece_index] |= capture_square_mask;
-        bit_boards[TOTAL] |= capture_square_mask;
-        if (moved_piece > 5)
-        {
-            bit_boards[COLOR_BOARD] &= end_square_mask;
-            bit_boards[COLOR_BOARD] |= start_square_mask;
-        }
-        else
-        {
-            bit_boards[COLOR_BOARD] |= capture_square_mask;
-        }
+        bit_boards[COLOR_BOARD] |= capture_square_mask;
     }
+}
+
+// ============================================================================================== 
+
+// Undo castling move.
+void Position::restore_special_cases(Move* move)
+{
     // Undo castling.
     if(move->special_cases != 0 && move->special_cases != 5)
     {
@@ -250,6 +264,13 @@ void Position::undo_move(Move* move)
             casling_rights |= 0b00001000;
         }
     }
+}
+
+// ============================================================================================== 
+
+// Restore status.
+void Position::restore_en_passant_and_castling(Move* move)
+{
     // Restore en passant status.
     this->en_passant = move->previous_en_passant;
     this->casling_rights = move->previous_castling_rights;
@@ -807,6 +828,8 @@ float Move::capture_value(Position* position) const
 {
     return get_piece_value(position->get_piece(this->end_location));
 }
+
+// ==============================================================================================
 
 std::string Move::to_string()
 {
