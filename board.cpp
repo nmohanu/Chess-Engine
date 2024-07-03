@@ -642,7 +642,7 @@ void Position::generate_castling_moves(bool is_black, uint64_t enemy_reach, move
         uint64_t check_test2 = check_test >> 1;
         // Black kingside castling.
         if (get_piece(5) == EMPTY && get_piece(6) == EMPTY
-            && !boards_intersect(check_test, enemy_reach) && !boards_intersect(check_test2, enemy_reach))
+            && !king_look_around(is_black, 5) && !king_look_around(is_black, 6))
         {
             Move move(4, 6);
             move.moving_piece = B_KING;
@@ -658,7 +658,7 @@ void Position::generate_castling_moves(bool is_black, uint64_t enemy_reach, move
         uint64_t check_test2 = check_test >> 1;
         // White kingside castling.
         if (get_piece(61) == EMPTY && get_piece(62) == EMPTY
-            && !boards_intersect(check_test, enemy_reach) && !boards_intersect(check_test2, enemy_reach))
+            && !king_look_around(is_black, 61) && !king_look_around(is_black, 62))
         {
             Move move(60, 62);
             move.moving_piece = W_KING;
@@ -675,7 +675,7 @@ void Position::generate_castling_moves(bool is_black, uint64_t enemy_reach, move
         uint64_t check_test2 = check_test << 1;
         // Black queenside castling.
         if (get_piece(1) == EMPTY && get_piece(2) == EMPTY && get_piece(3) == EMPTY
-            && !boards_intersect(check_test, enemy_reach) && !boards_intersect(check_test2, enemy_reach))
+            && !king_look_around(is_black, 1) && !king_look_around(is_black, 2) && !king_look_around(is_black, 3))
         {
             Move move(4, 2);
             move.moving_piece = B_KING;
@@ -691,7 +691,7 @@ void Position::generate_castling_moves(bool is_black, uint64_t enemy_reach, move
         uint64_t check_test2 = check_test << 1;
         // White queenside castling.
         if (get_piece(59) == EMPTY && get_piece(58) == EMPTY && get_piece(57) == EMPTY
-            && !boards_intersect(check_test, enemy_reach) && !boards_intersect(check_test2, enemy_reach))
+            && !king_look_around(is_black, 59) && !king_look_around(is_black, 58) && !king_look_around(is_black, 57))
         {
             Move move(60, 58);
             move.moving_piece = W_KING;
