@@ -1,4 +1,158 @@
 #include <cstdint>
+#include <iostream>
+#include <vector>
+#include <memory>
+#include <algorithm>
+#include <atomic>
+#include <assert.h>
+#include <bitset>
+#include <chrono>
+
+typedef uint64_t (*generator_function) (uint8_t, bool, uint64_t, uint64_t);
+
+// Define a number for each piece.
+#define W_KING      0
+#define W_QUEEN     1
+#define W_ROOK      2
+#define W_BISHOP    3
+#define W_KNIGHT    4
+#define W_PAWN      5
+#define B_KING      6
+#define B_QUEEN     7
+#define B_ROOK      8
+#define B_BISHOP    9
+#define B_KNIGHT    10
+#define B_PAWN      11
+#define TOTAL       12
+#define COLOR_BOARD 13
+#define EMPTY       14
+#define INVALID     15
+
+#define MAX_EVAL    100.f
+#define MIN_EVAL    -100.f
+
+// Transposition table.
+
+#define hashfEXACT  0
+#define hashfALPHA  1
+#define hashfBETA   2
+
+// Table size.
+#define hash_table_size 0x2000000
+
+// No entry found.
+#define no_hash_entry 999999999
+
+const uint64_t ROOK_SQUARES =    0b1000000100000000000000000000000000000000000000000000000010000001ULL;
+const uint64_t KNIGHT_SQUARES =  0b0100001000000000000000000000000000000000000000000000000001000010ULL;
+const uint64_t BISHOP_SQUARES =  0b0010010000000000000000000000000000000000000000000000000000100100ULL;
+const uint64_t QUEEN_SQUARES =   0b0001000000000000000000000000000000000000000000000000000000010000ULL;
+const uint64_t KING_SQUARES =    0b0000100000000000000000000000000000000000000000000000000000001000ULL;
+const uint64_t PAWN_SQUARES =    0b0000000011111111000000000000000000000000000000001111111100000000ULL;
+const uint64_t BLACK_PIECES =    0b1111111111111111000000000000000000000000000000000000000000000000ULL;
+const uint64_t TOTAL_SQUARES =   0b1111111111111111000000000000000000000000000000001111111111111111ULL;
+
+// Whether there is a search going on or not.
+static std::atomic<bool> engine_is_searching(false);
+static std::atomic<bool> move_found(false);
+
+// Constants.
+const float ROOK_VALUE = 5.f;
+const float QUEEN_VALUE = 9.f;
+const float KNIGHT_VALUE = 3.f;
+const float BISHOP_VALUE = 3.f;
+const float PAWN_VALUE = 1.f;
+
+const int PERFT_DEPTH = 8;
+
+// Avoid collissions by only hashing and checking at nodes that are worth hashing.
+const int MAX_HASH_DEPTH = 4;
+const int MIN_HASH_DEPTH = 2;
+
+// Square bonus for each piece.
+const float PAWN_BONUS[64] = 
+{
+    0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f,
+    5.0f,   5.0f,   5.0f,   5.0f,   5.0f,   5.0f,   5.0f,   5.0f,
+    1.0f,   1.0f,   2.0f,   3.0f,   3.0f,   2.0f,   1.0f,   1.0f,
+    0.5f,   0.5f,   1.0f,   2.5f,   2.5f,   1.0f,   0.5f,   0.5f,
+    0.0f,   0.0f,   0.0f,   2.0f,   2.0f,   0.0f,   0.0f,   0.0f,
+    0.5f,   -0.5f,  -1.0f,  0.0f,   0.0f,   -1.0f,  -0.5f,  0.5f,
+    0.5f,   1.0f,   1.0f,   -2.0f,  -2.0f,  1.0f,   1.0f,   0.5f,
+    0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f,   0.0f
+};
+
+const float KNIGHT_BONUS[64] = 
+{
+    -5.0f, -4.0f, -3.0f, -3.0f, -3.0f, -3.0f, -4.0f, -5.0f,
+    -4.0f, -2.0f,  0.0f,  0.5f,  0.5f,  0.0f, -2.0f, -4.0f,
+    -3.0f,  0.5f,  1.0f,  2.0f,  2.0f,  1.0f,  0.5f, -3.0f,
+    -3.0f,  0.0f,  2.0f,  2.5f,  2.5f,  2.0f,  0.0f, -3.0f,
+    -3.0f,  0.5f,  1.5f,  2.5f,  2.5f,  1.5f,  0.5f, -3.0f,
+    -3.0f,  0.0f,  1.0f,  1.5f,  1.5f,  1.0f,  0.0f, -3.0f,
+    -4.0f, -2.0f,  0.0f,  0.0f,  0.0f,  0.0f, -2.0f, -4.0f,
+    -5.0f, -4.0f, -3.0f, -3.0f, -3.0f, -3.0f, -4.0f, -5.0f
+};
+
+const float BISHOP_BONUS[64] = 
+{
+    -2.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -2.0f,
+    -1.0f,  0.0f,  0.0f,  0.5f,  0.5f,  0.0f,  0.0f, -1.0f,
+    -1.0f,  0.5f,  0.5f,  1.0f,  1.0f,  0.5f,  0.5f, -1.0f,
+    -1.0f,  0.0f,  1.0f,  1.0f,  1.0f,  1.0f,  0.0f, -1.0f,
+    -1.0f,  0.5f,  1.0f,  1.0f,  1.0f,  1.0f,  0.5f, -1.0f,
+    -1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f, -1.0f,
+    -1.0f,  0.5f,  0.0f,  0.0f,  0.0f,  0.0f,  0.5f, -1.0f,
+    -2.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -2.0f
+};
+
+const float ROOK_BONUS[64] = 
+{
+     0.0f,  0.0f,  0.0f,  0.5f,  0.5f,  0.0f,  0.0f,  0.0f,
+    -0.5f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f, -0.5f,
+    -0.5f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f, -0.5f,
+    -0.5f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f, -0.5f,
+    -0.5f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f, -0.5f,
+    -0.5f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f, -0.5f,
+     0.5f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  0.5f,
+     0.0f,  0.0f,  0.0f,  0.5f,  0.5f,  0.0f,  0.0f,  0.0f
+};
+
+const float QUEEN_BONUS[64] = 
+{
+    -2.0f, -1.0f, -1.0f, -0.5f, -0.5f, -1.0f, -1.0f, -2.0f,
+    -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f,  0.0f, -1.0f,
+    -1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.5f,  0.0f, -1.0f,
+    -0.5f,  0.0f,  0.5f,  0.5f,  0.5f,  0.5f,  0.0f, -0.5f,
+     0.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.5f,  0.0f, -0.5f,
+    -1.0f,  0.5f,  0.5f,  0.5f,  0.5f,  0.5f,  0.0f, -1.0f,
+    -1.0f,  0.0f,  0.5f,  0.0f,  0.0f,  0.0f,  0.0f, -1.0f,
+    -2.0f, -1.0f, -1.0f, -0.5f, -0.5f, -1.0f, -1.0f, -2.0f
+};
+
+const float KING_BONUS[64] = 
+{
+    -3.0f, -4.0f, -4.0f, -5.0f, -5.0f, -4.0f, -4.0f, -3.0f,
+    -3.0f, -4.0f, -4.0f, -5.0f, -5.0f, -4.0f, -4.0f, -3.0f,
+    -3.0f, -4.0f, -4.0f, -5.0f, -5.0f, -4.0f, -4.0f, -3.0f,
+    -3.0f, -4.0f, -4.0f, -5.0f, -5.0f, -4.0f, -4.0f, -3.0f,
+    -2.0f, -3.0f, -3.0f, -4.0f, -4.0f, -3.0f, -3.0f, -2.0f,
+    -1.0f, -2.0f, -2.0f, -2.0f, -2.0f, -2.0f, -2.0f, -1.0f,
+     2.0f,  2.0f,  0.0f,  0.0f,  0.0f,  0.0f,  2.0f,  2.0f,
+     2.0f,  3.0f,  1.0f,  0.0f,  0.0f,  1.0f,  3.0f,  2.0f
+};
+
+const float KING_BONUS_ENDGAME[64] = 
+{
+    -5.0f, -4.0f, -3.0f, -2.0f, -2.0f, -3.0f, -4.0f, -5.0f,
+    -3.0f, -2.0f, -1.0f,  0.0f,  0.0f, -1.0f, -2.0f, -3.0f,
+    -3.0f, -1.0f,  2.0f,  3.0f,  3.0f,  2.0f, -1.0f, -3.0f,
+    -3.0f, -1.0f,  3.0f,  4.0f,  4.0f,  3.0f, -1.0f, -3.0f,
+    -3.0f, -1.0f,  3.0f,  4.0f,  4.0f,  3.0f, -1.0f, -3.0f,
+    -3.0f, -1.0f,  2.0f,  3.0f,  3.0f,  2.0f, -1.0f, -3.0f,
+    -3.0f, -3.0f,  0.0f,  0.0f,  0.0f,  0.0f, -3.0f, -3.0f,
+    -5.0f, -3.0f, -3.0f, -3.0f, -3.0f, -3.0f, -3.0f, -5.0f
+};
 
 constexpr uint64_t KING_MOVE_SQUARES[] = 
 {
