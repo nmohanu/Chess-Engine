@@ -87,31 +87,18 @@ uint64_t Position::color_reach_board(bool is_black)
 {
     // Initialize.
     uint64_t attack_board = 0ULL;
-    // uint64_t total_board = bit_boards[TOTAL];
-    // if(is_black)
-    //     total_board &= bit_boards[COLOR_BOARD];
-    // else
-    //     total_board &= ~bit_boards[COLOR_BOARD];
 
-    // while(__builtin_popcountll(total_board) >= 1)
-    // {
-    //     uint8_t pos = __builtin_clzll(total_board);
-    //     // Add piece reach to total reach.
-    //     attack_board |= make_reach_board(pos, is_black, get_piece(pos));
-
-    //     total_board &= ~(1ULL << (63 - pos));
-    // }
-
-    for(int i = (0 + 6*is_black); i < (12 - 6*!is_black); i++)
+    // For every board of this player, add the move squares of the toggled bits.
+    for(int piece_type = (0 + 6*is_black); piece_type < (12 - 6*!is_black); piece_type++)
     {
         // TODO: find out why we need to & own pieces.
-        uint64_t board = bit_boards[i];
+        uint64_t board = bit_boards[piece_type];
         
         while(__builtin_popcountll(board) >= 1)
         {
             uint8_t pos = __builtin_clzll(board);
             // Add piece reach to total reach.
-            attack_board |= make_reach_board(pos, is_black, i);
+            attack_board |= make_reach_board(pos, is_black, piece_type);
 
             board &= ~(1ULL << (63 - pos));
         }
