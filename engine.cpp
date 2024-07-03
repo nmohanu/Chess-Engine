@@ -61,11 +61,13 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
     {
         // Do move.
         int move_index = i;
+        
         position->do_move(&possible_moves.moves[move_index]);
         // Recursive call.
         uint64_t nodes_found = perft_test(position, depth-1, !color_sign, captures, checks, en_passants, possible_moves);
         nodes += nodes_found;
         // Undo move.
+
         position->undo_move(&possible_moves.moves[move_index]);
 
         // Move count for debugging.

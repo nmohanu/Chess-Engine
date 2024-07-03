@@ -235,33 +235,41 @@ void Position::restore_special_cases(Move* move)
         {   // Black queenside.
             uint64_t bit_mask = 1ULL << (63-3);
             bit_boards[B_ROOK] &= ~bit_mask;
+            bit_boards[TOTAL] &= ~bit_mask;
+            bit_boards[COLOR_BOARD] &= ~bit_mask;
             bit_mask <<= 3;
             bit_boards[B_ROOK] |= bit_mask;
-            casling_rights |= 0b00000001;
+            bit_boards[TOTAL] |= bit_mask;
+            bit_boards[COLOR_BOARD] |= bit_mask;
         }
         else if (move->end_location == 6)
         {   // Black kingside.
             uint64_t bit_mask = 1ULL << (63-5);
             bit_boards[B_ROOK] &= ~bit_mask;
+            bit_boards[TOTAL] &= ~bit_mask;
+            bit_boards[COLOR_BOARD] &= ~bit_mask;
             bit_mask >>= 2;
             bit_boards[B_ROOK] |= bit_mask;
-            casling_rights |= 0b00000010;
+            bit_boards[TOTAL] |= bit_mask;
+            bit_boards[COLOR_BOARD] |= bit_mask;
         }
         if (move->end_location == 58)
         {   // White queenside.
             uint64_t bit_mask = 1ULL << (63-59);
             bit_boards[W_ROOK] &= ~bit_mask;
+            bit_boards[TOTAL] &= ~bit_mask;
             bit_mask <<= 3;
             bit_boards[W_ROOK] |= bit_mask;
-            casling_rights |= 0b00000100;
+            bit_boards[TOTAL] |= bit_mask;
         }
         else 
         {   // White kingside.
             uint64_t bit_mask = 1ULL << 2;
             bit_boards[W_ROOK] &= ~bit_mask;
+            bit_boards[TOTAL] &= ~bit_mask;
             bit_mask >>= 2;
             bit_boards[W_ROOK] |= bit_mask;
-            casling_rights |= 0b00001000;
+            bit_boards[TOTAL] |= bit_mask;
         }
     }
 }
