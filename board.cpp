@@ -72,10 +72,11 @@ Board::~Board()
 // Create attack board for specific piece. This is where we define the attacking logic for each piece.
 uint64_t Position::make_reach_board(uint8_t square, bool is_black, uint8_t piece_type) 
 {
+    // Initialize board.
     uint64_t attack_board = 0b0;
-
+    // Add attack squares.
     attack_board |= generators[piece_type - 6*is_black](square, is_black, bit_boards[TOTAL], bit_boards[COLOR_BOARD]);
-
+    // Return board.
     return attack_board;
 }
 
@@ -84,22 +85,36 @@ uint64_t Position::make_reach_board(uint8_t square, bool is_black, uint8_t piece
 // Create the attack board for all pieces of a player.
 uint64_t Position::color_reach_board(bool is_black)
 {
+    // Initialize.
     uint64_t attack_board = 0ULL;
+    // uint64_t total_board = bit_boards[TOTAL];
+    // if(is_black)
+    //     total_board &= bit_boards[COLOR_BOARD];
+    // else
+    //     total_board &= ~bit_boards[COLOR_BOARD];
 
-    uint64_t total_board = bit_boards[TOTAL];
+    // while(__builtin_popcountll(total_board) >= 1)
+    // {
+    //     uint8_t pos = __builtin_clzll(total_board);
+    //     // Add piece reach to total reach.
+    //     attack_board |= make_reach_board(pos, is_black, get_piece(pos));
 
-    if(is_black)
-        total_board &= bit_boards[COLOR_BOARD];
-    else
-        total_board &= ~bit_boards[COLOR_BOARD];
+    //     total_board &= ~(1ULL << (63 - pos));
+    // }
 
-    while(__builtin_popcountll(total_board) >= 1)
+    for(int i = (0 + 6*is_black); i < (12 - 6*!is_black); i++)
     {
-        uint8_t pos = __builtin_clzll(total_board);
-        // Add piece reach to total reach.
-        attack_board |= make_reach_board(pos, is_black, get_piece(pos));
+        // TODO: find out why we need to & own pieces.
+        uint64_t board = bit_boards[i];
+        
+        while(__builtin_popcountll(board) >= 1)
+        {
+            uint8_t pos = __builtin_clzll(board);
+            // Add piece reach to total reach.
+            attack_board |= make_reach_board(pos, is_black, i);
 
-        total_board &= ~(1ULL << (63 - pos));
+            board &= ~(1ULL << (63 - pos));
+        }
     }
     
     return attack_board;
@@ -780,11 +795,6 @@ uint8_t Position::get_piece(uint8_t pos) const
     uint8_t piece = 0;
 
     for(int i = 0; i < 12; i++) piece += !(bit_boards[i] & bit_mask) && (i == piece);
-
-    if(piece >= 12)
-    {
-        std::cout << "error" << '\n';
-    }
     
     return piece;
 }
