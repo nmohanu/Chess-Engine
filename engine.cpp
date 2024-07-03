@@ -5,19 +5,18 @@ Engine::Engine()
     hasher.init_zobrist_keys();
 }
 
-void Engine::do_perft_test(int depth, Position* position)
+void Engine::do_perft_test(int depth, Position* position, bool white_to_move)
 {
     transposition_table.clear_table();
     clock_t start = clock();
     int captures = 0;
     int checks = 0;
     int en_passants = 0;
-    bool white_move = true;
     currently_evaluating_perft_depth = depth;
     moves possible_moves;
     possible_moves.move_count = 0;
 
-    uint64_t nodes = perft_test(position, depth-1, !white_move, captures, checks, en_passants, possible_moves);
+    uint64_t nodes = perft_test(position, depth-1, !white_to_move, captures, checks, en_passants, possible_moves);
     clock_t end = clock();
     double time_cost = double(end - start) / CLOCKS_PER_SEC;
     std::cout << "Depth: " << depth << '\n';
@@ -34,6 +33,19 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
     position->determine_moves(color_sign, possible_moves);
     int move_count = possible_moves.move_count - last_possible_count;
     uint64_t nodes = 0;
+
+    if(currently_evaluating_perft_depth == 1)
+    {
+        for(int i = last_possible_count; i < possible_moves.move_count; i++)
+        {
+            // Move count for debugging.
+            if(depth == currently_evaluating_perft_depth-1)
+            {
+                std::string move_string = possible_moves.moves[i].to_string();
+                std::cout << move_string << ": " << 1 << '\n';
+            }   
+        } 
+    }
 
     // Base case.
     if(depth == 0)

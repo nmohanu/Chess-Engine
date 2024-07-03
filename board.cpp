@@ -91,7 +91,6 @@ uint64_t Position::color_reach_board(bool is_black)
     // For every board of this player, add the move squares of the toggled bits.
     for(int piece_type = (0 + 6*is_black); piece_type < (12 - 6*!is_black); piece_type++)
     {
-        // TODO: find out why we need to & own pieces.
         uint64_t board = bit_boards[piece_type];
         
         while(__builtin_popcountll(board) >= 1)
@@ -346,13 +345,13 @@ void Position::move_piece(Move* move)
     else if(moved_piece == W_ROOK || moved_piece == B_ROOK || captured_piece == W_ROOK || captured_piece == B_ROOK)
     {
         uint8_t mask = 1ULL;
-        if(start_square == 0)
+        if(end_square == 0)
             casling_rights &= ~(mask);
-        else if(start_square == 7)
+        else if(end_square == 7)
             casling_rights &= ~(mask << 1);
-        else if(start_square == 56)
+        else if(end_square == 56)
             casling_rights &= ~(mask << 2);
-        else if(start_square == 63)
+        else if(end_square == 63)
             casling_rights &= ~(mask << 3);
     }
 }
@@ -464,9 +463,6 @@ void Position::handle_castling(Move* move)
 
     int board_index = W_ROOK + 6*is_black;
 
-    assert(board_index < 12);
-    assert((rook_end >= 0 && rook_end < 64 && rook_start >= 0 && rook_start < 64));
-
     // Move rook and update bitboards.
     toggle_bit_off(bit_boards[board_index], rook_start);
     toggle_bit_on(bit_boards[board_index], rook_end);
@@ -534,11 +530,10 @@ void Position::determine_moves(bool is_black, moves& possible_moves)
     uint64_t enemy_reach = color_reach_board(!is_black);            
     uint64_t own_pieces = is_black ? bit_boards[COLOR_BOARD] : (~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
 
-    for(int i = (0 + 6*is_black); i < (12 - 6*!is_black); i++)
+    for(int piece_type = (0 + 6*is_black); piece_type < (12 - 6*!is_black); piece_type++)
     {
         // TODO: find out why we need to & own pieces.
-        uint64_t board = bit_boards[i] & own_pieces;
-        uint8_t piece_type = i;
+        uint64_t board = bit_boards[piece_type] & own_pieces;
         
         while(__builtin_popcountll(board) >= 1)
         {
@@ -847,3 +842,66 @@ std::string Move::to_string()
     return start_notation + destination_notation;
 }
 
+void Position::print_to_terminal()
+{
+    std::cout << "  a b c d e f g h" << std::endl;
+    std::cout << " +----------------+" << std::endl;
+    for (int row = 7; row >= 0; row--) 
+    {
+        std::cout << row + 1 << "| ";
+        for (int col = 0; col < 8; col++) 
+        {
+            uint8_t piece_type = get_piece((7-row)*8 + col);
+            char piece;
+            switch (piece_type)
+            {
+                case W_KING:
+                    piece = 'K';
+                    break;
+                case W_QUEEN:
+                    piece = 'Q';
+                    break;
+                case W_ROOK:
+                    piece = 'R';
+                    break;
+                case W_BISHOP:
+                    piece = 'B';
+                    break;
+                case W_KNIGHT:
+                    piece = 'N';
+                    break;
+                case W_PAWN:
+                    piece = 'P';
+                    break;
+                case B_KING:
+                    piece = 'k';
+                    break;
+                case B_QUEEN:
+                    piece = 'q';
+                    break;
+                case B_ROOK:
+                    piece = 'r';
+                    break;
+                case B_BISHOP:
+                    piece = 'b';
+                    break;
+                case B_KNIGHT:
+                    piece = 'n';
+                    break;
+                case B_PAWN:
+                    piece = 'p';
+                    break;
+                case EMPTY:
+                    piece = ' ';
+                    break;
+                default:
+                    piece = '?'; // Unknown piece type
+                    break;
+            }
+            std::cout << piece << ' ';
+        }
+        std::cout << "|" << row + 1 << std::endl;
+    }
+    std::cout << " +----------------+" << std::endl;
+    std::cout << "  a b c d e f g h" << std::endl;
+}

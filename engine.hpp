@@ -16,7 +16,7 @@ public:
     // Call recursive functions to determine best move.
     void best_move(Position* position, bool color_sign, int depth,  Move& best_move);
 
-    void do_perft_test(int depth, Position* position);
+    void do_perft_test(int depth, Position* position, bool white_to_move);
 
     uint64_t perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& check_mates, moves& possible_moves);
 

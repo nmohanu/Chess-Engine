@@ -25,8 +25,6 @@ add_executable(main main.cpp board.cpp engine.cpp util.cpp pieces.cpp zobrist.cp
 target_link_libraries(main PRIVATE sfml-graphics)
 target_compile_features(main PRIVATE cxx_std_20)
 
-
-
 if(WIN32)
     add_custom_command(
         TARGET main

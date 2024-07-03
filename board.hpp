@@ -117,6 +117,7 @@ struct Position
     void generate_castling_moves(bool is_black, uint64_t enemy_reach, moves& moves);
     void generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, uint64_t enemy_reach, moves& moves);
     void init_sliders_attacks(int bishop);
+    void print_to_terminal();
     uint64_t mask_rook_attacks(uint8_t square);
     uint64_t mask_bishop_attacks(uint8_t square);
 

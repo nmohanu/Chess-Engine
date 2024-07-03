@@ -35,9 +35,11 @@ int main()
 
     bool is_white_turn = true;
 
-    bool do_perft_test = true;
+    bool do_perft_test = false;
 
     bool engine_turned_on = false;
+
+    bool use_SFML = false;
 
     int perft_depth_limit = PERFT_DEPTH;
 
@@ -150,12 +152,59 @@ int main()
     if(do_perft_test)
     {
         for(int depth = 1; depth <= perft_depth_limit; depth++)
-            engine.do_perft_test(depth, board->position);
+            engine.do_perft_test(depth, board->position, is_white_turn);
+        return 0;
+    }
+
+    // Use terminal instead of SFML.
+    if(!use_SFML)
+    {
+        while(true)
+        {
+            board->position->print_to_terminal();
+            std::cout << "1. Do move: \n2. Do perft test. \n";
+            // Initialize:
+            int command;
+            std::cin >> command;
+            std::string move_string;
+            switch (command)
+            {
+                case 1:
+                    std::cout << "Give move in chess notation: e.g. a2a4 \n";
+                    std::cin >> move_string;
+                
+                    for (int i = last_move_count; i < possible_moves.move_count; i++)
+                    {
+                        Move* move = &possible_moves.moves[i];
+                        std::string from = move_string.substr(0, 2);
+                        std::string to = move_string.substr(2, 2);
+                        if(move->start_location == chess_notation_to_index(from) && move->end_location == chess_notation_to_index(to))
+                        {
+                            board->position->do_move(move);
+                            is_white_turn = !is_white_turn;
+                            last_move_count = possible_moves.move_count;
+                            board->position->determine_moves(!is_white_turn, possible_moves);
+                            std::cout << move_string << " done. \n";
+                        }
+                    }
+                    break;
+                case 2:
+                    std::cout << "depth?" << '\n';
+                    {
+                        int depth;
+                        std::cin >> depth;
+                        engine.do_perft_test(depth, board->position, is_white_turn);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
         return 0;
     }
 
     sf::RenderWindow window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Chess Engine");
-
+    // SFML.
     while(window.isOpen())
     {
         sf::Event event;

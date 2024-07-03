@@ -145,8 +145,12 @@ inline int chess_notation_to_index(const std::string& notation)
         throw std::invalid_argument("Invalid row in chess notation");
     }
 
+    int square = row_index * 8 + column_index;
+
+    std::cout << "\nConverted to: " << square << '\n';
+
     // Calculate the 0-based index
-    return row_index * 8 + column_index;
+    return square;
 }
 
 // ==============================================================================================
