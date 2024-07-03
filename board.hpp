@@ -41,6 +41,10 @@ struct Move
     // For move sorting. Lower: more promising.
     int priority_group = 5;
 
+    // If a move is a promition.
+    // 1: Queen. 2: rook. 3: bishop. 4: knight.
+    int promotion = 0;
+
     // Evaluation of position after this move.
     float evaluation;
 };

@@ -132,6 +132,13 @@ void Position::do_move(Move* move)
         handle_en_passant_capture(move);
     reset_en_passant_status();
     handle_special_cases(move);
+    // Promotion from pawn to different piece.
+    if(move->promotion > 0)
+    {
+        uint64_t mask = 1ULL << (63-move->end_location);
+        bit_boards[move->moving_piece] &= !mask;
+        bit_boards[1 + move->promotion + 6*(move->moving_piece > 5)] |= mask;
+    }
 }
 
 // ============================================================================================== 
@@ -147,6 +154,13 @@ void Position::undo_move(Move* move)
     
     restore_special_cases(move);
     restore_en_passant_and_castling(move);
+    // Promotion from pawn to different piece.
+    if(move->promotion > 0)
+    {
+        uint64_t mask = 1ULL << (63-move->start_location);
+        bit_boards[move->moving_piece] |= mask;
+        bit_boards[1 + move->promotion + 6*(move->moving_piece > 5)] &= ~mask;
+    }
 }
 
 // ============================================================================================== 
@@ -575,9 +589,30 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
         move->end_location = i;
         move->special_cases = 0b0;
         move->previous_castling_rights = casling_rights;
+        move->promotion = 0;
+
+        bool can_promote = (move->moving_piece == W_PAWN && move->end_location < 8) || (move->moving_piece == B_PAWN && move->end_location > 54);
+
+        if(can_promote)
+        {
+            move->promotion = 1;
+            for(int i = 2; i < 5; i++)
+            {
+                Move* move = &possible_moves.moves[possible_moves.move_count + i-1];
+                // Insert move data.
+                move->moving_piece = piece_type;
+                move->move_takes_an_passant = false;
+                move->start_location = pos;
+                move->end_location = i;
+                move->special_cases = 0b0;
+                move->previous_castling_rights = casling_rights;
+                move->promotion = i;
+                possible_moves.move_count += move_legal(move, move_squares, is_black, enemy_reach);
+            }
+        }
 
         // Check if king is not under attack after the move. If not, add move to possible moves.
-        possible_moves.move_count += move_legal(move, move_squares, is_black, enemy_reach);
+        possible_moves.move_count += move_legal(move, move_squares, is_black, enemy_reach) && !can_promote;
         move_squares &= ~(1ULL << (63 - i));
     }
 }
