@@ -64,6 +64,8 @@ int main()
     uint64_t white_reach_board = board->position->color_reach_board(0);
 
     moves possible_moves;
+    possible_moves.move_count = 0;
+    int last_move_count = 0;
     board->position->determine_moves(0, possible_moves);
     // possible_moves = board->position->determine_moves(!is_white_turn);
 
@@ -239,28 +241,29 @@ int main()
             if(last_clicked_square != clicked_square)
             {
                 selected_piece = board->position->get_piece(square_on_board);
-
-                move_board = board->position->make_reach_board(square_on_board, !is_white_turn, selected_piece);
+                // if(selected_piece < 12)
+                //     move_board = board->position->make_reach_board(square_on_board, !is_white_turn, selected_piece);
 
                 if(selected_piece == EMPTY)
                 {
                     move_board = 0b0;
                 }
                 
-                for (int i = 0; i < possible_moves.move_count; i++)
+                for (int i = last_move_count; i < possible_moves.move_count; i++)
                 {
                     Move* move = &possible_moves.moves[i];
                     if(move->start_location == last_square_on_board && move->end_location == square_on_board)
                     {
                         board->position->do_move(move);
                         is_white_turn = !is_white_turn;
+                        last_move_count = possible_moves.move_count;
                         board->position->determine_moves(!is_white_turn, possible_moves);
                         white_reach_board = board->position->color_reach_board(0);
-                        black_reach_board = board->position->color_reach_board(1);
-                        if(possible_moves.move_count == 0)
-                        {
-                            std::cout << "Player " << !is_white_turn << " wins! \n";
-                        }
+                        // black_reach_board = board->position->color_reach_board(1);
+                        // if(possible_moves.move_count == 0)
+                        // {
+                        //     std::cout << "Player " << !is_white_turn << " wins! \n";
+                        // }
                         break;
                     }
                 }

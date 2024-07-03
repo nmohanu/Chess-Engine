@@ -560,7 +560,6 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
     while(__builtin_popcountll(move_squares) >= 1)
     {
         uint8_t i = __builtin_clzll(move_squares);
-        // uint8_t end_loc = 63-i;
 
         Move* move = &possible_moves.moves[possible_moves.move_count];
         // Insert move data.
@@ -773,6 +772,11 @@ uint8_t Position::get_piece(uint8_t pos) const
     uint8_t piece = 0;
 
     for(int i = 0; i < 12; i++) piece += !(bit_boards[i] & bit_mask) && (i == piece);
+
+    if(piece >= 12)
+    {
+        std::cout << "error" << '\n';
+    }
     
     return piece;
 }
