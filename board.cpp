@@ -373,6 +373,7 @@ void Position::handle_en_passant_capture(Move* move)
     bool taking_pawn_black = move->moving_piece > 5;
     // Board to check. White pawn or black pawn.
     int board_index = W_PAWN + 6*taking_pawn_black;
+    int taken_board_index = W_PAWN + 6*(!taking_pawn_black);
     // Location of the pawn being captured en passant. One -1 row if black pawn captures or +1 if white pawn captures.
     uint8_t captured_pawn_square = ((end_location + 8) - 16*taking_pawn_black);
 
@@ -385,7 +386,7 @@ void Position::handle_en_passant_capture(Move* move)
     toggle_bit_off(bit_boards[board_index], start_location);
     toggle_bit_on(bit_boards[board_index], end_location);
     // Pawn is captured. Toggle bits off for taken piece.
-    toggle_bit_off(bit_boards[board_index], captured_pawn_square);
+    toggle_bit_off(bit_boards[taken_board_index], captured_pawn_square);
     // Total board taken piece.
     toggle_bit_off(bit_boards[TOTAL], captured_pawn_square);
     toggle_bit_off(bit_boards[TOTAL], start_location);
