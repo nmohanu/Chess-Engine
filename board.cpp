@@ -593,7 +593,7 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
         move->previous_castling_rights = casling_rights;
         move->promotion = 0;
 
-        bool can_promote = (move->moving_piece == W_PAWN && move->end_location < 8) || (move->moving_piece == B_PAWN && move->end_location > 54);
+        bool can_promote = (move->moving_piece == W_PAWN && move->end_location < 8) || (move->moving_piece == B_PAWN && move->end_location > 55);
 
         if(can_promote)
         {
