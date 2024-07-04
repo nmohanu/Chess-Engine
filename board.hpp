@@ -8,8 +8,6 @@
 
 struct Position;
 
-
-
 struct Move
 {   
     Move();
@@ -55,6 +53,8 @@ typedef struct
     int move_count;
 } moves;
 
+typedef void (Position::*move_function) (int, uint8_t, uint64_t, bool, uint64_t, moves&);
+
 struct Position
 {
     void initialize();
@@ -68,6 +68,8 @@ struct Position
 
     // Determine possible moves.
     void determine_moves(bool color_sign, moves& moves);
+    void generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, uint64_t enemy_reach, moves& moves);
+    void generate_pawn_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, uint64_t enemy_reach, moves& moves);
 
     // Get piece in position x y.
     uint8_t get_piece(uint8_t pos) const;
@@ -102,6 +104,12 @@ struct Position
         get_pawn_move
     };
 
+    move_function move_functions[2] = 
+    {
+        generate_piece_moves,
+        generate_pawn_moves
+    };
+
     // Lookup tables for bishop and rook attacks.
     uint64_t bishop_attacks[64][512];
     uint64_t rook_attacks[64][4096];
@@ -119,7 +127,6 @@ struct Position
     void move_piece(Move* move);
     void generate_en_passant_move(bool is_black, moves& moves);
     void generate_castling_moves(bool is_black, uint64_t enemy_reach, moves& moves);
-    void generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, uint64_t enemy_reach, moves& moves);
     void init_sliders_attacks(int bishop);
     void print_to_terminal();
     uint64_t mask_rook_attacks(uint8_t square);

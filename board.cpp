@@ -545,7 +545,7 @@ void Position::check_en_passant_possibility(Move* move)
 void Position::determine_moves(bool is_black, moves& possible_moves)
 {
     uint64_t enemy_reach = color_reach_board(!is_black);            
-    uint64_t own_pieces = is_black ? bit_boards[COLOR_BOARD] : (~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]);
+    uint64_t own_pieces = (bit_boards[COLOR_BOARD] & -is_black) | ((~bit_boards[COLOR_BOARD] & bit_boards[TOTAL]) & ~(-is_black));
 
     for(int piece_type = (0 + 6*is_black); piece_type < (12 - 6*!is_black); piece_type++)
     {
@@ -560,7 +560,7 @@ void Position::determine_moves(bool is_black, moves& possible_moves)
             move_squares &= ~own_pieces;
 
             // Generate moves for the piece.
-            generate_piece_moves(square, piece_type, move_squares, is_black, enemy_reach, possible_moves);
+            (this->*move_functions[piece_type == W_PAWN + 6*is_black])(square, piece_type, move_squares, is_black, enemy_reach, possible_moves);
 
             board &= ~(1ULL << (63 - square));
         }
@@ -595,6 +595,34 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
 
         bool can_promote = (move->moving_piece == W_PAWN && move->end_location < 8) || (move->moving_piece == B_PAWN && move->end_location > 55);
 
+        // Check if king is not under attack after the move. If not, add move to possible moves.
+        possible_moves.move_count += move_legal(move, move_squares, is_black, enemy_reach) && !can_promote;
+        move_squares &= ~(1ULL << (63 - i));
+    }
+}
+
+// ==============================================================================================
+
+// Seperate function for pawn moves.
+void Position::generate_pawn_moves(int pos, uint8_t piece_type, uint64_t move_squares, bool is_black, uint64_t enemy_reach, moves& possible_moves)
+{
+    while(__builtin_popcountll(move_squares) >= 1)
+    {
+        uint8_t i = __builtin_clzll(move_squares);
+
+        Move* move = &possible_moves.moves[possible_moves.move_count];
+        // Insert move data.
+        move->moving_piece = piece_type;
+        move->move_takes_an_passant = false;
+        move->start_location = pos;
+        move->end_location = i;
+        move->special_cases = 0b0;
+        move->previous_castling_rights = casling_rights;
+        move->promotion = 0;
+
+        bool can_promote = (move->moving_piece == W_PAWN && move->end_location < 8) || (move->moving_piece == B_PAWN && move->end_location > 55);
+
+        // Check if pawn can promote, if yes, create moves for promoting.
         if(can_promote)
         {
             move->promotion = 1;
