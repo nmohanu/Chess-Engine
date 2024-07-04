@@ -40,6 +40,9 @@ typedef uint64_t (*generator_function) (uint8_t, bool, uint64_t, uint64_t);
 // Table size.
 #define hash_table_size 0x2000000
 
+#define EN_PASSANT_LEFT  0b10000000
+#define EN_PASSANT_RIGHT 0b01000000
+
 // No entry found.
 #define no_hash_entry 999999999
 
