@@ -1,4 +1,4 @@
-#include "board.hpp"
+#include "position.hpp"
 #include <cstdint>
 #include <unordered_map>
 #include <optional>
