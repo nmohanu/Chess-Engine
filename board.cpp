@@ -1,30 +1,8 @@
-#include "board.hpp"
+#include "position.hpp"
 
 // ==============================================================================================
 
 // Board and position logic. 
-
-// ==============================================================================================
-
-// Move constructors.
-Move::Move() {}
-
-// ==============================================================================================
-
-// Copy constructor.
-Move::Move(Move* other)
-{
-    // Copy contents.
-    this->start_location = other->start_location;
-    this->end_location = other->end_location;
-    this->special_cases = other->special_cases;
-    this->move_takes_an_passant = other->move_takes_an_passant;
-    this->evaluation = other->evaluation;
-    this->moving_piece = other->moving_piece;
-    this->captured_piece = other->captured_piece;
-    this->previous_en_passant = other->previous_en_passant;
-    this->promotion = other->promotion;
-}
 
 // ==============================================================================================
 
@@ -832,14 +810,6 @@ void Position::generate_en_passant_move(bool is_black, moves& possible_moves)
 
 // ==============================================================================================
 
-// Function to check if the bounds of a move are valid.
-bool Move::move_bounds_valid()
-{
-    return  (start_location >= 0 && start_location < 64 && end_location >= 0 && end_location < 64);
-}
-
-// ==============================================================================================
-
 // Get the piece on position x, y.
 uint8_t Position::get_piece(uint8_t pos) const
 {   
@@ -916,6 +886,10 @@ std::string Move::to_string()
     return start_notation + destination_notation;
 }
 
+
+// ==============================================================================================
+
+// Print board to terminal.
 void Position::print_to_terminal()
 {
     std::cout << "  a b c d e f g h" << std::endl;
