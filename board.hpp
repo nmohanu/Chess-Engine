@@ -156,7 +156,7 @@ struct Position
     // left most bit indicates whether an passant comes from left or right file. 
     // Second bit is the color sign of the pawn that can be captured.
     // Furthermore, the right most bits indicate the file on which an passant is captured.
-    uint8_t en_passant = 0b11111111;
+    uint8_t en_passant = 0b00000000;
     
 };
 

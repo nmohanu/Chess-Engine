@@ -23,6 +23,7 @@ Move::Move(Move* other)
     this->moving_piece = other->moving_piece;
     this->captured_piece = other->captured_piece;
     this->previous_en_passant = other->previous_en_passant;
+    this->promotion = other->promotion;
 }
 
 // ==============================================================================================
@@ -136,8 +137,8 @@ void Position::do_move(Move* move)
     if(move->promotion > 0)
     {
         uint64_t mask = 1ULL << (63-move->end_location);
-        bit_boards[move->moving_piece] &= !mask;
-        bit_boards[1 + move->promotion + 6*(move->moving_piece > 5)] |= mask;
+        bit_boards[move->moving_piece] &= ~mask;
+        bit_boards[move->promotion + 6*(move->moving_piece > 5)] |= mask;
     }
 }
 
@@ -146,6 +147,12 @@ void Position::do_move(Move* move)
 // Handle the undo logic for a move.
 void Position::undo_move(Move* move)
 { 
+    if(move->promotion > 0)
+    {
+        uint64_t mask = 1ULL << (63-move->end_location);
+        bit_boards[move->moving_piece] |= mask;
+        bit_boards[move->promotion + 6*(move->moving_piece > 5)] &= ~mask;
+    }
     // place captured piece back on board.
     if(!move->move_takes_an_passant)
         undo_piece_move(move);
@@ -155,12 +162,6 @@ void Position::undo_move(Move* move)
     restore_special_cases(move);
     restore_en_passant_and_castling(move);
     // Promotion from pawn to different piece.
-    if(move->promotion > 0)
-    {
-        uint64_t mask = 1ULL << (63-move->start_location);
-        bit_boards[move->moving_piece] |= mask;
-        bit_boards[1 + move->promotion + 6*(move->moving_piece > 5)] &= ~mask;
-    }
 }
 
 // ============================================================================================== 
@@ -425,7 +426,7 @@ void Position::handle_en_passant_capture(Move* move)
 void Position::reset_en_passant_status()
 {
     // Reset an passant status.
-    en_passant = 0b11111111;
+    en_passant = 0b00000000;
 }
 
 // ==============================================================================================
@@ -516,24 +517,22 @@ void Position::check_en_passant_possibility(Move* move)
     {
         // An passant is possible for pawn on file -1.
         // Left most bit signals that the taking piece is on the left.
-        this->en_passant = 0b10000000;
+        this->en_passant |= 0b10000000;
         // Right 6 bits represent the file of the pawn being captured.
         this->en_passant += (move->end_location % 8);
         // Second bit represents the color of the pawn being captured.
         if(moving_piece_black)
-            en_passant |= 0b01000000;
+            en_passant |= 0b00100000;
     }
     if(right_is_pawn && right_is_black != moving_piece_black && move->end_location%8 != 7)
     {
         // An passant is possible for pawn on +1.
-        // An passant is possible for pawn on file -1.
-        // Left most bit signals that the taking piece is on the left.
-        this->en_passant = 0b00000000;
+        this->en_passant |= 0b01000000;
         // Right 6 bits represent the file of the pawn being captured.
         this->en_passant += (move->end_location % 8);
         // Second bit represents the color of the pawn being captured.
         if(moving_piece_black)
-            en_passant |= 0b01000000;
+            en_passant |= 0b00100000;
     }
 }
 
@@ -596,23 +595,24 @@ void Position::generate_piece_moves(int pos, uint8_t piece_type, uint64_t move_s
         if(can_promote)
         {
             move->promotion = 1;
-            for(int i = 2; i < 5; i++)
+            possible_moves.move_count += move_legal(move, move_squares, is_black, enemy_reach);
+            for(int promotion = 2; promotion < 5; promotion++)
             {
-                Move* move = &possible_moves.moves[possible_moves.move_count + i-1];
+                Move* promotion_move = &possible_moves.moves[possible_moves.move_count];
                 // Insert move data.
-                move->moving_piece = piece_type;
-                move->move_takes_an_passant = false;
-                move->start_location = pos;
-                move->end_location = i;
-                move->special_cases = 0b0;
-                move->previous_castling_rights = casling_rights;
-                move->promotion = i;
-                possible_moves.move_count += move_legal(move, move_squares, is_black, enemy_reach);
+                promotion_move->moving_piece = piece_type;
+                promotion_move->move_takes_an_passant = false;
+                promotion_move->start_location = pos;
+                promotion_move->end_location = i;
+                promotion_move->special_cases = 0b0;
+                promotion_move->previous_castling_rights = casling_rights;
+                promotion_move->promotion = promotion;
+                possible_moves.move_count += move_legal(promotion_move, move_squares, is_black, enemy_reach);
             }
         }
-
-        // Check if king is not under attack after the move. If not, add move to possible moves.
-        possible_moves.move_count += move_legal(move, move_squares, is_black, enemy_reach) && !can_promote;
+        else
+            // Check if king is not under attack after the move. If not, add move to possible moves.
+            possible_moves.move_count += move_legal(move, move_squares, is_black, enemy_reach) && !can_promote;
         move_squares &= ~(1ULL << (63 - i));
     }
 }
@@ -744,51 +744,123 @@ void Position::generate_castling_moves(bool is_black, uint64_t enemy_reach, move
 void Position::generate_en_passant_move(bool is_black, moves& possible_moves)
 {
     // Check en passant status, 11111111 means no en passant is possible in this position.
-    if (en_passant != 0b11111111)
+    if (en_passant != 0b00000000)
     {
-        // last 6 bits are the file of the captured piece.
-        uint8_t to = (en_passant & 0b00111111);
+        // last 5 bits are the file of the captured piece.
+        uint8_t to = (en_passant & 0b00011111);
         // assert(!(to < 0 || to > 7));
         if(to < 0 || to > 7)
             return;
 
-        // first bit tells us whether the capture is from the left or from the right.
-        uint8_t from = to + ((en_passant & 0b10000000) ? -1 : +1);
-        // assert(!(from < 0 || from > 7));
-        if(from < 0 || from > 7)
-            return;
-
-        // Row is on which row the capturing piece is positioned.
-        uint8_t start_row = is_black ? 4 : 3;
-        uint8_t end_row = is_black ? 5 : 2;
-
-        // Calculate start and end squares for the moving piece.
-        uint8_t start_square = from + start_row * 8;
-        uint8_t end_square = to + end_row * 8;
-
-        assert((start_square >= 0 && start_square < 64 && end_square >= 0 && end_square < 64));
-
-        // Make the move.
-        Move move(start_square, end_square);
-        move.moving_piece = W_PAWN + 6*is_black;
-        move.move_takes_an_passant = true;
-        move.previous_castling_rights = casling_rights;
-        move.previous_en_passant = en_passant;
-        // Simulate the move.
-        assert(move.moving_piece < 12);
-        do_move(&move);
-
-        // Check if king is not under attack after the move.
-        if (king_look_around(is_black, find_bit_position(bit_boards[W_KING + 6*is_black])))
+        if(en_passant & 0b10000000)
         {
-            undo_move(&move);
-            return;
+            // En passant from left.
+            // first bit tells us whether the capture is from the left or from the right.
+            uint8_t from = to - 1;
+            // assert(!(from < 0 || from > 7));
+            if(from < 0 || from > 7)
+                return;    
+            
+            uint8_t start_row = is_black ? 4 : 3;
+            uint8_t end_row = is_black ? 5 : 2;
+
+            // Calculate start and end squares for the moving piece.
+            uint8_t start_square = from + start_row * 8;
+            uint8_t end_square = to + end_row * 8;
+
+            assert((start_square >= 0 && start_square < 64 && end_square >= 0 && end_square < 64));
+
+            // Make the move.
+            Move* move = &possible_moves.moves[possible_moves.move_count]; 
+            move->start_location = start_square;
+            move->end_location = end_square;
+            move->moving_piece = W_PAWN + 6*is_black;
+            move->move_takes_an_passant = true;
+            move->previous_castling_rights = casling_rights;
+            move->previous_en_passant = en_passant;
+            // Simulate the move.
+            do_move(move);
+
+            // Check if king is not under attack after the move.
+            possible_moves.move_count += !king_look_around(is_black, find_bit_position(bit_boards[W_KING + 6*is_black])) && move->move_bounds_valid();
+            undo_move(move);
         }
-        assert(move.moving_piece < 12);
-        assert(move.moving_piece != INVALID);
-        if(move.move_bounds_valid())
-            possible_moves.moves[possible_moves.move_count++] = move;
-        undo_move(&move);
+        if(en_passant & 0b01000000)
+        {
+            // From right.
+            // first bit tells us whether the capture is from the left or from the right.
+            uint8_t from = to + 1;
+            // assert(!(from < 0 || from > 7));
+            if(from < 0 || from > 7)
+                return;    
+            
+            uint8_t start_row = is_black ? 4 : 3;
+            uint8_t end_row = is_black ? 5 : 2;
+
+            // Calculate start and end squares for the moving piece.
+            uint8_t start_square = from + start_row * 8;
+            uint8_t end_square = to + end_row * 8;
+
+            assert((start_square >= 0 && start_square < 64 && end_square >= 0 && end_square < 64));
+
+            // Make the move.
+            Move* move = &possible_moves.moves[possible_moves.move_count]; 
+            move->start_location = start_square;
+            move->end_location = end_square;
+            move->moving_piece = W_PAWN + 6*is_black;
+            move->move_takes_an_passant = true;
+            move->previous_castling_rights = casling_rights;
+            move->previous_en_passant = en_passant;
+            // Simulate the move.
+            do_move(move);
+
+            // Check if king is not under attack after the move.
+            possible_moves.move_count += !king_look_around(is_black, find_bit_position(bit_boards[W_KING + 6*is_black])) && move->move_bounds_valid();
+            undo_move(move);
+        }
+        // // last 5 bits are the file of the captured piece.
+        // uint8_t to = (en_passant & 0b00011111);
+        // // assert(!(to < 0 || to > 7));
+        // if(to < 0 || to > 7)
+        //     return;
+
+        // // first bit tells us whether the capture is from the left or from the right.
+        // uint8_t from = to + ((en_passant & 0b10000000) ? -1 : +1);
+        // // assert(!(from < 0 || from > 7));
+        // if(from < 0 || from > 7)
+        //     return;
+
+    //    // Row is on which row the capturing piece is positioned.
+    //     uint8_t start_row = is_black ? 4 : 3;
+    //     uint8_t end_row = is_black ? 5 : 2;
+
+    //     // Calculate start and end squares for the moving piece.
+    //     uint8_t start_square = from + start_row * 8;
+    //     uint8_t end_square = to + end_row * 8;
+
+    //     assert((start_square >= 0 && start_square < 64 && end_square >= 0 && end_square < 64));
+
+    //     // Make the move.
+    //     Move move(start_square, end_square);
+    //     move.moving_piece = W_PAWN + 6*is_black;
+    //     move.move_takes_an_passant = true;
+    //     move.previous_castling_rights = casling_rights;
+    //     move.previous_en_passant = en_passant;
+    //     // Simulate the move.
+    //     assert(move.moving_piece < 12);
+    //     do_move(&move);
+
+    //     // Check if king is not under attack after the move.
+    //     if (king_look_around(is_black, find_bit_position(bit_boards[W_KING + 6*is_black])))
+    //     {
+    //         undo_move(&move);
+    //         return;
+    //     }
+    //     assert(move.moving_piece < 12);
+    //     assert(move.moving_piece != INVALID);
+    //     if(move.move_bounds_valid())
+    //         possible_moves.moves[possible_moves.move_count++] = move;
+    //     undo_move(&move);
     }
 }
 
