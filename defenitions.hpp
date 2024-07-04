@@ -44,7 +44,7 @@ typedef uint64_t (*generator_function) (uint8_t, bool, uint64_t, uint64_t);
 #define B_KNIGHT_BOARD      bitboards[B_KNIGHT]
 #define B_PAWN_BOARD        bitboards[B_PAWN]
 #define TOTAL_BOARD         bitboards[TOTAL]
-#define COLOR_BOARD         bitboards[COLOR_BOARD]
+#define BLACK_PIECE_BOARD   bitboards[COLOR_BOARD]
 
 // We can use these in functions that have the current player boolean.
 #define AUTO_KING           bitboards[W_KING + 6 * is_black]
