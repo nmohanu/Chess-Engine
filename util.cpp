@@ -1,15 +1,6 @@
 #include "util.hpp"
 
-static inline uint8_t get_ls1b_index(uint64_t bitboard)
-{
-    if (bitboard)
-    {
-        return __builtin_popcountll((bitboard & -bitboard) - 1);
-    }
-    else
-        return -1;
-}
-
+// Print a bitboard. (Credits to "Chess Programmer".)
 void print_bitboard(uint64_t bitboard)
 {
     printf("\n");
