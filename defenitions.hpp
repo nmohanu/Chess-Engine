@@ -10,29 +10,55 @@
 
 typedef uint64_t (*generator_function) (uint8_t, bool, uint64_t, uint64_t);
 
-// Define a number for each piece.
-#define W_KING      0
-#define W_QUEEN     1
-#define W_ROOK      2
-#define W_BISHOP    3
-#define W_KNIGHT    4
-#define W_PAWN      5
-#define B_KING      6
-#define B_QUEEN     7
-#define B_ROOK      8
-#define B_BISHOP    9
-#define B_KNIGHT    10
-#define B_PAWN      11
-#define TOTAL       12
-#define COLOR_BOARD 13
-#define EMPTY       14
-#define INVALID     15
+// Define a number for each piece. Also indexes for bitboards array.
+#define W_KING              0
+#define W_QUEEN             1
+#define W_ROOK              2
+#define W_BISHOP            3
+#define W_KNIGHT            4
+#define W_PAWN              5
+#define B_KING              6
+#define B_QUEEN             7
+#define B_ROOK              8
+#define B_BISHOP            9
+#define B_KNIGHT            10
+#define B_PAWN              11
+#define TOTAL               12
+#define COLOR_BOARD         13
 
+// Other
+#define EMPTY               14
+#define INVALID             15
+
+// Boards.
+#define W_KING_BOARD        bitboards[W_KING]
+#define W_QUEEN_BOARD       bitboards[W_QUEEN]
+#define W_ROOK_BOARD        bitboards[W_ROOK]
+#define W_BISHOP_BOARD      bitboards[W_BISHOP]
+#define W_KNIGHT_BOARD      bitboards[W_KNIGHT]
+#define W_PAWN_BOARD        bitboards[W_PAWN]
+#define B_KING_BOARD        bitboards[B_KING]
+#define B_QUEEN_BOARD       bitboards[B_QUEEN]
+#define B_ROOK_BOARD        bitboards[B_ROOK]
+#define B_BISHOP_BOARD      bitboards[B_BISHOP]
+#define B_KNIGHT_BOARD      bitboards[B_KNIGHT]
+#define B_PAWN_BOARD        bitboards[B_PAWN]
+#define TOTAL_BOARD         bitboards[TOTAL]
+#define COLOR_BOARD         bitboards[COLOR_BOARD]
+
+// We can use these in functions that have the current player boolean.
+#define AUTO_KING           bitboards[W_KING + 6 * is_black]
+#define AUTO_QUEEN          bitboards[W_QUEEN + 6 * is_black]
+#define AUTO_ROOK           bitboards[W_ROOK + 6 * is_black]
+#define AUTO_BISHOP         bitboards[W_BISHOP + 6 * is_black]
+#define AUTO_KNIGHT         bitboards[W_KNIGHT + 6 * is_black]
+#define AUTO_PAWN           bitboards[W_PAWN + 6 * is_black]
+
+// Min and max eval score for alpha beta pruning.
 #define MAX_EVAL    100.f
 #define MIN_EVAL    -100.f
 
-// Transposition table.
-
+// Transposition table entry data flags.
 #define hashfEXACT  0
 #define hashfALPHA  1
 #define hashfBETA   2
@@ -46,6 +72,7 @@ typedef uint64_t (*generator_function) (uint8_t, bool, uint64_t, uint64_t);
 // No entry found.
 #define no_hash_entry 999999999
 
+// Default boards.
 const uint64_t ROOK_SQUARES =    0b1000000100000000000000000000000000000000000000000000000010000001ULL;
 const uint64_t KNIGHT_SQUARES =  0b0100001000000000000000000000000000000000000000000000000001000010ULL;
 const uint64_t BISHOP_SQUARES =  0b0010010000000000000000000000000000000000000000000000000000100100ULL;
@@ -59,7 +86,7 @@ const uint64_t TOTAL_SQUARES =   0b111111111111111100000000000000000000000000000
 static std::atomic<bool> engine_is_searching(false);
 static std::atomic<bool> move_found(false);
 
-// Constants.
+// Piece values.
 const float ROOK_VALUE = 5.f;
 const float QUEEN_VALUE = 9.f;
 const float KNIGHT_VALUE = 3.f;

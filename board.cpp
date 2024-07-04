@@ -670,7 +670,7 @@ bool Position::move_legal(Move* move, uint64_t move_squares, bool is_black, uint
     {
         return true;
     }
-    // Piece is attaacked, now we need to check if it's pinned. Simulate move.
+    // Piece is attacked, now we need to check if it's pinned. Simulate move.
     else
     {
         do_move(move);
@@ -813,10 +813,7 @@ void Position::generate_en_passant_move(bool is_black, moves& possible_moves)
         do_move(move);
 
         // Check if king is not under attack after the move.
-        if (!king_look_around(is_black, find_bit_position(bit_boards[W_KING + 6 * is_black])) && move->move_bounds_valid()) 
-        {
-            possible_moves.move_count++;
-        }
+        possible_moves.move_count += !king_look_around(is_black, find_bit_position(bit_boards[W_KING + 6 * is_black])) && move->move_bounds_valid();
 
         // Undo the move.
         undo_move(move);
