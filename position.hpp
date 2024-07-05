@@ -94,6 +94,7 @@ struct Position
 
     // ==============================================================================================
 
+    // Print board to terminal.
     void print_to_terminal();
 
     // ==============================================================================================
@@ -102,20 +103,20 @@ struct Position
     // Index is equal to the piece number defenition. 
     uint64_t bit_boards[14] = 
     {
-        KING_SQUARES & ~BLACK_PIECES,    // W_KING
-        QUEEN_SQUARES & ~BLACK_PIECES,   // W_QUEEN
-        ROOK_SQUARES & ~BLACK_PIECES,    // W_ROOK
-        BISHOP_SQUARES & ~BLACK_PIECES,  // W_BISHOP
-        KNIGHT_SQUARES & ~BLACK_PIECES,  // W_KNIGHT
-        PAWN_SQUARES & ~BLACK_PIECES,    // W_PAWN
-        KING_SQUARES & BLACK_PIECES,     // B_KING
-        QUEEN_SQUARES & BLACK_PIECES,    // B_QUEEN
-        ROOK_SQUARES & BLACK_PIECES,     // B_ROOK
-        BISHOP_SQUARES & BLACK_PIECES,   // B_BISHOP
-        KNIGHT_SQUARES & BLACK_PIECES,   // B_KNIGHT
-        PAWN_SQUARES & BLACK_PIECES,     // B_PAWN
-        TOTAL_SQUARES,                   // All pieces
-        BLACK_PIECES                     // Black pieces.
+        KING_SQUARES    & ~BLACK_PIECES,    // W_KING
+        QUEEN_SQUARES   & ~BLACK_PIECES,    // W_QUEEN
+        ROOK_SQUARES    & ~BLACK_PIECES,    // W_ROOK
+        BISHOP_SQUARES  & ~BLACK_PIECES,    // W_BISHOP
+        KNIGHT_SQUARES  & ~BLACK_PIECES,    // W_KNIGHT
+        PAWN_SQUARES    & ~BLACK_PIECES,    // W_PAWN
+        KING_SQUARES    & BLACK_PIECES,     // B_KING
+        QUEEN_SQUARES   & BLACK_PIECES,     // B_QUEEN
+        ROOK_SQUARES    & BLACK_PIECES,     // B_ROOK
+        BISHOP_SQUARES  & BLACK_PIECES,     // B_BISHOP
+        KNIGHT_SQUARES  & BLACK_PIECES,     // B_KNIGHT
+        PAWN_SQUARES    & BLACK_PIECES,     // B_PAWN
+        TOTAL_SQUARES,                      // All pieces
+        BLACK_PIECES                        // Black pieces.
     };
     
     // ==============================================================================================

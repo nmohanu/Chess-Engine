@@ -54,7 +54,7 @@ uint64_t Position::make_reach_board(uint8_t square, bool is_black, uint8_t piece
     // Initialize board.
     uint64_t attack_board = 0b0;
     // Add attack squares.
-    attack_board |= generators[piece_type - 6*is_black](square, is_black, bit_boards[TOTAL], bit_boards[COLOR_BOARD]);
+    attack_board |= generators[AUTO_PIECE](square, is_black, TOTAL_BOARD, BLACK_PIECE_BOARD);
     // Return board.
     return attack_board;
 }
@@ -153,6 +153,7 @@ void Position::undo_piece_move(Move* move)
     uint8_t moved_piece = move->moving_piece;
     uint64_t end_square_mask = ~(1ULL << (63-end_square));
     uint64_t start_square_mask = 1ULL << (63-start_square);
+    bool is_black = moved_piece > 5;
 
     bit_boards[moved_piece] &= end_square_mask;
     bit_boards[moved_piece] |= start_square_mask;
@@ -161,7 +162,7 @@ void Position::undo_piece_move(Move* move)
     bit_boards[TOTAL] &= end_square_mask;
     bit_boards[TOTAL] |= start_square_mask;
 
-    if(moved_piece > 5)
+    if(is_black)
     {
         bit_boards[COLOR_BOARD] &= end_square_mask;
         bit_boards[COLOR_BOARD] |= start_square_mask;
@@ -172,7 +173,7 @@ void Position::undo_piece_move(Move* move)
         bit_boards[captured_piece] |= ~end_square_mask;
 
         // Now check if we need to update color board because of capture.
-        if(captured_piece > 5)
+        if(is_black)
         {
             bit_boards[COLOR_BOARD] |= ~end_square_mask;
         }
@@ -191,9 +192,10 @@ void Position::undo_en_passant_capture(Move* move)
     uint8_t moved_piece = move->moving_piece;
     uint64_t end_square_mask = ~(1ULL << (63-end_square));
     uint64_t start_square_mask = 1ULL << (63-start_square);
+    bool is_black = moved_piece > 5;
 
-    uint8_t capture_square = (moved_piece > 5) ? end_square - 8 : end_square + 8;
-    uint8_t capture_piece_index = W_PAWN + 6 * !(moved_piece > 5);
+    uint8_t capture_square = (is_black) ? end_square - 8 : end_square + 8;
+    uint8_t capture_piece_index = W_PAWN + 6 * !(is_black);
 
     // Toggle off moved piece from end square
     bit_boards[moved_piece] &= end_square_mask;
@@ -206,7 +208,8 @@ void Position::undo_en_passant_capture(Move* move)
     uint64_t capture_square_mask = 1ULL << (63-capture_square);
     bit_boards[capture_piece_index] |= capture_square_mask;
     bit_boards[TOTAL] |= capture_square_mask;
-    if (moved_piece > 5)
+
+    if (is_black)
     {
         bit_boards[COLOR_BOARD] &= end_square_mask;
         bit_boards[COLOR_BOARD] |= start_square_mask;
