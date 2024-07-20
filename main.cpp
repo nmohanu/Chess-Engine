@@ -35,9 +35,11 @@ int main()
 
     bool is_white_turn = true;
 
-    bool do_perft_test = true;
+    bool do_perft_test = false;
 
     bool engine_turned_on = false;
+
+    bool use_SFML = false;
 
     int perft_depth_limit = PERFT_DEPTH;
 
@@ -64,6 +66,8 @@ int main()
     uint64_t white_reach_board = board->position->color_reach_board(0);
 
     moves possible_moves;
+    possible_moves.move_count = 0;
+    int last_move_count = 0;
     board->position->determine_moves(0, possible_moves);
     // possible_moves = board->position->determine_moves(!is_white_turn);
 
@@ -148,12 +152,68 @@ int main()
     if(do_perft_test)
     {
         for(int depth = 1; depth <= perft_depth_limit; depth++)
-            engine.do_perft_test(depth, board->position);
+            engine.do_perft_test(depth, board->position, is_white_turn);
+        return 0;
+    }
+
+    // Use terminal instead of SFML.
+    if(!use_SFML)
+    {
+        while(true)
+        {
+            board->position->print_to_terminal();
+            std::cout << "1. Do move: \n2. Do perft test. \n3. Let engine do move. \n";
+            // Initialize:
+            int command;
+            std::cin >> command;
+            std::string move_string;
+            switch (command)
+            {
+                case 1:
+                    std::cout << "Give move in chess notation: e.g. a2a4 \n";
+                    std::cin >> move_string;
+                
+                    for (int i = last_move_count; i < possible_moves.move_count; i++)
+                    {
+                        std::string compare_string = possible_moves.moves[i].to_string();
+                        if(move_string == compare_string)
+                        {
+                            // Given move is valid.
+                            board->position->do_move(&possible_moves.moves[i]);
+                            is_white_turn = !is_white_turn;
+                            last_move_count = possible_moves.move_count;
+                            board->position->determine_moves(!is_white_turn, possible_moves);
+                            std::cout << move_string << " done. \n"; 
+                        }
+                    }
+                    break;
+                case 2:
+                    std::cout << "depth?" << '\n';
+                    {
+                        int depth;
+                        std::cin >> depth;
+                        engine.do_perft_test(depth, board->position, is_white_turn);
+                    }
+                    break;
+                case 3:
+                    {
+                        Move best_move;
+                        engine.best_move(board->position, !is_white_turn, 6, best_move);
+                        board->position->do_move(&best_move);
+                        is_white_turn = !is_white_turn;
+                        board->position->determine_moves(!is_white_turn, possible_moves);
+                        std::cout << "Move found: " << best_move.to_string() << '\n';
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
         return 0;
     }
 
     sf::RenderWindow window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Chess Engine");
-
+    // SFML.
     while(window.isOpen())
     {
         sf::Event event;
@@ -239,28 +299,29 @@ int main()
             if(last_clicked_square != clicked_square)
             {
                 selected_piece = board->position->get_piece(square_on_board);
-
-                move_board = board->position->make_reach_board(square_on_board, !is_white_turn, selected_piece);
+                // if(selected_piece < 12)
+                //     move_board = board->position->make_reach_board(square_on_board, !is_white_turn, selected_piece);
 
                 if(selected_piece == EMPTY)
                 {
                     move_board = 0b0;
                 }
                 
-                for (int i = 0; i < possible_moves.move_count; i++)
+                for (int i = last_move_count; i < possible_moves.move_count; i++)
                 {
                     Move* move = &possible_moves.moves[i];
                     if(move->start_location == last_square_on_board && move->end_location == square_on_board)
                     {
                         board->position->do_move(move);
                         is_white_turn = !is_white_turn;
+                        last_move_count = possible_moves.move_count;
                         board->position->determine_moves(!is_white_turn, possible_moves);
                         white_reach_board = board->position->color_reach_board(0);
-                        black_reach_board = board->position->color_reach_board(1);
-                        if(possible_moves.move_count == 0)
-                        {
-                            std::cout << "Player " << !is_white_turn << " wins! \n";
-                        }
+                        // black_reach_board = board->position->color_reach_board(1);
+                        // if(possible_moves.move_count == 0)
+                        // {
+                        //     std::cout << "Player " << !is_white_turn << " wins! \n";
+                        // }
                         break;
                     }
                 }
