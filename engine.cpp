@@ -98,7 +98,7 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
     return nodes;
 }
 
-// Function to return the best found move.
+// // Function to return the best found move.
 // void Engine::best_move(Position* position, bool color_sign, int depth, Move& best_move)
 // {
 //     // For analysis.
@@ -174,186 +174,186 @@ uint64_t Engine::perft_test(Position* position, int depth, bool color_sign, int&
 //     }
 
 //     // Determine possible moves.
-//     // std::vector<Move> possible_moves = position->determine_moves(!maximizing);
+//     std::vector<Move> possible_moves = position->determine_moves(!maximizing);
 
 //     // No moves available means current player loses.
-//     // if(possible_moves.empty())
-//     //     return maximizing ? -100 : 100;
+//     if(possible_moves.empty())
+//         return maximizing ? -100 : 100;
 
-//     // sort_move_priority(possible_moves, position);
+//     sort_move_priority(possible_moves, position);
 
 //     float eval = maximizing ? -100 : 100;
 
-//     // Move local_best_move = possible_moves.front();
+//     Move local_best_move = possible_moves.front();
 
-//     // bool first_node = true;
+//     bool first_node = true;
 
 //     // Actual search. ==================================================================================================================
     
-//     // for(Move& move : possible_moves)
-//     // {
-//     //     // Do move.
-//     //     position->do_move(&move);
-//     //     // Evaluate.
-//     //     float score = search(current_depth - 1, alpha, beta, position_count, position, best_move, false, !maximizing, zobrist_skips, depth_limit);
-//     //     // Undo.
-//     //     position->undo_move(&move);
-//     //     // Check if time is up.
-//     //     if(score == -999999)
-//     //         return -999999;
+//     for(Move& move : possible_moves)
+//     {
+//         // Do move.
+//         position->do_move(&move);
+//         // Evaluate.
+//         float score = search(current_depth - 1, alpha, beta, position_count, position, best_move, false, !maximizing, zobrist_skips, depth_limit);
+//         // Undo.
+//         position->undo_move(&move);
+//         // Check if time is up.
+//         if(score == -999999)
+//             return -999999;
 
-//     //     // Evaluate found score and edit alpha, beta, and best move accordingly.
-//     //     if (maximizing)
-//     //     {
-//     //         if (score >= eval)
-//     //         {
+//         // Evaluate found score and edit alpha, beta, and best move accordingly.
+//         if (maximizing)
+//         {
+//             if (score >= eval)
+//             {
                 
-//     //             eval = score;
-//     //             if (eval > alpha)
-//     //             {
-//     //                 alpha = eval;
-//     //                 local_best_move = Move(move);
-//     //                 hashf = hashfEXACT;
-//     //             }
-//     //         }
-//     //         if (eval >= beta)
-//     //         {
-//     //             transposition_table.insert_hash(current_depth, eval, hashfBETA, key);
-//     //             break;
-//     //         }
-//     //     }
-//     //     else
-//     //     {
-//     //         if (score <= eval)
-//     //         {
+//                 eval = score;
+//                 if (eval > alpha)
+//                 {
+//                     alpha = eval;
+//                     local_best_move = Move(move);
+//                     hashf = hashfEXACT;
+//                 }
+//             }
+//             if (eval >= beta)
+//             {
+//                 transposition_table.insert_hash(current_depth, eval, hashfBETA, key);
+//                 break;
+//             }
+//         }
+//         else
+//         {
+//             if (score <= eval)
+//             {
                 
-//     //             eval = score;
-//     //             if (eval < beta)
-//     //             {
-//     //                 beta = eval;
-//     //                 local_best_move = Move(move);
-//     //                 hashf = hashfEXACT;
-//     //             }
-//     //         }
-//     //         if (eval <= alpha)
-//     //         {
-//     //             transposition_table.insert_hash(current_depth, eval, hashfALPHA, key);
-//     //             break;
-//     //         }
-//     //     }
+//                 eval = score;
+//                 if (eval < beta)
+//                 {
+//                     beta = eval;
+//                     local_best_move = Move(move);
+//                     hashf = hashfEXACT;
+//                 }
+//             }
+//             if (eval <= alpha)
+//             {
+//                 transposition_table.insert_hash(current_depth, eval, hashfALPHA, key);
+//                 break;
+//             }
+//         }
 //     }
 
-//     // if(top_level)
-//     //     best_move = local_best_move;
+//     if(top_level)
+//         best_move = local_best_move;
 
-//     // transposition_table.insert_hash(current_depth, eval, hashf, key);
-//     // return eval;
+//     transposition_table.insert_hash(current_depth, eval, hashf, key);
+//     return eval;
 // }
 
-void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
-{
-    for (Move& move : moves)
-    {
-        // Set priority groups based on properties.
-        if (move.is_capture(position)) 
-        {
-            move.priority_group = 1;
-        } else if (move.is_check(position)) 
-        {
-            move.priority_group = 2;
-        } else 
-        {
-            move.priority_group = 3;
-        }
-    }
+// void Engine::sort_move_priority(std::vector<Move>& moves, Position* position)
+// {
+//     for (Move& move : moves)
+//     {
+//         // Set priority groups based on properties.
+//         if (move.is_capture(position)) 
+//         {
+//             move.priority_group = 1;
+//         } else if (move.is_check(position)) 
+//         {
+//             move.priority_group = 2;
+//         } else 
+//         {
+//             move.priority_group = 3;
+//         }
+//     }
 
-    // Sort vector according to priority groups.
-    std::sort(moves.begin(), moves.end(), [](const Move& a, const Move& b) {
-        // Sort by priority_group first.
-        if (a.priority_group != b.priority_group) {
-            return a.priority_group < b.priority_group;
-        }
+//     // Sort vector according to priority groups.
+//     std::sort(moves.begin(), moves.end(), [](const Move& a, const Move& b) {
+//         // Sort by priority_group first.
+//         if (a.priority_group != b.priority_group) {
+//             return a.priority_group < b.priority_group;
+//         }
 
-        return a.evaluation > b.evaluation; 
-    });
-}
+//         return a.evaluation > b.evaluation; 
+//     });
+// }
 
 
-float Engine::evaluate_piece_sum(Position* position, uint8_t color_sign)
-{
-    float points = 0.f;
-    for(int i = 0; i < 64; i++)
-    {
-        uint8_t piece = position->get_piece(i);
+// float Engine::evaluate_piece_sum(Position* position, uint8_t color_sign)
+// {
+//     float points = 0.f;
+//     for(int i = 0; i < 64; i++)
+//     {
+//         uint8_t piece = position->get_piece(i);
         
-        if(piece == EMPTY || piece > 5 != color_sign)
-            continue;
+//         if(piece == EMPTY || piece > 5 != color_sign)
+//             continue;
 
-        points += get_piece_value(piece);
-    }
+//         points += get_piece_value(piece);
+//     }
 
-    return points;
-}
+//     return points;
+// }
 
-float Engine::evaluate_position(Position* position)
-{
-    float total_eval = 0.f;
+// float Engine::evaluate_position(Position* position)
+// {
+//     float total_eval = 0.f;
 
-    // Calculate difference in pieced value.
-    float black_points = evaluate_piece_sum(position, 1) * piece_value_weight;
-    float white_points = evaluate_piece_sum(position, 0) * piece_value_weight;
+//     // Calculate difference in pieced value.
+//     float black_points = evaluate_piece_sum(position, 1) * piece_value_weight;
+//     float white_points = evaluate_piece_sum(position, 0) * piece_value_weight;
 
-    // Evaluate piece positions.
-    black_points += evaluate_square_bonus(position, 1) * square_bonus_weight;
-    white_points += evaluate_square_bonus(position, 0) * square_bonus_weight;
+//     // Evaluate piece positions.
+//     black_points += evaluate_square_bonus(position, 1) * square_bonus_weight;
+//     white_points += evaluate_square_bonus(position, 0) * square_bonus_weight;
     
-    total_eval = white_points - black_points;
-    return total_eval;
-}
+//     total_eval = white_points - black_points;
+//     return total_eval;
+// }
 
-float Engine::evaluate_square_bonus(Position* position, uint8_t color_sign)
-{   
-    float total = 0.f;
-    for(int i = 0; i < 64; i++)
-    {
-        uint8_t piece = position->get_piece(i);
-        if(color_sign != piece > 5 || piece == EMPTY)
-            continue;
-        else
-        {
-            int it = i;
-            if(color_sign)
-                it = 63-i;
-            switch(piece)
-            {
-                case B_PAWN:
-                case W_PAWN:
-                    total += PAWN_BONUS[it];
-                    break;
-                case B_KNIGHT:
-                case W_KNIGHT:
-                    total += KNIGHT_BONUS[it];
-                    break;
-                case B_BISHOP: 
-                case W_BISHOP:
-                    total += BISHOP_BONUS[it];
-                    break;
-                case B_ROOK:
-                case W_ROOK:
-                    total += ROOK_BONUS[it];
-                    break;
-                case B_QUEEN:
-                case W_QUEEN:
-                    total += QUEEN_BONUS[it];
-                    break;
-                case B_KING:
-                case W_KING:
-                        total += KING_BONUS[it];
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-    return total;
-}
+// float Engine::evaluate_square_bonus(Position* position, uint8_t color_sign)
+// {   
+//     float total = 0.f;
+//     for(int i = 0; i < 64; i++)
+//     {
+//         uint8_t piece = position->get_piece(i);
+//         if(color_sign != piece > 5 || piece == EMPTY)
+//             continue;
+//         else
+//         {
+//             int it = i;
+//             if(color_sign)
+//                 it = 63-i;
+//             switch(piece)
+//             {
+//                 case B_PAWN:
+//                 case W_PAWN:
+//                     total += PAWN_BONUS[it];
+//                     break;
+//                 case B_KNIGHT:
+//                 case W_KNIGHT:
+//                     total += KNIGHT_BONUS[it];
+//                     break;
+//                 case B_BISHOP: 
+//                 case W_BISHOP:
+//                     total += BISHOP_BONUS[it];
+//                     break;
+//                 case B_ROOK:
+//                 case W_ROOK:
+//                     total += ROOK_BONUS[it];
+//                     break;
+//                 case B_QUEEN:
+//                 case W_QUEEN:
+//                     total += QUEEN_BONUS[it];
+//                     break;
+//                 case B_KING:
+//                 case W_KING:
+//                         total += KING_BONUS[it];
+//                     break;
+//                 default:
+//                     break;
+//             }
+//         }
+//     }
+//     return total;
+// }

@@ -175,12 +175,11 @@ int main()
                 
                     for (int i = last_move_count; i < possible_moves.move_count; i++)
                     {
-                        Move* move = &possible_moves.moves[i];
-                        std::string from = move_string.substr(0, 2);
-                        std::string to = move_string.substr(2, 2);
-                        if(move->start_location == chess_notation_to_index(from) && move->end_location == chess_notation_to_index(to))
+                        std::string compare_string = possible_moves.moves[i].to_string();
+                        if(move_string == compare_string)
                         {
-                            board->position->do_move(move);
+                            // Given move is valid.
+                            board->position->do_move(&possible_moves.moves[i]);
                             is_white_turn = !is_white_turn;
                             last_move_count = possible_moves.move_count;
                             board->position->determine_moves(!is_white_turn, possible_moves);

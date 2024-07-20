@@ -21,7 +21,7 @@ FetchContent_Declare(SFML
     GIT_TAG 2.6.x)
 FetchContent_MakeAvailable(SFML)
 
-add_executable(main main.cpp board.cpp engine.cpp util.cpp zobrist.cpp move.cpp)
+add_executable(main main.cpp position.cpp engine.cpp util.cpp zobrist.cpp move.cpp)
 target_link_libraries(main PRIVATE sfml-graphics)
 target_compile_features(main PRIVATE cxx_std_20)
 

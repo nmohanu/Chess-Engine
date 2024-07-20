@@ -153,6 +153,8 @@ void Position::undo_piece_move(Move* move)
     uint8_t moved_piece = move->moving_piece;
     uint64_t end_square_mask = ~(1ULL << (63-end_square));
     uint64_t start_square_mask = 1ULL << (63-start_square);
+    bool is_black = moved_piece > 5;
+    
 
     bit_boards[moved_piece] &= end_square_mask;
     bit_boards[moved_piece] |= start_square_mask;
@@ -161,9 +163,9 @@ void Position::undo_piece_move(Move* move)
     bit_boards[TOTAL] &= end_square_mask;
     bit_boards[TOTAL] |= start_square_mask;
 
-    if(moved_piece > 5)
+    if(is_black)
     {
-        bit_boards[COLOR_BOARD] &= end_square_mask;
+        bit_boards[COLOR_BOARD] &= (end_square_mask );
         bit_boards[COLOR_BOARD] |= start_square_mask;
     }
 
@@ -883,7 +885,28 @@ std::string Move::to_string()
 {
     std::string start_notation = make_chess_notation(this->start_location);
     std::string destination_notation = make_chess_notation(this->end_location);
-    return start_notation + destination_notation;
+    std::string promotion_letter = "";
+    if(this->promotion)
+    {
+        switch (this->promotion)
+        {
+            case 1:
+                promotion_letter = "q";
+                break;
+            case 2:
+                promotion_letter = "r";
+                break;
+            case 3:
+                promotion_letter = "b";
+                break;
+            case 4:
+                promotion_letter = "n";
+                break;
+            default:
+                break;
+        }
+    }
+    return start_notation + destination_notation + promotion_letter;
 }
 
 
