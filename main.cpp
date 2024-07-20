@@ -162,7 +162,7 @@ int main()
         while(true)
         {
             board->position->print_to_terminal();
-            std::cout << "1. Do move: \n2. Do perft test. \n";
+            std::cout << "1. Do move: \n2. Do perft test. \n3. Let engine do move. \n";
             // Initialize:
             int command;
             std::cin >> command;
@@ -183,7 +183,7 @@ int main()
                             is_white_turn = !is_white_turn;
                             last_move_count = possible_moves.move_count;
                             board->position->determine_moves(!is_white_turn, possible_moves);
-                            std::cout << move_string << " done. \n";
+                            std::cout << move_string << " done. \n"; 
                         }
                     }
                     break;
@@ -193,6 +193,15 @@ int main()
                         int depth;
                         std::cin >> depth;
                         engine.do_perft_test(depth, board->position, is_white_turn);
+                    }
+                    break;
+                case 3:
+                    {
+                        Move best_move;
+                        engine.best_move(board->position, !is_white_turn, 5, best_move);
+                        board->position->do_move(&best_move);
+                        is_white_turn = !is_white_turn;
+                        std::cout << "Move found: " << best_move.to_string() << '\n';
                     }
                     break;
                 default:

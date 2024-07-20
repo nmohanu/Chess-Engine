@@ -18,7 +18,7 @@ public:
 
     void do_perft_test(int depth, Position* position, bool white_to_move);
 
-    uint64_t perft_test(Position* position, int depth, bool color_sign, int& captures, int& checks, int& check_mates, moves& possible_moves);
+    uint64_t perft_test(Position* position, int depth, bool color_sign, moves& possible_moves);
 
     bool time_up = false;
 
@@ -27,7 +27,7 @@ public:
 private:
     // Working but can be improved later:
 
-    float search(int depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int& zobrist_skips, int depth_limit);
+    float search(int current_depth, int alpha, int beta, int& position_count, Position* position, Move& best_move, bool top_level, bool maximizing, int depth_limit, moves possible_moves);
 
     float evaluate_piece_sum(Position* position, uint8_t color_sign);
 
@@ -84,18 +84,6 @@ private:
 
     ZobristHash hasher;
 
-    int previous_score = 0;
-
-    int perft_pawns_w = 0;
-    int perft_pawns_b = 0;
-    int perft_knight_w = 0;
-    int perft_knight_b = 0;
-    int perft_king_w = 0;
-    int perft_king_b = 0;
-    int perft_queen_w = 0;
-    int perft_queen_b = 0;
-    int perft_rook_w = 0;
-    int perft_rook_b = 0;
     int currently_evaluating_perft_depth;
 };
 
