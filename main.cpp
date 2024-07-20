@@ -198,9 +198,10 @@ int main()
                 case 3:
                     {
                         Move best_move;
-                        engine.best_move(board->position, !is_white_turn, 5, best_move);
+                        engine.best_move(board->position, !is_white_turn, 6, best_move);
                         board->position->do_move(&best_move);
                         is_white_turn = !is_white_turn;
+                        board->position->determine_moves(!is_white_turn, possible_moves);
                         std::cout << "Move found: " << best_move.to_string() << '\n';
                     }
                     break;

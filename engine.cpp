@@ -160,12 +160,12 @@ float Engine::search(int current_depth, int alpha, int beta, int& position_count
     uint64_t key = hasher.calculate_zobrist_key(position, !maximizing);
     int entry_key_value = transposition_table.read_hash_entry(alpha, beta, current_depth, key);
 
-    // // Read hash entry.
-    // if(entry_key_value != no_hash_entry && !top_level)
-    // {
-    //     // Position wes already evaluated in a different order.
-    //     return entry_key_value;
-    // }
+    // Read hash entry.
+    if(entry_key_value != no_hash_entry && !top_level)
+    {
+        // Position wes already evaluated in a different order.
+        return entry_key_value;
+    }
 
     // Count unique positions visited.
     position_count++;
