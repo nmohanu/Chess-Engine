@@ -8,7 +8,7 @@ Move generator: <br />
 - Binary piece representation.<br />
 - Magic bitboards / lookuptables.<br />
 - PERFT test (perfect score tested up to depth 8).<br />
-- Zobrish hashing
+- Zobrish hashing <br />
 <br />
 GUI:<br />
 - GUI allowing the player to play a game.<br />
