@@ -1,6 +1,6 @@
 This is a chess engine currently in development. Created by Nathanael Mohanu. <br />
 
-Note: The move generator is already quite optimized and late stage. The AI and GUI are working but in early development.
+Note: The move generator is already quite optimized and late stage. The AI and GUI are working but in early development. Currently only working on ARM cpu's.
 
 Project contains an SFML GUI.<br />
 <br />
